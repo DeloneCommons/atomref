@@ -64,6 +64,18 @@ print(ar.list_dataset_infos("van_der_waals_radius", usage_role="target"))
 print(ar.list_dataset_infos("atomic_radius", usage_role="support"))
 ```
 
+You can also retrieve the packaged set object directly:
+
+```python
+import atomref as ar
+
+vdw = ar.get_radii_set("van_der_waals", "alvarez2013")
+print(vdw.get("O"))
+
+raw = ar.get_builtin_set(ar.DatasetRef("atomic_radius", "rahm2016"))
+print(raw.get("Pm"))
+```
+
 ## Notebooks
 
 Hands-on notebooks live in the repository and mirror the main v0.1 workflows:

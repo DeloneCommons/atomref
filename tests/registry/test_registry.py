@@ -80,3 +80,16 @@ def test_list_radii_set_infos_can_filter_by_usage_role() -> None:
     infos = ar.list_radii_set_infos('van_der_waals', usage_role='target')
     assert 'alvarez2013' in {info.ref.set_id for info in infos}
     assert all(info.ref.quantity == 'van_der_waals_radius' for info in infos)
+
+
+def test_public_builtin_set_helper_is_exported() -> None:
+    ds = ar.get_builtin_set(ar.DatasetRef('covalent_radius', 'cordero2008'))
+    assert ds.info.ref.quantity == 'covalent_radius'
+    assert ds.get('C') == 0.76
+
+
+def test_public_radii_set_helper_returns_packaged_radii_set() -> None:
+    ds = ar.get_radii_set('van_der_waals', 'alvarez2013')
+    assert ds.info.ref.quantity == 'van_der_waals_radius'
+    assert ds.info.ref.set_id == 'alvarez2013'
+    assert ds.get('O') == 1.5

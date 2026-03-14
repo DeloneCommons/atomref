@@ -13,6 +13,7 @@ from .registry import (
     DatasetInfo,
     DatasetRef,
     ElementScalarSet,
+    get_builtin_set,
     get_dataset_info,
     list_dataset_ids,
     list_dataset_infos,
@@ -136,6 +137,10 @@ def list_radii_set_infos(
 
 def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:
     return get_dataset_info(DatasetRef(_quantity_for_kind(kind), set_id))
+
+
+def get_radii_set(kind: RadiiKind, set_id: str) -> RadiiSet:
+    return get_builtin_set(DatasetRef(_quantity_for_kind(kind), set_id))
 
 
 def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:

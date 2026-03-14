@@ -7,3 +7,5 @@
 - Added registry design separating operational quantity from scientific
   classification.
 - Added radii policies with substitution and linear transfer models.
+
+- Added public packaged-set retrieval helpers: `get_builtin_set()` and `get_radii_set()`.

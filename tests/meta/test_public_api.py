@@ -15,6 +15,8 @@ REQUIRED_PUBLIC_NAMES = {
     'DEFAULT_VDW_POLICY',
     'LinearTransfer',
     'SubstitutionTransfer',
+    'get_builtin_set',
+    'get_radii_set',
     'get_covalent_radius',
     'lookup_covalent_radius',
     'get_vdw_radius',
