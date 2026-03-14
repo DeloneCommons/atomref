@@ -17,6 +17,7 @@ from .radii import (
     get_covalent_radius,
     get_radii_set_info,
     get_vdw_radius,
+    list_radii_set_infos,
     list_radii_sets,
     lookup_covalent_radius,
     lookup_vdw_radius,
@@ -31,6 +32,7 @@ from .registry import (
     get_dataset_info,
     get_quantity_info,
     list_dataset_ids,
+    list_dataset_infos,
     list_quantities,
 )
 from .transfer import LinearFit, LinearTransfer, SubstitutionTransfer
@@ -51,6 +53,7 @@ __all__ = [
     "get_dataset_info",
     "get_quantity_info",
     "list_dataset_ids",
+    "list_dataset_infos",
     "list_quantities",
     "LinearFit",
     "LinearTransfer",
@@ -63,6 +66,7 @@ __all__ = [
     "DEFAULT_COVALENT_POLICY",
     "DEFAULT_VDW_POLICY",
     "list_radii_sets",
+    "list_radii_set_infos",
     "get_radii_set_info",
     "lookup_covalent_radius",
     "get_covalent_radius",

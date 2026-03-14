@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import asdict
+from importlib import import_module
 from pathlib import Path
 import sys
 from typing import Iterable
@@ -14,27 +15,35 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-import atomref as ar
-from atomref.registry import get_builtin_set
-
 _ALLOWED_USAGE_ROLES = {"target", "support"}
+
+
+def _load_atomref_module():
+    return import_module("atomref")
+
+
+def _get_builtin_set(ref):
+    registry = import_module("atomref.registry")
+    return registry.get_builtin_set(ref)
 
 
 def _canonical_token(value: str) -> str:
     return " ".join(value.strip().lower().split())
 
 
-def _iter_dataset_refs() -> Iterable[ar.DatasetRef]:
+def _iter_dataset_refs() -> Iterable[object]:
+    ar = _load_atomref_module()
     for quantity in ar.list_quantities():
-        for set_id in ar.list_dataset_ids(quantity):
-            yield ar.DatasetRef(quantity, set_id)
+        for info in ar.list_dataset_infos(quantity):
+            yield info.ref
 
 
 def _validate_alias_collisions(errors: list[str]) -> None:
+    ar = _load_atomref_module()
     for quantity in ar.list_quantities():
         seen: dict[str, str] = {}
-        for set_id in ar.list_dataset_ids(quantity):
-            info = ar.get_dataset_info(ar.DatasetRef(quantity, set_id))
+        for info in ar.list_dataset_infos(quantity):
+            set_id = info.ref.set_id
             for token in (set_id, *info.aliases):
                 key = _canonical_token(token)
                 previous = seen.get(key)
@@ -49,13 +58,14 @@ def _validate_alias_collisions(errors: list[str]) -> None:
 
 
 def _validate_dataset_metadata(errors: list[str]) -> None:
+    ar = _load_atomref_module()
     quantities = set(ar.list_quantities())
     by_role: dict[str, list[str]] = defaultdict(list)
 
     for ref in _iter_dataset_refs():
         quantity_info = ar.get_quantity_info(ref.quantity)
         info = ar.get_dataset_info(ref)
-        dataset = get_builtin_set(ref)
+        dataset = _get_builtin_set(ref)
 
         if info.ref != ref:
             errors.append(f"dataset ref mismatch: requested {ref!r}, got {info.ref!r}")

@@ -60,8 +60,8 @@ import atomref as ar
 
 print(ar.list_quantities())
 print(ar.get_quantity_info("atomic_radius"))
-print(ar.list_dataset_ids("van_der_waals_radius", usage_role="target"))
-print(ar.list_dataset_ids("atomic_radius", usage_role="support"))
+print(ar.list_dataset_infos("van_der_waals_radius", usage_role="target"))
+print(ar.list_dataset_infos("atomic_radius", usage_role="support"))
 ```
 
 ## Relationship to the Delone Commons ecosystem

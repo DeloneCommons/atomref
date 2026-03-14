@@ -21,7 +21,9 @@ REQUIRED_PUBLIC_NAMES = {
     'lookup_vdw_radius',
     'list_quantities',
     'list_dataset_ids',
+    'list_dataset_infos',
     'list_radii_sets',
+    'list_radii_set_infos',
 }
 
 

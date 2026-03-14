@@ -15,6 +15,7 @@ from .registry import (
     ElementScalarSet,
     get_dataset_info,
     list_dataset_ids,
+    list_dataset_infos,
 )
 from .transfer import LinearFit, LinearTransfer, SubstitutionTransfer, TransferModel
 
@@ -125,6 +126,12 @@ def list_radii_sets(
     kind: RadiiKind, *, usage_role: str | None = None
 ) -> tuple[str, ...]:
     return list_dataset_ids(_quantity_for_kind(kind), usage_role=usage_role)
+
+
+def list_radii_set_infos(
+    kind: RadiiKind, *, usage_role: str | None = None
+) -> tuple[DatasetInfo, ...]:
+    return list_dataset_infos(_quantity_for_kind(kind), usage_role=usage_role)
 
 
 def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:

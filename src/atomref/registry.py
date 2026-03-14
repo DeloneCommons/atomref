@@ -253,6 +253,15 @@ def list_dataset_ids(
     return tuple(filtered)
 
 
+def list_dataset_infos(
+    quantity: QuantityId, *, usage_role: str | None = None
+) -> tuple[DatasetInfo, ...]:
+    return tuple(
+        get_dataset_info(DatasetRef(quantity, set_id))
+        for set_id in list_dataset_ids(quantity, usage_role=usage_role)
+    )
+
+
 def _coerce_reference(obj: object) -> Reference:
     if not isinstance(obj, dict):
         raise DatasetError("invalid reference entry in registry.json")

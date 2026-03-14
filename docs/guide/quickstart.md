@@ -22,5 +22,7 @@ import atomref as ar
 
 print(ar.list_quantities())
 print(ar.get_quantity_info("atomic_radius"))
+print(ar.list_dataset_infos("covalent_radius"))
+print(ar.list_radii_set_infos("van_der_waals", usage_role="target"))
 ```
 

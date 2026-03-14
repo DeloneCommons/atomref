@@ -68,3 +68,15 @@ def test_list_dataset_ids_can_filter_by_usage_role() -> None:
 def test_list_radii_sets_can_filter_by_usage_role() -> None:
     assert ar.list_radii_sets('covalent', usage_role='support') == ('csd_legacy_cov',)
     assert 'alvarez2013' in ar.list_radii_sets('van_der_waals', usage_role='target')
+
+
+def test_list_dataset_infos_can_filter_by_usage_role() -> None:
+    infos = ar.list_dataset_infos('atomic_radius', usage_role='support')
+    assert tuple(info.ref.set_id for info in infos) == ('rahm2016',)
+    assert all(info.usage_role == 'support' for info in infos)
+
+
+def test_list_radii_set_infos_can_filter_by_usage_role() -> None:
+    infos = ar.list_radii_set_infos('van_der_waals', usage_role='target')
+    assert 'alvarez2013' in {info.ref.set_id for info in infos}
+    assert all(info.ref.quantity == 'van_der_waals_radius' for info in infos)
