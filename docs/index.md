@@ -75,3 +75,6 @@ fits naturally beneath:
 
 Those packages should consume atomic reference data from `atomref` rather than
 re-curating such datasets independently.
+
+For data-curation changes, validate the packaged registry against the bundled
+CSV tables with `python tools/check_registry.py`.
