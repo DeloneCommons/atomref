@@ -53,6 +53,15 @@ This follows the current `molcryst` pattern.
 - `atomic_radius` (support quantity; currently used for transfer from
   `rahm2016`)
 
+You can inspect the packaged quantity layer directly:
+
+```python
+import atomref as ar
+
+print(ar.list_quantities())
+print(ar.get_quantity_info("atomic_radius"))
+```
+
 ## Relationship to the Delone Commons ecosystem
 
 `atomref` is intended to be reusable outside the surrounding ecosystem, but it

@@ -46,6 +46,14 @@ class CoverageInfo:
 
 
 @dataclass(frozen=True, slots=True)
+class QuantityInfo:
+    quantity: QuantityId
+    domain: DomainId
+    units: str | None = None
+    description: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class DatasetInfo:
     ref: DatasetRef
     domain: DomainId
@@ -177,6 +185,22 @@ def _datasets_for_quantity(quantity: QuantityId) -> Mapping[str, object]:
     if not isinstance(datasets, dict):
         raise DatasetError(f'unknown quantity: {quantity!r}')
     return datasets
+
+
+def list_quantities() -> tuple[str, ...]:
+    return tuple(_get_quantities_mapping().keys())
+
+
+def get_quantity_info(quantity: QuantityId) -> QuantityInfo:
+    raw = _get_quantities_mapping().get(quantity)
+    if not isinstance(raw, dict):
+        raise DatasetError(f'unknown quantity: {quantity!r}')
+    domain = raw.get('domain') if isinstance(raw.get('domain'), str) else None
+    if domain is None:
+        raise DatasetError(f'missing domain for quantity: {quantity!r}')
+    units = raw.get('units') if isinstance(raw.get('units'), str) else None
+    description = raw.get('description') if isinstance(raw.get('description'), str) else None
+    return QuantityInfo(quantity=quantity, domain=domain, units=units, description=description)
 
 
 def _canonicalize_alias_token(value: str) -> str:

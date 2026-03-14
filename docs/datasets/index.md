@@ -8,3 +8,5 @@ The package distinguishes between:
 
 This is what keeps support-only datasets such as `rahm2016` usable without
 misclassifying them as direct condensed-phase vdW radii.
+
+For programmatic inspection, use `atomref.list_quantities()` and `atomref.get_quantity_info(...)`.

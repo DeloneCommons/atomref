@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 import atomref as ar
+from atomref.errors import PolicyError
 
 
 def test_get_covalent_radius_default_prefers_cordero() -> None:
@@ -51,3 +52,49 @@ def test_lookup_float_conversion() -> None:
     m_missing = ar.lookup_covalent_radius('Xx')
     with pytest.raises(TypeError):
         float(m_missing)
+
+
+def test_override_precedes_base_value() -> None:
+    policy = ar.RadiiPolicy(
+        kind='covalent',
+        base_set='cordero2008',
+        overrides={'C': 9.99},
+    )
+    lookup = ar.lookup_covalent_radius('C', policy=policy)
+    assert lookup.source == 'override'
+    assert lookup.value == pytest.approx(9.99)
+
+
+def test_fallback_is_used_only_after_transfers_fail() -> None:
+    policy = ar.RadiiPolicy(
+        kind='van_der_waals',
+        base_set='bondi1964',
+        transfers=(
+            ar.LinearTransfer(
+                predictors=(ar.DatasetRef('van_der_waals_radius', 'csd_legacy_vdw'),)
+            ),
+        ),
+        fallback=2.5,
+    )
+    lookup = ar.lookup_vdw_radius('Be', policy=policy)
+    assert lookup.source == 'fallback'
+    assert lookup.value == pytest.approx(2.5)
+    assert any('placeholder' in note for note in lookup.notes)
+
+
+def test_linear_transfer_rejects_multiple_predictors_in_v0_1() -> None:
+    policy = ar.RadiiPolicy(
+        kind='van_der_waals',
+        base_set='alvarez2013',
+        transfers=(
+            ar.LinearTransfer(
+                predictors=(
+                    ar.DatasetRef('atomic_radius', 'rahm2016'),
+                    ar.DatasetRef('covalent_radius', 'cordero2008'),
+                )
+            ),
+        ),
+    )
+    with pytest.raises(PolicyError):
+        ar.lookup_vdw_radius('Pm', policy=policy)
+

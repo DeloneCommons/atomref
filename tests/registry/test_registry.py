@@ -30,3 +30,22 @@ def test_rahm_is_registered_as_atomic_radius() -> None:
 def test_builtin_set_loading_works() -> None:
     ds = get_builtin_set(ar.DatasetRef('covalent_radius', 'cordero2008'))
     assert ds.get('C') == 0.76
+
+
+def test_list_quantities_and_quantity_info() -> None:
+    quantities = ar.list_quantities()
+    assert quantities == ('covalent_radius', 'van_der_waals_radius', 'atomic_radius')
+
+    info = ar.get_quantity_info('atomic_radius')
+    assert info.quantity == 'atomic_radius'
+    assert info.domain == 'element'
+    assert info.units == 'angstrom'
+    assert 'support' in (info.description or '')
+
+
+def test_rahm_note_no_longer_claims_it_is_classified_as_vdw() -> None:
+    info = ar.get_dataset_info(ar.DatasetRef('atomic_radius', 'rahm2016'))
+    joined = ' '.join(info.notes).lower()
+    assert 'classified as vdw' not in joined
+    assert 'atomic support data' in joined
+

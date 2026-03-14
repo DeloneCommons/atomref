@@ -14,3 +14,13 @@ print(m.resolved_from)
 
 Use `get_*` when you only need the number, and `lookup_*` when you need
 provenance.
+
+You can also inspect the packaged quantity layer directly:
+
+```python
+import atomref as ar
+
+print(ar.list_quantities())
+print(ar.get_quantity_info("atomic_radius"))
+```
+

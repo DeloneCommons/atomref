@@ -20,9 +20,12 @@ from .registry import (
     DatasetInfo,
     DatasetRef,
     ElementScalarSet,
+    QuantityInfo,
     Reference,
     get_dataset_info,
+    get_quantity_info,
     list_dataset_ids,
+    list_quantities,
 )
 from .transfer import LinearFit, LinearTransfer, SubstitutionTransfer
 
@@ -37,9 +40,12 @@ __all__ = [
     'DatasetInfo',
     'DatasetRef',
     'ElementScalarSet',
+    'QuantityInfo',
     'Reference',
     'get_dataset_info',
+    'get_quantity_info',
     'list_dataset_ids',
+    'list_quantities',
     'LinearFit',
     'LinearTransfer',
     'SubstitutionTransfer',

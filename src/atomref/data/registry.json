@@ -426,7 +426,7 @@
         ],
         "notes": [
           "The original work also reports cationic radii (+1) for the first 96 elements and selected anionic radii (−1) for some elements; these are not yet included in the current CSV.",
-          "Despite the fact that in this project this radii are classified as vdW radii for the purpose of simplicity, they should be treated as a correlational/transferable baseline rather than a direct condensed-phase vdW radius since they describe isolated atoms in vacuum."
+          "In atomref this dataset is classified as atomic support data, not as a direct condensed-phase van der Waals-radius set, because it describes isolated atoms in vacuum and is used here primarily as a transferable baseline."
         ]
       }
     }
