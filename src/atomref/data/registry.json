@@ -62,7 +62,8 @@
         ],
         "notes": [
           "The source paper provides multiple radii per element for different atom types/environments; this package currently includes C(sp3) value for C and high-spin values for Mn/Fe/Co."
-        ]
+        ],
+        "usage_role": "target"
       },
       "csd_legacy_cov": {
         "name": "CSD legacy covalent radii (bond perception)",
@@ -102,7 +103,8 @@
           "CSD bond assignment heuristic: a bond A-B may be inferred if distance d satisfies Rcov(A)+Rcov(B)-t <= d <= Rcov(A)+Rcov(B)+t, with typical t=0.4 Å. (See the CCDC spreadsheet notes.)",
           "For Z>=111, csd_legacy values are omitted because the legacy CSD table does not provide radii beyond Darmstadtium (Z=110).",
           "Elements not yet encountered in the CSD have Rcov = 1.50 Å."
-        ]
+        ],
+        "usage_role": "support"
       }
     },
     "van_der_waals_radius": {
@@ -188,7 +190,8 @@
         "notes": [
           "Coverage is limited (38 elements, including only a few transition metals and uranium).",
           "Because Bondi radii were not derived exclusively from crystal nonbonded contact statistics, they can differ slightly from later 'structural' vdW radii."
-        ]
+        ],
+        "usage_role": "target"
       },
       "rowland_taylor1996": {
         "name": "Rowland & Taylor nonbonded contact radii",
@@ -236,7 +239,8 @@
         "notes": [
           "Coverage is intentionally limited to common organic-crystal nonmetals (H, C, N, O, F, S, Cl, Br, I).",
           "Rowland & Taylor also report a normalized set (R_d) constrained to match the total of Bondi radii; this package uses the raw least-squares r_c values."
-        ]
+        ],
+        "usage_role": "target"
       },
       "alvarez2013": {
         "name": "Alvarez van der Waals radii",
@@ -281,7 +285,8 @@
         ],
         "notes": [
           "Obtained by statistical analysis of millions of interatomic distances in the Cambridge Structural Database (CSD), locating the vdW peak after the vdW gap."
-        ]
+        ],
+        "usage_role": "target"
       },
       "chernyshov2020": {
         "name": "Chernyshov LoS van der Waals radii",
@@ -330,7 +335,8 @@
         "notes": [
           "The source paper provides multiple radii per element for different atom types/environments; this package currently includes only the main/default R_max values used in Table 1.",
           "Primarily targeted at elements common in organic crystals (H, C, N, O, F, S, Cl, Se, Br, I)."
-        ]
+        ],
+        "usage_role": "target"
       },
       "csd_legacy_vdw": {
         "name": "CSD legacy van der Waals radii (pre-2024.3)",
@@ -381,7 +387,8 @@
           "For Z>=111, csd_legacy values are omitted because the legacy CSD table does not provide radii beyond Darmstadtium (Z=110).",
           "Radii that are not available in either Bondi or Rowland & Taylor versions were assigned RvdW of 2.00 Å.",
           "The CSD 2024.3 release updated the vdW radii used in CSD and Mercury to Alvarez-derived values (see CCDC blog post)."
-        ]
+        ],
+        "usage_role": "support"
       }
     },
     "atomic_radius": {
@@ -427,7 +434,8 @@
         "notes": [
           "The original work also reports cationic radii (+1) for the first 96 elements and selected anionic radii (−1) for some elements; these are not yet included in the current CSV.",
           "In atomref this dataset is classified as atomic support data, not as a direct condensed-phase van der Waals-radius set, because it describes isolated atoms in vacuum and is used here primarily as a transferable baseline."
-        ]
+        ],
+        "usage_role": "support"
       }
     }
   }

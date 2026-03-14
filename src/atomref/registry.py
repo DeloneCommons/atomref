@@ -60,6 +60,7 @@ class DatasetInfo:
     units: str | None
     name: str
     description: str | None = None
+    usage_role: str | None = None
     semantic_class: str | None = None
     origin_class: str | None = None
     phase_context: str | None = None
@@ -88,6 +89,7 @@ class ElementScalarSet:
         name: str,
         units: str | None,
         description: str | None = None,
+        usage_role: str = 'user',
         semantic_class: str = 'user',
         origin_class: str = 'user',
         phase_context: str | None = None,
@@ -119,6 +121,7 @@ class ElementScalarSet:
             units=units,
             name=name,
             description=description,
+            usage_role=usage_role,
             semantic_class=semantic_class,
             origin_class=origin_class,
             phase_context=phase_context,
@@ -225,8 +228,19 @@ def _resolve_set_id(quantity: QuantityId, set_id: str) -> str:
     raise DatasetError(f'unknown dataset id for {quantity!r}: {set_id!r}')
 
 
-def list_dataset_ids(quantity: QuantityId) -> tuple[str, ...]:
-    return tuple(_datasets_for_quantity(quantity).keys())
+def list_dataset_ids(quantity: QuantityId, *, usage_role: str | None = None) -> tuple[str, ...]:
+    dataset_ids = tuple(_datasets_for_quantity(quantity).keys())
+    if usage_role is None:
+        return dataset_ids
+
+    filtered: list[str] = []
+    wanted = usage_role.strip().lower()
+    for set_id in dataset_ids:
+        info = get_dataset_info(DatasetRef(quantity, set_id))
+        role = (info.usage_role or '').strip().lower()
+        if role == wanted:
+            filtered.append(set_id)
+    return tuple(filtered)
 
 
 def _coerce_reference(obj: object) -> Reference:
@@ -293,6 +307,7 @@ def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
         units=units,
         name=raw_entry.get('name') if isinstance(raw_entry.get('name'), str) else actual_ref.set_id,
         description=raw_entry.get('description') if isinstance(raw_entry.get('description'), str) else None,
+        usage_role=raw_entry.get('usage_role') if isinstance(raw_entry.get('usage_role'), str) else None,
         semantic_class=raw_entry.get('semantic_class') if isinstance(raw_entry.get('semantic_class'), str) else None,
         origin_class=raw_entry.get('origin_class') if isinstance(raw_entry.get('origin_class'), str) else None,
         phase_context=raw_entry.get('phase_context') if isinstance(raw_entry.get('phase_context'), str) else None,

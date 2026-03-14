@@ -112,8 +112,8 @@ def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
     return tuple(sorted(symbols, key=lambda s: get_element(s).z if get_element(s) else 0))
 
 
-def list_radii_sets(kind: RadiiKind) -> tuple[str, ...]:
-    return list_dataset_ids(_quantity_for_kind(kind))
+def list_radii_sets(kind: RadiiKind, *, usage_role: str | None = None) -> tuple[str, ...]:
+    return list_dataset_ids(_quantity_for_kind(kind), usage_role=usage_role)
 
 
 def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:

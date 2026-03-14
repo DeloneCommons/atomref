@@ -49,3 +49,22 @@ def test_rahm_note_no_longer_claims_it_is_classified_as_vdw() -> None:
     assert 'classified as vdw' not in joined
     assert 'atomic support data' in joined
 
+
+def test_usage_role_is_exposed_on_dataset_info() -> None:
+    info = ar.get_dataset_info(ar.DatasetRef('atomic_radius', 'rahm2016'))
+    assert info.usage_role == 'support'
+
+
+def test_list_dataset_ids_can_filter_by_usage_role() -> None:
+    assert ar.list_dataset_ids('atomic_radius', usage_role='support') == ('rahm2016',)
+    assert ar.list_dataset_ids('van_der_waals_radius', usage_role='target') == (
+        'bondi1964',
+        'rowland_taylor1996',
+        'alvarez2013',
+        'chernyshov2020',
+    )
+
+
+def test_list_radii_sets_can_filter_by_usage_role() -> None:
+    assert ar.list_radii_sets('covalent', usage_role='support') == ('csd_legacy_cov',)
+    assert 'alvarez2013' in ar.list_radii_sets('van_der_waals', usage_role='target')
