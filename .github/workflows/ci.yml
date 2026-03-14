@@ -20,6 +20,8 @@ jobs:
         run: flake8 src tests tools
       - name: Validate packaged registry
         run: python tools/check_registry.py
+      - name: Validate notebooks
+        run: python tools/check_notebooks.py
 
   docs-check:
     runs-on: ubuntu-latest

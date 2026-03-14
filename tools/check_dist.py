@@ -23,6 +23,10 @@ REQUIRED_SDIST_SUFFIXES = {
     'README.md',
     'LICENSE',
     'pyproject.toml',
+    'notebooks/01-quickstart.ipynb',
+    'notebooks/02-policies-and-assessment.ipynb',
+    'notebooks/03-custom-sets-and-discovery.ipynb',
+    'tools/check_notebooks.py',
 }
 
 

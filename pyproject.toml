@@ -70,6 +70,7 @@ include = [
   "/tests",
   "/docs",
   "/tools",
+  "/notebooks",
   "/mkdocs.yml",
   "/README.md",
   "/CHANGELOG.md",

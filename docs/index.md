@@ -64,6 +64,18 @@ print(ar.list_dataset_infos("van_der_waals_radius", usage_role="target"))
 print(ar.list_dataset_infos("atomic_radius", usage_role="support"))
 ```
 
+## Notebooks
+
+Hands-on notebooks live in the repository and mirror the main v0.1 workflows:
+
+- [`01-quickstart.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/01-quickstart.ipynb)
+- [`02-policies-and-assessment.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/02-policies-and-assessment.ipynb)
+- [`03-custom-sets-and-discovery.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/03-custom-sets-and-discovery.ipynb)
+
+Open them locally in Jupyter or browse them on GitHub for worked examples of
+lookup, transfer-backed policies, dataset discovery, and custom element-scalar
+sets.
+
 ## Relationship to the Delone Commons ecosystem
 
 `atomref` is intended to be reusable outside the surrounding ecosystem, but it

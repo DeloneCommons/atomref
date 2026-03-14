@@ -26,3 +26,9 @@ print(ar.list_dataset_infos("covalent_radius"))
 print(ar.list_radii_set_infos("van_der_waals", usage_role="target"))
 ```
 
+Need runnable versions of these examples? See the notebooks page and the
+matching notebook files in the repository:
+
+- [`01-quickstart.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/01-quickstart.ipynb)
+- [`02-policies-and-assessment.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/02-policies-and-assessment.ipynb)
+- [`03-custom-sets-and-discovery.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/03-custom-sets-and-discovery.ipynb)
