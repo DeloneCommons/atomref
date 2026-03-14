@@ -1,0 +1,434 @@
+{
+  "schema_version": "0.1",
+  "created_from": {
+    "source_project": "molcryst",
+    "source_schema_version": "0.2",
+    "notes": [
+      "Transformed for the initial atomref v0.1 scaffold.",
+      "Rahm 2016 is reclassified from van_der_waals to atomic_radius."
+    ]
+  },
+  "quantities": {
+    "covalent_radius": {
+      "domain": "element",
+      "units": "angstrom",
+      "description": "Element-indexed covalent radii intended for geometry and bonding heuristics."
+    },
+    "van_der_waals_radius": {
+      "domain": "element",
+      "units": "angstrom",
+      "description": "Element-indexed condensed-phase or contact-derived van der Waals radii."
+    },
+    "atomic_radius": {
+      "domain": "element",
+      "units": "angstrom",
+      "description": "Element-indexed isolated-atom or theory-defined atomic radii used as transferable support data."
+    }
+  },
+  "datasets": {
+    "covalent_radius": {
+      "cordero2008": {
+        "name": "Cordero et al. covalent radii",
+        "description": "Covalent radii from Cordero et al. (2008) (last author: Alvarez).",
+        "semantic_class": "covalent_structural",
+        "origin_class": "compiled_experimental",
+        "phase_context": "condensed_phase",
+        "method_summary": "Derived from crystallographic bond distances (primarily single bonds) across the periodic table.",
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "covalent.csv",
+          "column": "cordero2008"
+        },
+        "coverage": {
+          "n_values": 96,
+          "z_min": 1,
+          "z_max": 96,
+          "has_placeholders": false
+        },
+        "placeholder_value": null,
+        "extraction_source": "Table 2 in B. Cordero et al. (2008), column 'r'",
+        "aliases": [
+          "Cordero covalent radii",
+          "Cordero–Alvarez covalent radii",
+          "Alvarez covalent radii (2008)"
+        ],
+        "references": [
+          {
+            "authors": "B. Cordero et al.",
+            "doi": "10.1039/B801115J",
+            "title": "Covalent radii revisited",
+            "venue": "Dalton Trans. (2008) 2832-2838"
+          }
+        ],
+        "notes": [
+          "The source paper provides multiple radii per element for different atom types/environments; this package currently includes C(sp3) value for C and high-spin values for Mn/Fe/Co."
+        ]
+      },
+      "csd_legacy_cov": {
+        "name": "CSD legacy covalent radii (bond perception)",
+        "description": "Legacy covalent radii used in CSD software for bond assignment (Rcov).",
+        "semantic_class": "covalent_legacy",
+        "origin_class": "curated_heuristic",
+        "phase_context": "mixed_or_legacy",
+        "method_summary": null,
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "covalent.csv",
+          "column": "csd_legacy_cov"
+        },
+        "coverage": {
+          "n_values": 110,
+          "z_min": 1,
+          "z_max": 110,
+          "has_placeholders": true
+        },
+        "placeholder_value": 1.5,
+        "extraction_source": "CCDC Elemental_Radii.xlsx (CSD radii table), column 'Covalent Radius'.",
+        "aliases": [],
+        "references": [
+          {
+            "publisher": "Cambridge Crystallographic Data Centre (CCDC)",
+            "title": "Elemental Data and Radii (Excel)",
+            "url": "https://www.ccdc.cam.ac.uk/media/Documentation/F8D8439E-30C5-4FA8-B781-D9E65AAB0BF3/Elemental_Radii.xlsx"
+          },
+          {
+            "authors": "B. Cordero et al.",
+            "doi": "10.1039/B801115J",
+            "title": "Covalent radii revisited",
+            "venue": "Dalton Trans. (2008) 2832-2838"
+          }
+        ],
+        "notes": [
+          "CSD bond assignment heuristic: a bond A-B may be inferred if distance d satisfies Rcov(A)+Rcov(B)-t <= d <= Rcov(A)+Rcov(B)+t, with typical t=0.4 Å. (See the CCDC spreadsheet notes.)",
+          "For Z>=111, csd_legacy values are omitted because the legacy CSD table does not provide radii beyond Darmstadtium (Z=110).",
+          "Elements not yet encountered in the CSD have Rcov = 1.50 Å."
+        ]
+      }
+    },
+    "van_der_waals_radius": {
+      "bondi1964": {
+        "name": "Bondi van der Waals radii",
+        "description": "Classic van der Waals radii compiled by Bondi (1964), available for 38 elements.",
+        "semantic_class": "vdw_compiled",
+        "origin_class": "compiled_experimental",
+        "phase_context": "mixed_or_legacy",
+        "method_summary": "Bondi compiled van der Waals radii from a combination of experimental sources (e.g., crystal structures, liquid-state properties, gas kinetic data) to reproduce molecular/atomic volumes and sizes. This set is widely used as a historical reference and in many computational chemistry defaults.",
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "van_der_waals.csv",
+          "column": "bondi1964"
+        },
+        "coverage": {
+          "n_values": 38,
+          "z_min": 1,
+          "z_max": 92,
+          "has_placeholders": false,
+          "covered_z": [
+            1,
+            2,
+            3,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            28,
+            29,
+            30,
+            31,
+            33,
+            34,
+            35,
+            36,
+            46,
+            47,
+            48,
+            49,
+            50,
+            52,
+            53,
+            54,
+            78,
+            79,
+            80,
+            81,
+            82,
+            92
+          ]
+        },
+        "placeholder_value": null,
+        "extraction_source": "Bondi column in Table 1 of Alvarez (2013) (used as a convenient transcription of Bondi's tabulation).",
+        "aliases": [
+          "Bondi radii",
+          "Bondi vdW radii"
+        ],
+        "references": [
+          {
+            "authors": "A. Bondi",
+            "title": "van der Waals Volumes and Radii",
+            "venue": "J. Phys. Chem. 68 (1964) 441-451",
+            "doi": "10.1021/j100785a001"
+          },
+          {
+            "authors": "S. Alvarez",
+            "title": "A cartography of the van der Waals territories",
+            "venue": "Dalton Trans. 42 (2013) 8617-8636",
+            "doi": "10.1039/C3DT50599E",
+            "note": "Table 1 reproduces Bondi radii for 38 elements."
+          }
+        ],
+        "notes": [
+          "Coverage is limited (38 elements, including only a few transition metals and uranium).",
+          "Because Bondi radii were not derived exclusively from crystal nonbonded contact statistics, they can differ slightly from later 'structural' vdW radii."
+        ]
+      },
+      "rowland_taylor1996": {
+        "name": "Rowland & Taylor nonbonded contact radii",
+        "description": "Nonbonded contact radii derived from organic crystal structures (Rowland & Taylor, 1996).",
+        "semantic_class": "vdw_structural",
+        "origin_class": "structural",
+        "phase_context": "condensed_phase",
+        "method_summary": "Rowland & Taylor analyzed distributions of intermolecular nonbonded contact distances in organic crystal structures from the Cambridge Structural Database (CSD). They fitted/estimated characteristic contact distances and solved for per-element radii by least-squares analysis over many element-pair distance distributions.",
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "van_der_waals.csv",
+          "column": "rowland_taylor1996"
+        },
+        "coverage": {
+          "n_values": 9,
+          "z_min": 1,
+          "z_max": 53,
+          "has_placeholders": false,
+          "covered_z": [
+            1,
+            6,
+            7,
+            8,
+            9,
+            16,
+            17,
+            35,
+            53
+          ]
+        },
+        "placeholder_value": null,
+        "extraction_source": "Table 3 in Rowland & Taylor (1996), column 'r_c' (least-squares radii, not the normalized R_d column).",
+        "aliases": [
+          "Rowland–Taylor radii",
+          "Rowland & Taylor vdW radii"
+        ],
+        "references": [
+          {
+            "authors": "R. S. Rowland; R. Taylor",
+            "title": "Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii",
+            "venue": "J. Phys. Chem. 100 (1996) 7384-7391",
+            "doi": "10.1021/jp953141+"
+          }
+        ],
+        "notes": [
+          "Coverage is intentionally limited to common organic-crystal nonmetals (H, C, N, O, F, S, Cl, Br, I).",
+          "Rowland & Taylor also report a normalized set (R_d) constrained to match the total of Bondi radii; this package uses the raw least-squares r_c values."
+        ]
+      },
+      "alvarez2013": {
+        "name": "Alvarez van der Waals radii",
+        "description": "van der Waals radii from Alvarez (2013).",
+        "semantic_class": "vdw_structural",
+        "origin_class": "structural",
+        "phase_context": "condensed_phase",
+        "method_summary": null,
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "van_der_waals.csv",
+          "column": "alvarez2013"
+        },
+        "coverage": {
+          "n_values": 93,
+          "z_min": 1,
+          "z_max": 99,
+          "has_placeholders": false,
+          "missing_z": [
+            61,
+            84,
+            85,
+            86,
+            87,
+            88
+          ]
+        },
+        "placeholder_value": null,
+        "extraction_source": "Table 1 in Alvarez (2013), column 'r_vdW'.",
+        "aliases": [
+          "Alvarez vdW radii",
+          "Alvarez (2013) r_vdW",
+          "Dalton Trans. vdW cartography radii"
+        ],
+        "references": [
+          {
+            "authors": "S. Alvarez",
+            "doi": "10.1039/C3DT50599E",
+            "title": "A cartography of the van der Waals territories",
+            "venue": "Dalton Trans. 42 (2013) 8617-8636"
+          }
+        ],
+        "notes": [
+          "Obtained by statistical analysis of millions of interatomic distances in the Cambridge Structural Database (CSD), locating the vdW peak after the vdW gap."
+        ]
+      },
+      "chernyshov2020": {
+        "name": "Chernyshov LoS van der Waals radii",
+        "description": "van der Waals radii from Chernyshov et al. (ChemPhysChem 2020) using line-of-sight (LoS) classification of direct contacts.",
+        "semantic_class": "vdw_structural_typed_reduced",
+        "origin_class": "structural",
+        "phase_context": "condensed_phase",
+        "method_summary": "Chernyshov et al. introduce a line-of-sight (LoS) criterion to identify 'direct' interatomic contacts in complex molecular crystals. vdW radii are then inferred from statistically analyzed contact-distance distributions for specific atom types, yielding radii (including R_half and R_max variants) intended to better reflect steric/anistropic effects than simple distance-based heuristics.",
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "van_der_waals.csv",
+          "column": "chernyshov2020"
+        },
+        "coverage": {
+          "n_values": 10,
+          "z_min": 1,
+          "z_max": 53,
+          "has_placeholders": false,
+          "covered_z": [
+            1,
+            6,
+            7,
+            8,
+            9,
+            16,
+            17,
+            34,
+            35,
+            53
+          ]
+        },
+        "placeholder_value": null,
+        "extraction_source": "Table 1 in Chernyshov et al. (2020): R_max values for the 'default' atom types typical for organic compounds.",
+        "aliases": [
+          "LoS vdW radii",
+          "Chernyshov vdW radii"
+        ],
+        "references": [
+          {
+            "authors": "I. Yu. Chernyshov; I. V. Ananyev; E. A. Pidko",
+            "title": "Revisiting van der Waals Radii: From Comprehensive Structural Analysis to Knowledge-Based Classification of Interatomic Contacts",
+            "venue": "ChemPhysChem 21 (2020) 1–8",
+            "doi": "10.1002/cphc.201901083"
+          }
+        ],
+        "notes": [
+          "The source paper provides multiple radii per element for different atom types/environments; this package currently includes only the main/default R_max values used in Table 1.",
+          "Primarily targeted at elements common in organic crystals (H, C, N, O, F, S, Cl, Se, Br, I)."
+        ]
+      },
+      "csd_legacy_vdw": {
+        "name": "CSD legacy van der Waals radii (pre-2024.3)",
+        "description": "Legacy van der Waals radii historically used in CSD tools (pre-2024.3).",
+        "semantic_class": "vdw_legacy",
+        "origin_class": "curated_heuristic",
+        "phase_context": "mixed_or_legacy",
+        "method_summary": null,
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "van_der_waals.csv",
+          "column": "csd_legacy_vdw"
+        },
+        "coverage": {
+          "n_values": 110,
+          "z_min": 1,
+          "z_max": 110,
+          "has_placeholders": true
+        },
+        "placeholder_value": 2.0,
+        "extraction_source": "CCDC Elemental_Radii.xlsx (CSD radii table), column 'vdW Radius' (Bondi/Rowland-Taylor based with defaults).",
+        "aliases": [],
+        "references": [
+          {
+            "authors": "A. Bondi",
+            "doi": "10.1021/j100785a001",
+            "title": "van der Waals Volumes and Radii",
+            "venue": "J. Phys. Chem. 68 (1964) 441-451"
+          },
+          {
+            "authors": "R. S. Rowland; R. Taylor",
+            "doi": "10.1021/jp953141+",
+            "title": "Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii",
+            "venue": "J. Phys. Chem. 100 (1996) 7384-7391"
+          },
+          {
+            "publisher": "CCDC",
+            "title": "Elemental Data and Radii (Excel)",
+            "url": "https://www.ccdc.cam.ac.uk/media/Documentation/F8D8439E-30C5-4FA8-B781-D9E65AAB0BF3/Elemental_Radii.xlsx"
+          },
+          {
+            "publisher": "CCDC blog",
+            "title": "Updates to van der Waals radii used in the CSD and Mercury",
+            "url": "https://www.ccdc.cam.ac.uk/discover/blog/updates-to-van-der-waals-radii-csd-mercury/"
+          }
+        ],
+        "notes": [
+          "For Z>=111, csd_legacy values are omitted because the legacy CSD table does not provide radii beyond Darmstadtium (Z=110).",
+          "Radii that are not available in either Bondi or Rowland & Taylor versions were assigned RvdW of 2.00 Å.",
+          "The CSD 2024.3 release updated the vdW radii used in CSD and Mercury to Alvarez-derived values (see CCDC blog post)."
+        ]
+      }
+    },
+    "atomic_radius": {
+      "rahm2016": {
+        "name": "Rahm isodensity atomic radii (ρ=0.001 e/bohr³)",
+        "description": "Computed atomic radii for neutral atoms (elements 1–96) defined by the ρ=0.001 e/bohr³ electron-density isosurface (Rahm et al., 2016).",
+        "semantic_class": "atomic_isodensity",
+        "origin_class": "computational",
+        "phase_context": "isolated_atom",
+        "method_summary": "Rahm et al. computed relativistic all-electron DFT electron densities (close to the basis-set limit) for isolated atoms and ions. Radii are defined by an electron-density threshold, producing a consistent, theory-based size measure that correlates well with structural van der Waals radii derived from crystal structures.",
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "van_der_waals.csv",
+          "column": "rahm2016"
+        },
+        "coverage": {
+          "n_values": 96,
+          "z_min": 1,
+          "z_max": 96,
+          "has_placeholders": false
+        },
+        "placeholder_value": null,
+        "extraction_source": "Supporting Information for Rahm et al. (2016), Table S1: neutral-atom radii for elements 1–96.",
+        "aliases": [
+          "Rahm radii",
+          "Rahm–Hoffmann–Ashcroft atomic radii",
+          "0.001 e/bohr^3 radii"
+        ],
+        "references": [
+          {
+            "authors": "M. Rahm; R. Hoffmann; N. W. Ashcroft",
+            "title": "Atomic and Ionic Radii of Elements 1–96",
+            "venue": "Chem. Eur. J. 22 (2016) 14625–14632",
+            "doi": "10.1002/chem.201602949"
+          },
+          {
+            "title": "Chem. Eur. J. 2016, 22, 14625–14632 (Rahm et al.) – Misc. Information",
+            "url": "http://dx.doi.org/10.1002/chem.201602949",
+            "publisher": "Supporting Information",
+            "note": "Table S1 contains the neutral-atom radii used here."
+          }
+        ],
+        "notes": [
+          "The original work also reports cationic radii (+1) for the first 96 elements and selected anionic radii (−1) for some elements; these are not yet included in the current CSV.",
+          "Despite the fact that in this project this radii are classified as vdW radii for the purpose of simplicity, they should be treated as a correlational/transferable baseline rather than a direct condensed-phase vdW radius since they describe isolated atoms in vacuum."
+        ]
+      }
+    }
+  }
+}

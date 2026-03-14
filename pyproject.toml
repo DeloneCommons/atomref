@@ -1,0 +1,94 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "atomref"
+dynamic = ["version"]
+description = "Curated atomic reference data and transfer policies for geometry and structure-analysis algorithms."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Ivan Yu. Chernyshov", email = "ivan.chernyshoff@gmail.com" }
+]
+keywords = ["chemistry", "materials", "crystallography", "reference data", "atomic radii"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Topic :: Software Development :: Libraries",
+  "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://delonecommons.github.io/atomref/"
+Documentation = "https://delonecommons.github.io/atomref/"
+Repository = "https://github.com/DeloneCommons/atomref"
+Issues = "https://github.com/DeloneCommons/atomref/issues"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7",
+  "tomli>=2; python_version < '3.11'",
+]
+docs = [
+  "mkdocs>=1.6,<2",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.25",
+  "mkdocs-include-markdown-plugin>=6.2",
+  "pymdown-extensions>=10.0",
+  "tomli>=2; python_version < '3.11'",
+]
+dev = [
+  "build>=1.2",
+  "twine>=5",
+  "flake8>=7",
+]
+
+[tool.hatch.version]
+path = "src/atomref/__about__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atomref"]
+include = [
+  "src/atomref/data/*.csv",
+  "src/atomref/data/*.json",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/docs",
+  "/tools",
+  "/mkdocs.yml",
+  "/README.md",
+  "/CHANGELOG.md",
+  "/DEV_PLAN.md",
+  "/NOTICE.md",
+  "/LICENSE",
+  "/COPYING",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --ignore=build --ignore=dist"
+norecursedirs = [
+  ".git",
+  ".pytest_cache",
+  "__pycache__",
+  ".venv",
+  ".tox",
+  "dist",
+  ".eggs",
+  "*.egg-info",
+]
