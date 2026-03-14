@@ -9,17 +9,22 @@ from typing import Literal
 from .elements import canonicalize_element_symbol, get_element, is_valid_element_symbol
 from .errors import PolicyError
 from .policy import LookupResult, ValuePolicy, _fit_transfer_model, _resolve_value
-from .registry import DatasetInfo, DatasetRef, ElementScalarSet, get_dataset_info, list_dataset_ids
+from .registry import (
+    DatasetInfo,
+    DatasetRef,
+    ElementScalarSet,
+    get_dataset_info,
+    list_dataset_ids,
+)
 from .transfer import LinearFit, LinearTransfer, SubstitutionTransfer, TransferModel
 
-
-RadiiKind = Literal['covalent', 'van_der_waals']
+RadiiKind = Literal["covalent", "van_der_waals"]
 RadiiSet = ElementScalarSet
 
 
 _KIND_TO_QUANTITY = {
-    'covalent': 'covalent_radius',
-    'van_der_waals': 'van_der_waals_radius',
+    "covalent": "covalent_radius",
+    "van_der_waals": "van_der_waals_radius",
 }
 
 
@@ -35,9 +40,11 @@ class RadiiPolicy:
         quantity = _quantity_for_kind(self.kind)
         if isinstance(self.base_set, ElementScalarSet):
             if self.base_set.ref.quantity != quantity:
-                raise PolicyError(
-                    f'base_set quantity {self.base_set.ref.quantity!r} is incompatible with radii kind {self.kind!r}'
+                msg = (
+                    f"base_set quantity {self.base_set.ref.quantity!r} "
+                    f"is incompatible with radii kind {self.kind!r}"
                 )
+                raise PolicyError(msg)
             base = self.base_set
         else:
             base = DatasetRef(quantity, self.base_set)
@@ -46,7 +53,7 @@ class RadiiPolicy:
         for key, value in self.overrides.items():
             sym = _normalize_radii_symbol(key)
             if sym is None or not is_valid_element_symbol(sym):
-                raise PolicyError(f'invalid override element symbol: {key!r}')
+                raise PolicyError(f"invalid override element symbol: {key!r}")
             normalized_overrides[sym] = float(value)
 
         return ValuePolicy(
@@ -90,13 +97,13 @@ def _quantity_for_kind(kind: RadiiKind) -> str:
     try:
         return _KIND_TO_QUANTITY[kind]
     except KeyError as exc:
-        raise PolicyError(f'unknown radii kind: {kind!r}') from exc
+        raise PolicyError(f"unknown radii kind: {kind!r}") from exc
 
 
 def _normalize_radii_symbol(symbol: str | None) -> str | None:
     cand = canonicalize_element_symbol(symbol)
-    if cand in {'D', 'T'}:
-        cand = 'H'
+    if cand in {"D", "T"}:
+        cand = "H"
     return cand
 
 
@@ -105,14 +112,18 @@ def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
     for token in elements:
         sym = _normalize_radii_symbol(token)
         if sym is None:
-            raise ValueError('missing element symbol')
+            raise ValueError("missing element symbol")
         if not is_valid_element_symbol(sym):
-            raise ValueError(f'invalid element symbol: {sym!r}')
+            raise ValueError(f"invalid element symbol: {sym!r}")
         symbols.add(sym)
-    return tuple(sorted(symbols, key=lambda s: get_element(s).z if get_element(s) else 0))
+    return tuple(
+        sorted(symbols, key=lambda s: get_element(s).z if get_element(s) else 0)
+    )
 
 
-def list_radii_sets(kind: RadiiKind, *, usage_role: str | None = None) -> tuple[str, ...]:
+def list_radii_sets(
+    kind: RadiiKind, *, usage_role: str | None = None
+) -> tuple[str, ...]:
     return list_dataset_ids(_quantity_for_kind(kind), usage_role=usage_role)
 
 
@@ -122,34 +133,44 @@ def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:
 
 def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:
     if policy.kind != expected:
-        raise PolicyError(f'expected a {expected!r} radii policy, got {policy.kind!r}')
+        raise PolicyError(f"expected a {expected!r} radii policy, got {policy.kind!r}")
 
 
 def _lookup_radius(symbol: str | None, *, policy: RadiiPolicy) -> LookupResult:
     return _resolve_value(symbol, policy=policy.as_value_policy())
 
 
-def lookup_covalent_radius(symbol: str | None, *, policy: RadiiPolicy | None = None) -> LookupResult:
+def lookup_covalent_radius(
+    symbol: str | None, *, policy: RadiiPolicy | None = None
+) -> LookupResult:
     active = DEFAULT_COVALENT_POLICY if policy is None else policy
-    _validate_policy_kind(active, expected='covalent')
+    _validate_policy_kind(active, expected="covalent")
     return _lookup_radius(symbol, policy=active)
 
 
-def get_covalent_radius(symbol: str | None, *, policy: RadiiPolicy | None = None) -> float | None:
+def get_covalent_radius(
+    symbol: str | None, *, policy: RadiiPolicy | None = None
+) -> float | None:
     return lookup_covalent_radius(symbol, policy=policy).value
 
 
-def lookup_vdw_radius(symbol: str | None, *, policy: RadiiPolicy | None = None) -> LookupResult:
+def lookup_vdw_radius(
+    symbol: str | None, *, policy: RadiiPolicy | None = None
+) -> LookupResult:
     active = DEFAULT_VDW_POLICY if policy is None else policy
-    _validate_policy_kind(active, expected='van_der_waals')
+    _validate_policy_kind(active, expected="van_der_waals")
     return _lookup_radius(symbol, policy=active)
 
 
-def get_vdw_radius(symbol: str | None, *, policy: RadiiPolicy | None = None) -> float | None:
+def get_vdw_radius(
+    symbol: str | None, *, policy: RadiiPolicy | None = None
+) -> float | None:
     return lookup_vdw_radius(symbol, policy=policy).value
 
 
-def assess_radii_policy(elements: Iterable[str], *, policy: RadiiPolicy, detail: bool = False) -> RadiiPolicyAssessment:
+def assess_radii_policy(
+    elements: Iterable[str], *, policy: RadiiPolicy, detail: bool = False
+) -> RadiiPolicyAssessment:
     elems = _normalize_assessment_elements(elements)
     value_policy = policy.as_value_policy()
 
@@ -167,17 +188,17 @@ def assess_radii_policy(elements: Iterable[str], *, policy: RadiiPolicy, detail:
 
     for symbol in elems:
         lookup = _resolve_value(symbol, policy=value_policy)
-        if lookup.source == 'override':
+        if lookup.source == "override":
             n_override += 1
-        elif lookup.source == 'base':
+        elif lookup.source == "base":
             n_base += 1
-        elif lookup.source == 'transfer_substitution':
+        elif lookup.source == "transfer_substitution":
             n_transfer_substitution += 1
-        elif lookup.source == 'transfer_linear':
+        elif lookup.source == "transfer_linear":
             n_transfer_linear += 1
-        elif lookup.source == 'fallback':
+        elif lookup.source == "fallback":
             n_fallback += 1
-        elif lookup.source == 'missing':
+        elif lookup.source == "missing":
             n_missing += 1
             missing_symbols.append(symbol)
 
@@ -221,13 +242,15 @@ def assess_radii_policy(elements: Iterable[str], *, policy: RadiiPolicy, detail:
 
 
 DEFAULT_COVALENT_POLICY = RadiiPolicy(
-    kind='covalent',
-    base_set='cordero2008',
-    transfers=(SubstitutionTransfer(source=DatasetRef('covalent_radius', 'csd_legacy_cov')),),
+    kind="covalent",
+    base_set="cordero2008",
+    transfers=(
+        SubstitutionTransfer(source=DatasetRef("covalent_radius", "csd_legacy_cov")),
+    ),
 )
 
 DEFAULT_VDW_POLICY = RadiiPolicy(
-    kind='van_der_waals',
-    base_set='alvarez2013',
-    transfers=(LinearTransfer(predictors=(DatasetRef('atomic_radius', 'rahm2016'),)),),
+    kind="van_der_waals",
+    base_set="alvarez2013",
+    transfers=(LinearTransfer(predictors=(DatasetRef("atomic_radius", "rahm2016"),)),),
 )

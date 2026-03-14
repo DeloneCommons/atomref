@@ -8,7 +8,7 @@ from functools import lru_cache
 import math
 from typing import Generic, Literal, TypeVar
 
-from .elements import canonicalize_element_symbol, get_element, is_valid_element_symbol
+from .elements import canonicalize_element_symbol, is_valid_element_symbol
 from .errors import PolicyError
 from .registry import (
     DatasetLike,
@@ -20,16 +20,15 @@ from .registry import (
 )
 from .transfer import LinearFit, LinearTransfer, SubstitutionTransfer, TransferModel
 
-
-K = TypeVar('K')
+K = TypeVar("K")
 
 LookupSource = Literal[
-    'override',
-    'base',
-    'transfer_substitution',
-    'transfer_linear',
-    'fallback',
-    'missing',
+    "override",
+    "base",
+    "transfer_substitution",
+    "transfer_linear",
+    "fallback",
+    "missing",
 ]
 
 
@@ -45,7 +44,7 @@ class LookupResult:
 
     def __float__(self) -> float:
         if self.value is None:
-            raise TypeError('reference value is missing')
+            raise TypeError("reference value is missing")
         return float(self.value)
 
 
@@ -59,8 +58,8 @@ class ValuePolicy(Generic[K]):
 
 def _normalize_element_symbol(symbol: str | None) -> str | None:
     cand = canonicalize_element_symbol(symbol)
-    if cand in {'D', 'T'}:
-        cand = 'H'
+    if cand in {"D", "T"}:
+        cand = "H"
     if cand is None:
         return None
     if not is_valid_element_symbol(cand):
@@ -72,7 +71,13 @@ def _resolve_target_ref(policy: ValuePolicy[object]) -> DatasetRef:
     return resolve_dataset_like(policy.base).ref
 
 
-def _fit_linear_transfer(base_set: ElementScalarSet, predictor_set: ElementScalarSet, *, min_points: int, exclude_placeholders: bool) -> LinearFit:
+def _fit_linear_transfer(
+    base_set: ElementScalarSet,
+    predictor_set: ElementScalarSet,
+    *,
+    min_points: int,
+    exclude_placeholders: bool,
+) -> LinearFit:
     xs: list[float] = []
     ys: list[float] = []
 
@@ -94,13 +99,13 @@ def _fit_linear_transfer(base_set: ElementScalarSet, predictor_set: ElementScala
 
     n = len(xs)
     if n < min_points:
-        raise PolicyError('not enough overlapping elements to fit linear transfer')
+        raise PolicyError("not enough overlapping elements to fit linear transfer")
 
     x_mean = sum(xs) / n
     y_mean = sum(ys) / n
     sxx = sum((x - x_mean) ** 2 for x in xs)
     if sxx == 0:
-        raise PolicyError('cannot fit linear transfer: zero predictor variance')
+        raise PolicyError("cannot fit linear transfer: zero predictor variance")
 
     sxy = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
     slope = sxy / sxx
@@ -122,7 +127,12 @@ def _fit_linear_transfer(base_set: ElementScalarSet, predictor_set: ElementScala
 
 
 @lru_cache(maxsize=None)
-def _fit_linear_transfer_cached(base_ref: DatasetRef, predictor_ref: DatasetRef, min_points: int, exclude_placeholders: bool) -> LinearFit:
+def _fit_linear_transfer_cached(
+    base_ref: DatasetRef,
+    predictor_ref: DatasetRef,
+    min_points: int,
+    exclude_placeholders: bool,
+) -> LinearFit:
     return _fit_linear_transfer(
         get_builtin_set(base_ref),
         get_builtin_set(predictor_ref),
@@ -135,7 +145,7 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
     if not isinstance(transfer, LinearTransfer):
         return None
     if len(transfer.predictors) != 1:
-        raise PolicyError('v0.1 LinearTransfer supports exactly one predictor dataset')
+        raise PolicyError("v0.1 LinearTransfer supports exactly one predictor dataset")
 
     predictor = transfer.predictors[0]
     if isinstance(base, DatasetRef) and isinstance(predictor, DatasetRef):
@@ -150,51 +160,57 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
     )
 
 
-def _apply_substitution_transfer(symbol: str, *, target: DatasetRef, transfer: SubstitutionTransfer) -> tuple[LookupResult | None, str | None]:
+def _apply_substitution_transfer(
+    symbol: str, *, target: DatasetRef, transfer: SubstitutionTransfer
+) -> tuple[LookupResult | None, str | None]:
     source_set = resolve_dataset_like(transfer.source)
     value = source_set.get(symbol)
     if value is None:
-        return None, f'no substitution value in {source_set.ref.set_id}'
+        return None, f"no substitution value in {source_set.ref.set_id}"
     value_f = float(value)
     return (
         LookupResult(
             value=value_f,
-            source='transfer_substitution',
+            source="transfer_substitution",
             target=target,
             resolved_from=(source_set.ref,),
             is_placeholder=_is_placeholder_value(source_set.info, value_f),
-            notes=('missing in base set; substituted from transfer source',),
+            notes=("missing in base set; substituted from transfer source",),
         ),
         None,
     )
 
 
-def _apply_linear_transfer(symbol: str, *, base: DatasetLike, target: DatasetRef, transfer: LinearTransfer) -> tuple[LookupResult | None, str | None]:
+def _apply_linear_transfer(
+    symbol: str, *, base: DatasetLike, target: DatasetRef, transfer: LinearTransfer
+) -> tuple[LookupResult | None, str | None]:
     if len(transfer.predictors) != 1:
-        raise PolicyError('v0.1 LinearTransfer supports exactly one predictor dataset')
+        raise PolicyError("v0.1 LinearTransfer supports exactly one predictor dataset")
 
     predictor_set = resolve_dataset_like(transfer.predictors[0])
     predictor_value = predictor_set.get(symbol)
     if predictor_value is None:
-        return None, f'no predictor value in {predictor_set.ref.set_id}'
+        return None, f"no predictor value in {predictor_set.ref.set_id}"
     predictor_f = float(predictor_value)
 
-    if transfer.exclude_placeholders and _is_placeholder_value(predictor_set.info, predictor_f):
-        return None, f'predictor value in {predictor_set.ref.set_id} is a placeholder'
+    if transfer.exclude_placeholders and _is_placeholder_value(
+        predictor_set.info, predictor_f
+    ):
+        return None, f"predictor value in {predictor_set.ref.set_id} is a placeholder"
 
     fit = _fit_transfer_model(base, transfer)
     if fit is None:
-        return None, 'no fit available for linear transfer'
+        return None, "no fit available for linear transfer"
     predicted = fit.coefficients[0] * predictor_f + fit.intercept
     return (
         LookupResult(
             value=float(predicted),
-            source='transfer_linear',
+            source="transfer_linear",
             target=target,
             resolved_from=(predictor_set.ref,),
             is_placeholder=False,
             fit=fit,
-            notes=('missing in base set; inferred via linear transfer',),
+            notes=("missing in base set; inferred via linear transfer",),
         ),
         None,
     )
@@ -203,20 +219,20 @@ def _apply_linear_transfer(symbol: str, *, base: DatasetLike, target: DatasetRef
 def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResult:
     target = _resolve_target_ref(policy)
     base_set = resolve_dataset_like(policy.base)
-    if base_set.info.domain != 'element':
-        raise PolicyError('v0.1 resolver supports only element-domain datasets')
+    if base_set.info.domain != "element":
+        raise PolicyError("v0.1 resolver supports only element-domain datasets")
 
     sym = _normalize_element_symbol(symbol)
     if sym is None:
-        note = 'unknown element' if symbol is not None else 'missing element symbol'
-        return LookupResult(value=None, source='missing', target=target, notes=(note,))
+        note = "unknown element" if symbol is not None else "missing element symbol"
+        return LookupResult(value=None, source="missing", target=target, notes=(note,))
 
     if sym in policy.overrides:
         return LookupResult(
             value=float(policy.overrides[sym]),
-            source='override',
+            source="override",
             target=target,
-            notes=('value supplied by policy override',),
+            notes=("value supplied by policy override",),
         )
 
     base_value = base_set.get(sym)
@@ -224,21 +240,25 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
         base_f = float(base_value)
         return LookupResult(
             value=base_f,
-            source='base',
+            source="base",
             target=target,
             resolved_from=(base_set.ref,),
             is_placeholder=_is_placeholder_value(base_set.info, base_f),
             notes=(),
         )
 
-    transfer_notes: list[str] = ['missing in base set']
+    transfer_notes: list[str] = ["missing in base set"]
     for transfer in policy.transfers:
         if isinstance(transfer, SubstitutionTransfer):
-            result, note = _apply_substitution_transfer(sym, target=target, transfer=transfer)
+            result, note = _apply_substitution_transfer(
+                sym, target=target, transfer=transfer
+            )
         elif isinstance(transfer, LinearTransfer):
-            result, note = _apply_linear_transfer(sym, base=policy.base, target=target, transfer=transfer)
+            result, note = _apply_linear_transfer(
+                sym, base=policy.base, target=target, transfer=transfer
+            )
         else:  # pragma: no cover - closed union today
-            raise PolicyError(f'unsupported transfer model: {type(transfer)!r}')
+            raise PolicyError(f"unsupported transfer model: {type(transfer)!r}")
 
         if result is not None:
             return result
@@ -248,14 +268,14 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
     if policy.fallback is not None:
         return LookupResult(
             value=float(policy.fallback),
-            source='fallback',
+            source="fallback",
             target=target,
-            notes=tuple(transfer_notes + ['using fallback value']),
+            notes=tuple(transfer_notes + ["using fallback value"]),
         )
 
     return LookupResult(
         value=None,
-        source='missing',
+        source="missing",
         target=target,
         notes=tuple(transfer_notes),
     )
