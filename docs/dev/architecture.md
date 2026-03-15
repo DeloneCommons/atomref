@@ -63,6 +63,31 @@ That last point is important. It means higher-level code can express
 "infer values from my chosen covalent-radii policy" instead of being forced to
 refer to one hard-coded predictor dataset.
 
+## Nested-policy safeguards and cycle detection
+
+Policy-backed transfer sources are materialized with more than just raw numeric
+values. The resolver also tracks, per element:
+
+- whether the value came from `base`, `override`, substitution, linear transfer,
+  or fallback,
+- the nested transfer depth that was required to produce it,
+- placeholder status.
+
+`LinearTransfer` uses that information twice:
+
+- once when fitting the linear relation (`fit_sources` / `fit_max_depth`),
+- again when deciding whether the predictor value for the requested element is
+  admissible (`prediction_sources` / `prediction_max_depth`).
+
+The default policy is intentionally conservative: fit only on direct nested
+predictor values, but allow one additional nested completion step when
+predicting the final requested element. This keeps the common two-stage use case
+possible without silently training on arbitrarily long inference chains.
+
+Cycle detection is handled with a context-local activation stack. Both generic
+`ValuePolicy` objects and wrapper policies are tracked, so recursion through a
+freshly materialized wrapper policy is still detected reliably and safely.
+
 ## Placeholder handling
 
 Placeholder semantics stay attached to the value that was actually returned.
@@ -73,7 +98,8 @@ This means `LookupResult.is_placeholder` can be true for:
 - a nested policy used as a transfer source.
 
 A linear transfer normally returns a computed value and therefore does not carry
-placeholder status itself.
+placeholder status itself. Instead, its provenance is carried by
+`resolved_from`, explanatory notes, and `transfer_depth`.
 
 ## Why the design stays small
 

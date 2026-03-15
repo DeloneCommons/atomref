@@ -69,7 +69,7 @@ current runtime intentionally supports exactly one predictor source. That keeps
 the implementation simple now while leaving room for later multi-predictor
 linear models.
 
-Transfer sources can now be:
+Transfer sources can be:
 
 - a packaged dataset reference (`DatasetRef`),
 - a custom `ElementScalarSet`,
@@ -80,6 +80,35 @@ When a transfer source is itself a policy, `atomref` uses the values selected by
 that policy. This lets higher-level workflows express things like “infer X–H
 lengths from my chosen covalent-radii policy” instead of hard-coding a specific
 support dataset.
+
+#### Nested policy safeguards for `LinearTransfer`
+
+When a predictor source is itself a policy, two different questions matter:
+
+1. Which nested predictor values are trustworthy enough to train the linear fit?
+2. Which nested predictor value is acceptable for the final requested element?
+
+`atomref` keeps those two decisions separate. By default:
+
+- `fit_sources=("base", "override")` and `fit_max_depth=0`,
+- `prediction_sources=("base", "override", "transfer_substitution", "transfer_linear")`
+  and `prediction_max_depth=1`.
+
+That means the fitted relationship is trained only on direct predictor values by
+default, while one additional nested completion step is still allowed at
+prediction time.
+
+This is a good default for workflows such as:
+
+- sparse target X–H data from `csd_legacy_xh_cno`,
+- a partial covalent-radii predictor policy with direct `s,p` values,
+- one inner transfer from a broader support set such as `cordero2008` to make
+  the predictor usable for `d` or `f` elements.
+
+In that setup, the outer X–H fit still uses direct predictor anchors, while the
+final requested element may use one nested predictor transfer. If you really do
+want fit training to use nested predictor values as well, you can opt in
+explicitly by widening `fit_sources` and/or increasing `fit_max_depth`.
 
 ### Fallback
 
@@ -111,6 +140,24 @@ It does **not** mean “a transfer happened”. Examples:
   placeholder from the transfer source,
 - a linear transfer is computed, not copied, so `is_placeholder` is normally
   `False`.
+
+## Transfer depth and cycle detection
+
+`LookupResult.transfer_depth` counts how many transfer steps were needed to
+produce the returned value:
+
+- direct base and override values have depth `0`,
+- one substitution or linear restoration has depth `1`,
+- nested transfer chains increase the depth further.
+
+This makes nested-policy behavior inspectable without trying to infer it from
+notes alone.
+
+Because policies may now depend on other policies, the resolver also performs
+cycle detection. A cyclic reference such as policy A depending on policy B while
+policy B depends back on policy A raises `PolicyError` instead of recurring
+indefinitely. The same protection applies when recursion goes through wrapper
+policies such as `RadiiPolicy` or `XHPolicy`.
 
 ## Target datasets and support datasets
 
@@ -171,5 +218,5 @@ With that X–H policy:
 - missing parent elements may be inferred from the **selected covalent-radii
   policy**, not just from one hard-coded support dataset,
 - if the predictor policy itself needed a transfer to produce a covalent radius,
-  the resulting `LookupResult` still records that provenance in `resolved_from`
-  and `notes`.
+  the resulting `LookupResult` still records that provenance in `resolved_from`,
+  `notes`, and `transfer_depth`.

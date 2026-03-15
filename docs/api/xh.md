@@ -17,6 +17,8 @@ In the default policy:
 
 - `C`, `N`, and `O` use curated ConQuest/CSD defaults,
 - other parent elements may be inferred from `cordero2008`,
+- policy-backed predictors are supported as well, with conservative nested-fit
+  defaults and one additional nested prediction step allowed by default,
 - fuller X–H literature support is planned for `0.2.x`.
 
 ::: atomref.xh

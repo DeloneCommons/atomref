@@ -3,7 +3,7 @@
 This module contains the generic resolver that sits below the radii-specific and
 X–H-specific convenience APIs.
 
-Use it when you want to work directly with the common value-selection engine:
+Use it when you want to work directly with the shared value-selection engine:
 
 - `ValuePolicy` — generic element-domain policy configuration,
 - `lookup_value(...)` — resolve one value together with provenance,
@@ -18,5 +18,9 @@ A few practical notes:
   wrapper policies that expose `as_value_policy()`.
 - `LookupResult.is_placeholder` refers to the returned numeric value itself, not
   to whether any transfer happened.
+- `LookupResult.transfer_depth` counts how many transfer steps were involved in
+  the returned numeric value.
+- Nested lookup is cycle-checked across both generic `ValuePolicy` objects and
+  wrapper policies such as `RadiiPolicy` and `XHPolicy`.
 
 ::: atomref.policy

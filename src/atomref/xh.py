@@ -8,7 +8,12 @@ import math
 
 from .elements import canonicalize_element_symbol, is_valid_element_symbol
 from .errors import PolicyError
-from .policy import LookupResult, ValuePolicy, get_value, lookup_value
+from .policy import (
+    LookupResult,
+    ValuePolicy,
+    _get_value_from_policy_source,
+    _lookup_value_from_policy_source,
+)
 from .registry import (
     DatasetInfo,
     DatasetRef,
@@ -135,7 +140,7 @@ def lookup_xh_bond_length(
     """Resolve a parent-element X-H bond length with provenance."""
 
     active = DEFAULT_XH_POLICY if policy is None else policy
-    lookup = lookup_value(symbol, policy=active.as_value_policy())
+    lookup = _lookup_value_from_policy_source(symbol, source=active)
     if lookup.value is None and _normalize_xh_symbol(symbol) == "H":
         return LookupResult(
             value=None,
@@ -154,7 +159,7 @@ def get_xh_bond_length(
     """Return only the selected X-H bond-length value, without provenance."""
 
     active = DEFAULT_XH_POLICY if policy is None else policy
-    return get_value(symbol, policy=active.as_value_policy())
+    return _get_value_from_policy_source(symbol, source=active)
 
 
 DEFAULT_XH_POLICY = XHPolicy(

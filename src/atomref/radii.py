@@ -13,8 +13,8 @@ from .policy import (
     LookupResult,
     ValuePolicy,
     _fit_transfer_model,
-    get_value,
-    lookup_value,
+    _get_value_from_policy_source,
+    _lookup_value_from_policy_source,
 )
 from .registry import (
     DatasetInfo,
@@ -217,7 +217,7 @@ def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:
 def _lookup_radius(symbol: str | None, *, policy: RadiiPolicy) -> LookupResult:
     """Shared implementation for radii lookup helpers."""
 
-    return lookup_value(symbol, policy=policy.as_value_policy())
+    return _lookup_value_from_policy_source(symbol, source=policy)
 
 
 def lookup_covalent_radius(
@@ -241,7 +241,7 @@ def get_covalent_radius(
 
     active = DEFAULT_COVALENT_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="covalent")
-    return get_value(symbol, policy=active.as_value_policy())
+    return _get_value_from_policy_source(symbol, source=active)
 
 
 def lookup_vdw_radius(
@@ -265,7 +265,7 @@ def get_vdw_radius(
 
     active = DEFAULT_VDW_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="van_der_waals")
-    return get_value(symbol, policy=active.as_value_policy())
+    return _get_value_from_policy_source(symbol, source=active)
 
 
 def assess_radii_policy(
@@ -292,7 +292,7 @@ def assess_radii_policy(
     per_element: list[RadiiElementAssessment] = []
 
     for symbol in elems:
-        lookup = lookup_value(symbol, policy=value_policy)
+        lookup = _lookup_value_from_policy_source(symbol, source=policy)
         if lookup.source == "override":
             n_override += 1
         elif lookup.source == "base":

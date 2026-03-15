@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import contextvars
 from dataclasses import dataclass, field
 from functools import lru_cache
 import math
@@ -42,7 +43,10 @@ LookupSource = Literal[
     "missing",
 ]
 
-_ACTIVE_POLICY_IDS: list[int] = []
+PolicyToken = tuple[str, int]
+_ACTIVE_POLICY_TOKENS: contextvars.ContextVar[tuple[PolicyToken, ...]] = (
+    contextvars.ContextVar("atomref_active_policy_tokens", default=())
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +55,8 @@ class LookupResult:
 
     ``value`` carries the final scalar value when one could be produced, while
     ``source`` and the remaining metadata explain how that value was obtained.
+    ``transfer_depth`` counts how many transfer steps were involved in producing
+    the returned value. Direct base and override values therefore have depth 0.
     """
 
     value: float | None
@@ -60,6 +66,7 @@ class LookupResult:
     is_placeholder: bool = False
     fit: LinearFit | None = None
     notes: tuple[str, ...] = ()
+    transfer_depth: int = 0
 
     def __float__(self) -> float:
         """Coerce the resolved value to ``float`` or raise if it is missing."""
@@ -119,7 +126,8 @@ class ValuePolicy(Generic[K]):
         for key, value in self.overrides.items():
             if not isinstance(key, str):
                 raise PolicyError(
-                    "element-domain policy overrides must be keyed by element symbols"
+                    "element-domain policy overrides must be keyed by element "
+                    "symbols"
                 )
             sym = _normalize_element_symbol(key)
             if sym is None:
@@ -129,7 +137,8 @@ class ValuePolicy(Generic[K]):
             previous = seen_original_keys.get(sym)
             if previous is not None and previous != key:
                 raise PolicyError(
-                    f"override keys {previous!r} and {key!r} both normalize to {sym!r}"
+                    f"override keys {previous!r} and {key!r} both normalize to "
+                    f"{sym!r}"
                 )
             seen_original_keys[sym] = key
             normalized_overrides[sym] = _coerce_policy_float(
@@ -151,6 +160,8 @@ class _ResolvedElementSource:
     ref: DatasetRef
     values_by_z: tuple[float | None, ...]
     placeholder_by_z: tuple[bool, ...]
+    lookup_source_by_z: tuple[LookupSource | None, ...]
+    transfer_depth_by_z: tuple[int | None, ...]
     via_policy: bool = False
 
 
@@ -165,6 +176,7 @@ class _TransferSourceValue:
     via_policy: bool = False
     lookup_source: LookupSource | None = None
     notes: tuple[str, ...] = ()
+    transfer_depth: int = 0
 
 
 def _coerce_policy_float(value: object, *, what: str) -> float:
@@ -201,17 +213,50 @@ def _resolve_target_ref(policy: ValuePolicy[object]) -> DatasetRef:
     return resolve_dataset_like(policy.base).ref
 
 
-def _coerce_nested_policy(source: object) -> ValuePolicy[str] | None:
-    """Return ``source`` as a generic value policy when possible."""
+def _policy_resolution_tokens(
+    policy: ValuePolicy[object],
+    *,
+    owner: object | None = None,
+) -> tuple[PolicyToken, ...]:
+    """Return all tokens that should be considered active for one resolution.
+
+    We always track the concrete :class:`ValuePolicy` object identity. When a
+    wrapper object such as :class:`atomref.radii.RadiiPolicy` or
+    :class:`atomref.xh.XHPolicy` is the logical source, we also track the
+    wrapper identity so recursion through freshly materialized generic policies
+    is still detected.
+    """
+
+    tokens: list[PolicyToken] = [("policy", id(policy))]
+    if owner is not None:
+        tokens.append((f"owner:{type(owner).__qualname__}", id(owner)))
+    return tuple(tokens)
+
+
+def _lookup_value_with_owner(
+    symbol: str | None,
+    *,
+    policy: ValuePolicy[str],
+    owner: object | None,
+) -> LookupResult:
+    """Internal lookup helper that carries wrapper identity for cycle checks."""
+
+    return _resolve_value(symbol, policy=policy, resolution_owner=owner)
+
+
+def _coerce_nested_policy(
+    source: object,
+) -> tuple[ValuePolicy[str] | None, object | None]:
+    """Return ``source`` as a generic value policy and its logical owner."""
 
     if isinstance(source, ValuePolicy):
-        return source
+        return source, None
     if isinstance(source, SupportsValuePolicy):
         nested = source.as_value_policy()
         if not isinstance(nested, ValuePolicy):
             raise PolicyError("policy-like transfer sources must return ValuePolicy")
-        return nested
-    return None
+        return nested, source
+    return None, None
 
 
 def _materialize_transfer_source(
@@ -219,7 +264,7 @@ def _materialize_transfer_source(
 ) -> _ResolvedElementSource:
     """Materialize any element-domain transfer source into dense by-Z arrays."""
 
-    nested_policy = _coerce_nested_policy(source)
+    nested_policy, nested_owner = _coerce_nested_policy(source)
     if nested_policy is None:
         dataset = resolve_dataset_like(source)
         placeholders = tuple(
@@ -228,10 +273,18 @@ def _materialize_transfer_source(
             else _is_placeholder_value(dataset.info, float(value))
             for value in dataset.values_by_z
         )
+        lookup_sources = tuple(
+            "base" if value is not None else None for value in dataset.values_by_z
+        )
+        transfer_depths = tuple(
+            0 if value is not None else None for value in dataset.values_by_z
+        )
         return _ResolvedElementSource(
             ref=dataset.ref,
             values_by_z=dataset.values_by_z,
             placeholder_by_z=placeholders,
+            lookup_source_by_z=lookup_sources,
+            transfer_depth_by_z=transfer_depths,
             via_policy=False,
         )
 
@@ -239,16 +292,25 @@ def _materialize_transfer_source(
     n_z = max(elem.z for elem in iter_elements())
     values: list[float | None] = [None] * (n_z + 1)
     placeholders: list[bool] = [False] * (n_z + 1)
+    lookup_sources: list[LookupSource | None] = [None] * (n_z + 1)
+    transfer_depths: list[int | None] = [None] * (n_z + 1)
     for elem in iter_elements():
-        lookup = lookup_value(elem.symbol, policy=nested_policy)
-        values[elem.z] = lookup.value
-        placeholders[elem.z] = (
-            lookup.is_placeholder if lookup.value is not None else False
+        lookup = _lookup_value_with_owner(
+            elem.symbol,
+            policy=nested_policy,
+            owner=nested_owner,
         )
+        values[elem.z] = lookup.value
+        if lookup.value is not None:
+            placeholders[elem.z] = lookup.is_placeholder
+            lookup_sources[elem.z] = lookup.source
+            transfer_depths[elem.z] = lookup.transfer_depth
     return _ResolvedElementSource(
         ref=target,
         values_by_z=tuple(values),
         placeholder_by_z=tuple(placeholders),
+        lookup_source_by_z=tuple(lookup_sources),
+        transfer_depth_by_z=tuple(transfer_depths),
         via_policy=True,
     )
 
@@ -259,7 +321,7 @@ def _lookup_transfer_source_value(
 ) -> tuple[_TransferSourceValue | None, str | None]:
     """Resolve one element value from a transfer source or nested policy."""
 
-    nested_policy = _coerce_nested_policy(source)
+    nested_policy, nested_owner = _coerce_nested_policy(source)
     if nested_policy is None:
         source_set = resolve_dataset_like(source)
         value = source_set.get(symbol)
@@ -275,11 +337,16 @@ def _lookup_transfer_source_value(
                 via_policy=False,
                 lookup_source="base",
                 notes=(),
+                transfer_depth=0,
             ),
             None,
         )
 
-    lookup = lookup_value(symbol, policy=nested_policy)
+    lookup = _lookup_value_with_owner(
+        symbol,
+        policy=nested_policy,
+        owner=nested_owner,
+    )
     if lookup.value is None:
         if lookup.notes:
             return (
@@ -297,8 +364,47 @@ def _lookup_transfer_source_value(
             via_policy=True,
             lookup_source=lookup.source,
             notes=lookup.notes,
+            transfer_depth=lookup.transfer_depth,
         ),
         None,
+    )
+
+
+def _transfer_source_is_allowed(
+    lookup_source: LookupSource | None,
+    transfer_depth: int | None,
+    *,
+    allowed_sources: tuple[str, ...],
+    max_depth: int,
+) -> bool:
+    """Return whether a nested predictor value may participate downstream."""
+
+    if lookup_source is None or transfer_depth is None:
+        return False
+    return lookup_source in allowed_sources and transfer_depth <= max_depth
+
+
+def _explain_rejected_transfer_source(
+    *,
+    source_role: str,
+    lookup_source: LookupSource | None,
+    transfer_depth: int | None,
+    allowed_sources: tuple[str, ...],
+    max_depth: int,
+) -> str:
+    """Return a human-readable explanation for a rejected nested source."""
+
+    if lookup_source is None or transfer_depth is None:
+        return f"{source_role} policy source did not return a usable value"
+    if lookup_source not in allowed_sources:
+        allowed = ", ".join(allowed_sources)
+        return (
+            f"{source_role} policy source resolved via {lookup_source}, which is "
+            f"excluded by {source_role}_sources=({allowed})"
+        )
+    return (
+        f"{source_role} policy source transfer depth {transfer_depth} exceeds "
+        f"allowed maximum {max_depth} ({source_role}_max_depth)"
     )
 
 
@@ -308,17 +414,28 @@ def _fit_linear_transfer(
     *,
     min_points: int,
     exclude_placeholders: bool,
+    fit_sources: tuple[str, ...],
+    fit_max_depth: int,
 ) -> LinearFit:
     """Fit a one-predictor linear transfer model between two sources."""
 
     xs: list[float] = []
     ys: list[float] = []
+    filtered_by_fit_restrictions = 0
 
     n_z = min(len(base_set.values_by_z), len(predictor_source.values_by_z))
     for z in range(1, n_z):
         y = base_set.values_by_z[z]
         x = predictor_source.values_by_z[z]
         if y is None or x is None:
+            continue
+        if not _transfer_source_is_allowed(
+            predictor_source.lookup_source_by_z[z],
+            predictor_source.transfer_depth_by_z[z],
+            allowed_sources=fit_sources,
+            max_depth=fit_max_depth,
+        ):
+            filtered_by_fit_restrictions += 1
             continue
         y_f = float(y)
         x_f = float(x)
@@ -332,6 +449,11 @@ def _fit_linear_transfer(
 
     n = len(xs)
     if n < min_points:
+        if predictor_source.via_policy and filtered_by_fit_restrictions > 0:
+            raise PolicyError(
+                "not enough overlapping elements to fit linear transfer after "
+                "applying fit source constraints (fit-source restrictions)"
+            )
         raise PolicyError("not enough overlapping elements to fit linear transfer")
 
     x_mean = sum(xs) / n
@@ -365,6 +487,8 @@ def _fit_linear_transfer_cached(
     predictor_ref: DatasetRef,
     min_points: int,
     exclude_placeholders: bool,
+    fit_sources: tuple[str, ...],
+    fit_max_depth: int,
 ) -> LinearFit:
     """Cache fits between two packaged datasets for repeated reuse."""
 
@@ -373,6 +497,8 @@ def _fit_linear_transfer_cached(
         _materialize_transfer_source(predictor_ref),
         min_points=min_points,
         exclude_placeholders=exclude_placeholders,
+        fit_sources=fit_sources,
+        fit_max_depth=fit_max_depth,
     )
 
 
@@ -391,12 +517,16 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
             predictor,
             transfer.min_points,
             transfer.exclude_placeholders,
+            transfer.fit_sources,
+            transfer.fit_max_depth,
         )
     return _fit_linear_transfer(
         resolve_dataset_like(base),
         _materialize_transfer_source(predictor),
         min_points=transfer.min_points,
         exclude_placeholders=transfer.exclude_placeholders,
+        fit_sources=transfer.fit_sources,
+        fit_max_depth=transfer.fit_max_depth,
     )
 
 
@@ -431,6 +561,7 @@ def _apply_substitution_transfer(
             resolved_from=source_value.resolved_from,
             is_placeholder=source_value.is_placeholder,
             notes=tuple(notes),
+            transfer_depth=source_value.transfer_depth + 1,
         ),
         None,
     )
@@ -455,6 +586,23 @@ def _apply_linear_transfer(
     if predictor_value is None:
         return None, note
 
+    if not _transfer_source_is_allowed(
+        predictor_value.lookup_source,
+        predictor_value.transfer_depth,
+        allowed_sources=transfer.prediction_sources,
+        max_depth=transfer.prediction_max_depth,
+    ):
+        return (
+            None,
+            _explain_rejected_transfer_source(
+                source_role="prediction",
+                lookup_source=predictor_value.lookup_source,
+                transfer_depth=predictor_value.transfer_depth,
+                allowed_sources=transfer.prediction_sources,
+                max_depth=transfer.prediction_max_depth,
+            ),
+        )
+
     if transfer.exclude_placeholders and predictor_value.is_placeholder:
         if predictor_value.via_policy:
             return None, "predictor value from policy source is a placeholder"
@@ -468,7 +616,10 @@ def _apply_linear_transfer(
     notes = ["missing in base set; inferred via linear transfer"]
     if predictor_value.via_policy:
         notes.append("predictor value supplied by policy source")
-        notes.append("linear fit used policy-materialized predictor values")
+        notes.append(
+            "linear fit applied fit-source and transfer-depth limits to "
+            "policy-materialized predictor values"
+        )
         if predictor_value.lookup_source not in (None, "base"):
             notes.append(
                 "policy predictor resolved the value via "
@@ -484,19 +635,26 @@ def _apply_linear_transfer(
             is_placeholder=False,
             fit=fit,
             notes=tuple(notes),
+            transfer_depth=predictor_value.transfer_depth + 1,
         ),
         None,
     )
 
 
-def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResult:
+def _resolve_value(
+    symbol: str | None,
+    *,
+    policy: ValuePolicy[str],
+    resolution_owner: object | None = None,
+) -> LookupResult:
     """Resolve a value through override, base, transfer, and fallback steps."""
 
-    policy_id = id(policy)
-    if policy_id in _ACTIVE_POLICY_IDS:
+    active_tokens = _ACTIVE_POLICY_TOKENS.get()
+    resolution_tokens = _policy_resolution_tokens(policy, owner=resolution_owner)
+    if any(token in active_tokens for token in resolution_tokens):
         raise PolicyError("cyclic policy resolution detected")
 
-    _ACTIVE_POLICY_IDS.append(policy_id)
+    stack_token = _ACTIVE_POLICY_TOKENS.set(active_tokens + resolution_tokens)
     try:
         target = _resolve_target_ref(policy)
         base_set = resolve_dataset_like(policy.base)
@@ -527,6 +685,7 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
                 source="override",
                 target=target,
                 notes=("value supplied by policy override",),
+                transfer_depth=0,
             )
 
         base_value = base_set.get(sym)
@@ -545,6 +704,7 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
                 resolved_from=(base_set.ref,),
                 is_placeholder=is_placeholder,
                 notes=notes,
+                transfer_depth=0,
             )
 
         transfer_notes: list[str] = ["missing in base set"]
@@ -576,6 +736,7 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
                 source="fallback",
                 target=target,
                 notes=tuple(transfer_notes + ["using fallback value"]),
+                transfer_depth=0,
             )
 
         return LookupResult(
@@ -585,8 +746,30 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
             notes=tuple(transfer_notes),
         )
     finally:
-        popped = _ACTIVE_POLICY_IDS.pop()
-        assert popped == policy_id  # internal stack discipline
+        _ACTIVE_POLICY_TOKENS.reset(stack_token)
+
+
+def _lookup_value_from_policy_source(
+    symbol: str | None,
+    *,
+    source: ValuePolicy[str] | SupportsValuePolicy,
+) -> LookupResult:
+    """Resolve a value from either a generic policy or a wrapper policy."""
+
+    if isinstance(source, ValuePolicy):
+        return _lookup_value_with_owner(symbol, policy=source, owner=None)
+    policy = source.as_value_policy()
+    return _lookup_value_with_owner(symbol, policy=policy, owner=source)
+
+
+def _get_value_from_policy_source(
+    symbol: str | None,
+    *,
+    source: ValuePolicy[str] | SupportsValuePolicy,
+) -> float | None:
+    """Return only the scalar selected by a generic or wrapper policy."""
+
+    return _lookup_value_from_policy_source(symbol, source=source).value
 
 
 def lookup_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResult:
@@ -596,7 +779,7 @@ def lookup_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResul
     In v0.1 the runtime supports only element-domain policies.
     """
 
-    return _resolve_value(symbol, policy=policy)
+    return _lookup_value_with_owner(symbol, policy=policy, owner=None)
 
 
 def get_value(symbol: str | None, *, policy: ValuePolicy[str]) -> float | None:

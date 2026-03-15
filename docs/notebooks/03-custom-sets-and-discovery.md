@@ -33,9 +33,9 @@ for symbol in ("C", "O", "N"):
 ```
 **Output**
 ```text
-C LookupResult(value=0.77, source='base', target=DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'), resolved_from=(DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'),), is_placeholder=False, fit=None, notes=())
-O LookupResult(value=0.67, source='base', target=DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'), resolved_from=(DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'),), is_placeholder=False, fit=None, notes=())
-N LookupResult(value=0.71, source='transfer_substitution', target=DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'), resolved_from=(DatasetRef(quantity='covalent_radius', set_id='cordero2008'),), is_placeholder=False, fit=None, notes=('missing in base set; substituted from transfer source',))
+C LookupResult(value=0.77, source='base', target=DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'), resolved_from=(DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'),), is_placeholder=False, fit=None, notes=(), transfer_depth=0)
+O LookupResult(value=0.67, source='base', target=DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'), resolved_from=(DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'),), is_placeholder=False, fit=None, notes=(), transfer_depth=0)
+N LookupResult(value=0.71, source='transfer_substitution', target=DatasetRef(quantity='covalent_radius', set_id='demo_user_cov'), resolved_from=(DatasetRef(quantity='covalent_radius', set_id='cordero2008'),), is_placeholder=False, fit=None, notes=('missing in base set; substituted from transfer source',), transfer_depth=1)
 ```
 ```python
 for info in ar.list_radii_set_infos("van_der_waals", usage_role="target"):

@@ -22,6 +22,8 @@ What you get in the current `0.1.x` line:
 - dataset provenance and coverage metadata,
 - deterministic lookup policies,
 - substitution and linear transfer from support datasets or policies into target datasets,
+- guarded nested policy-backed transfers with explicit transfer depth,
+  conservative fit/prediction controls, and cycle detection,
 - user-defined custom element-indexed scalar sets.
 
 ## Core terms
@@ -65,6 +67,13 @@ The default `0.1.x` behavior is intentionally simple and practical:
   elements inferred from **Cordero covalent radii** through a fitted linear
   policy.
 
+Nested policy predictors are supported too. In `0.1.4`, `LinearTransfer`
+separates **fit-time** use of nested predictor values from
+**prediction-time** use. By default, the fit may use only direct nested
+values, while the final requested element may still use one additional
+nested completion step. That is a useful compromise for workflows such as
+provisional X–H inference from a chosen covalent-radii policy.
+
 ## Quick example
 
 ```pycon
@@ -80,13 +89,15 @@ The default `0.1.x` behavior is intentionally simple and practical:
 2.8972265395148358
 >>> lookup.source
 'transfer_linear'
+>>> lookup.transfer_depth
+1
 >>> lookup.resolved_from
 (DatasetRef(quantity='atomic_radius', set_id='rahm2016'),)
 ```
 
 `get_*` returns only the number. `lookup_*` returns a `LookupResult` that also
-records where the value came from and whether a transfer model or policy source
-was involved.
+records where the value came from, whether a transfer model or policy source was
+involved, and how many transfer steps were needed (`transfer_depth`).
 
 You can inspect the packaged quantity and dataset catalog directly:
 
