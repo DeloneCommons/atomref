@@ -26,6 +26,6 @@ This is useful when you want to:
 - combine a user dataset with built-in support data through substitution or
   linear transfer.
 
-In v0.1 custom sets are element-domain scalar datasets, which keeps the data
-model small and stable. Later versions may add more specialized domains, but
+In the current implementation custom sets are element-domain scalar datasets,
+which keeps the data model small and stable. Later versions may add more specialized domains, but
 custom element-wise sets are already enough for many geometry workflows.

@@ -1,7 +1,7 @@
 # van der Waals radius
 
-The van der Waals quantity in v0.1 intentionally includes several target sets
-with different scientific backgrounds. This lets users choose between a classic
+The van der Waals quantity intentionally includes several target sets with
+different scientific backgrounds. This lets users choose between a classic
 historical compilation, structural contact-derived sets, and compatibility-only
 legacy tables.
 
@@ -27,7 +27,7 @@ contacts.
 
 ## Alvarez van der Waals radii (`alvarez2013`)
 
-This is the main van der Waals target set in `atomref` v0.1.
+This is the main van der Waals target set in the current release line.
 
 - **What it is:** a broad structural vdW set derived from statistical analysis
   of many interatomic distances in the Cambridge Structural Database.

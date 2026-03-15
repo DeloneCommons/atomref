@@ -1,6 +1,6 @@
 # Notebook gallery
 
-`atomref` ships example Jupyter notebooks that cover the main v0.1 workflows.
+`atomref` ships example Jupyter notebooks that cover the main workflows.
 Each notebook is available in two forms:
 
 - the original `.ipynb` file in the repository,

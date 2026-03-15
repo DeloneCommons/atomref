@@ -14,7 +14,7 @@ It is not meant to be yet another periodic-table encyclopedia. The package is
 for code that needs stable atomic reference values with explicit provenance,
 clear fallback behavior, and honest handling of incomplete preferred datasets.
 
-What you get in the current `0.1.x` line:
+What you get in the current release line:
 
 - stable element metadata,
 - curated named radii sets,
@@ -43,8 +43,8 @@ What you get in the current `0.1.x` line:
 
 The metadata layer already records `domain` explicitly because the package is
 built for later extension, but the current runtime intentionally keeps the
-implementation narrow and stable: **v0.1 resolves only element-domain scalar
-values**.
+implementation narrow and stable: **the current runtime resolves only
+element-domain scalar values**.
 
 ## Why this exists
 
@@ -54,7 +54,7 @@ Instead of hiding ad hoc defaults inside algorithm code, you choose a target
 set, describe how missing values may be restored, and keep provenance on what
 was actually returned.
 
-The default `0.1.x` behavior is intentionally simple and practical:
+The built-in default behavior is intentionally simple and practical:
 
 - **Cordero covalent radii** (`cordero2008`) are the preferred covalent target
   set, with missing values substituted from the **legacy CSD covalent radii**
@@ -65,11 +65,10 @@ The default `0.1.x` behavior is intentionally simple and practical:
 - **CSD/ConQuest hydrogen-normalisation defaults** (`csd_legacy_xh_cno`) are a
   provisional sparse X–H target set for `C`, `N`, and `O`, with other parent
   elements inferred from **Cordero covalent radii** through a fitted linear
-  policy.
+  transfer.
 
-Nested policy predictors are supported too. In `0.1.4`, `LinearTransfer`
-separates **fit-time** use of nested predictor values from
-**prediction-time** use. By default, the fit may use only direct nested
+Nested policy predictors are supported too. `LinearTransfer` separates
+**fit-time** use of nested predictor values from **prediction-time** use. By default, the fit may use only direct nested
 values, while the final requested element may still use one additional
 nested completion step. That is a useful compromise for workflows such as
 provisional X–H inference from a chosen covalent-radii policy.
@@ -125,7 +124,7 @@ You can also load a packaged set directly:
 
 ## Notebook walkthroughs
 
-The repository ships example notebooks for the main `0.1.x` workflows. In the
+The repository ships example notebooks for the main workflows. In the
 documentation they are also available as rendered Markdown pages, so users can
 read them without opening Jupyter first.
 

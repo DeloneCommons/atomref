@@ -4,35 +4,13 @@
 
 ### Added
 
-- explicit nested-policy safeguards for `LinearTransfer`:
+- `LookupResult.transfer_depth`, which records how many transfer steps were
+  involved in the returned numeric value.
+- Explicit nested-policy safeguards for `LinearTransfer` via:
   - `fit_sources`
   - `fit_max_depth`
   - `prediction_sources`
   - `prediction_max_depth`
-- `LookupResult.transfer_depth` to record how many transfer steps produced the
-  returned value.
-
-### Changed
-
-- linear-transfer fitting now distinguishes direct predictor values from nested
-  policy-derived predictor values.
-- the default nested linear-transfer behavior is now conservative for fitting
-  and allows at most one additional completion step for the final predictor
-  value.
-- cycle detection now uses context-local resolution tokens and correctly catches
-  recursion through wrapper policies such as `RadiiPolicy` and `XHPolicy`.
-- docs were expanded to explain nested-policy predictors, transfer depth, and
-  cycle detection.
-
-## 0.1.4 - 2026-03-15
-
-### Added
-
-- `LookupResult.transfer_depth`, which records how many transfer steps were
-  involved in the returned numeric value.
-- Source/depth controls for nested linear-transfer workflows via
-  `LinearTransfer.fit_sources`, `LinearTransfer.fit_max_depth`,
-  `LinearTransfer.prediction_sources`, and `LinearTransfer.prediction_max_depth`.
 - Regression tests covering generic-policy cycles, wrapper-policy cycles,
   conservative nested-fit defaults, and explicit opt-in for deeper nested
   linear workflows.
@@ -42,6 +20,8 @@
 - Nested policy-backed linear transfers are now guarded in two phases:
   conservative defaults are used for fit training, while one additional nested
   completion step remains allowed at prediction time.
+- Linear-transfer fitting now distinguishes direct predictor values from nested
+  policy-derived predictor values.
 - Cycle detection now tracks both generic policies and wrapper policies using a
   context-local activation stack, so recursion through freshly materialized
   wrapper policies is detected reliably and safely.
@@ -55,32 +35,6 @@
   `transfer_depth`, and cycle detection.
 - Added guidance on when chained correlations are scientifically reasonable and
   how to opt in deliberately when broader fit training is desired.
-
-## 0.1.4 - 2026-03-15
-
-### Added
-
-- `LookupResult.transfer_depth` is now used consistently across nested
-  substitution and linear-transfer workflows so callers can tell how many
-  transfer steps contributed to a returned value.
-- New tests covering nested-policy fit controls, prediction-depth limits, and
-  cycle detection for both generic and wrapper policies.
-
-### Changed
-
-- `LinearTransfer` now distinguishes between values that may participate in
-  fitting (`fit_sources`, `fit_max_depth`) and values that may be used for the
-  final element-specific predictor lookup (`prediction_sources`,
-  `prediction_max_depth`).
-- The default linear-transfer behavior is now conservative for fitting
-  (direct predictor values only) while still allowing one nested completion
-  step during final prediction.
-- Policy-resolution cycle detection now tracks wrapper-policy identities as
-  well as generic `ValuePolicy` objects and is stored in a context-local stack
-  instead of a process-global mutable list.
-- Quantity wrappers continue to use the generic policy core, but now route
-  through wrapper-aware lookup helpers so cycle checks remain effective for
-  `RadiiPolicy` and `XHPolicy`.
 
 ## 0.1.3 - 2026-03-15
 

@@ -30,7 +30,7 @@ or `list_xh_sets(...)`.
 If you want the packaged values themselves, use `get_builtin_set(...)`,
 `get_radii_set(...)`, or `get_xh_set(...)`.
 
-## Built-in quantity families in `0.1.x`
+## Built-in quantity families
 
 - [Covalent radius](covalent_radius.md)
 - [van der Waals radius](van_der_waals_radius.md)

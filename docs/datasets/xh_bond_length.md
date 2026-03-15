@@ -1,7 +1,7 @@
 # X–H bond length
 
-The `xh_bond_length` quantity is a small provisional addition in the `0.1.x`
-line.
+The `xh_bond_length` quantity is a small provisional addition in the current
+release line.
 
 Its purpose is not to claim a complete literature survey of X–H bond lengths.
 Instead, it provides a stable, provenance-aware starting point for

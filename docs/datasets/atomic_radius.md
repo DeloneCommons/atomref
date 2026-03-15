@@ -1,6 +1,6 @@
 # Atomic radius
 
-The `atomic_radius` quantity exists in v0.1 to hold support datasets that are
+The `atomic_radius` quantity exists to hold support datasets that are
 scientifically useful but should not be presented as direct condensed-phase vdW
 radii.
 

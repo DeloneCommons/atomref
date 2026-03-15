@@ -22,7 +22,7 @@ selection logic that sits on top of them.
 
 ## Resolution order
 
-In `0.1.x` every lookup follows the same ordered path:
+In the current implementation every lookup follows the same ordered path:
 
 1. **Blocked key** (optional)
 2. **Override**
@@ -58,7 +58,7 @@ default vdW policy starts from the **Alvarez van der Waals radii**
 A transfer model is used only when the base dataset has no value for the
 requested element.
 
-Built-in transfer models in `0.1.x` are:
+Built-in transfer models are:
 
 - `SubstitutionTransfer` — take a value directly from another dataset or policy,
 - `LinearTransfer` — infer a target-equivalent value from another dataset or

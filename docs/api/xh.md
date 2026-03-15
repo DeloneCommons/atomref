@@ -1,7 +1,7 @@
 # atomref.xh
 
-This module provides the provisional X–H bond-length helpers introduced in the
-`0.1.x` line.
+This module provides the provisional X–H bond-length helpers available in the
+current release line.
 
 It is intentionally narrow:
 

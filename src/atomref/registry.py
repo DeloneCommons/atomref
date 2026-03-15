@@ -576,7 +576,7 @@ def get_builtin_set(ref: DatasetRef) -> ElementScalarSet:
     info = get_dataset_info(ref)
     if info.domain != "element":
         raise DatasetError(
-            f"only element-domain datasets are supported in v0.1: {info.ref!r}"
+            f"only element-domain datasets are currently supported: {info.ref!r}"
         )
     if not isinstance(info.storage, Mapping):
         raise DatasetError(f"missing storage metadata for dataset: {info.ref!r}")

@@ -1,21 +1,26 @@
 # Development plan
 
-## v0.1
+## Current status (implemented in the `0.1.x` line)
 
-- element metadata
-- covalent and van der Waals radii sets
-- explicit provenance
-- radii policies
+- stable element metadata
+- curated covalent, van der Waals, and atomic-radius support datasets
+- explicit provenance and coverage metadata
+- generic value-policy core plus radii and X–H convenience wrappers
 - substitution and linear transfer
 - custom element-indexed scalar sets
+- policy-backed transfer sources
+- nested-policy safeguards, transfer-depth tracking, and cycle detection
+- provisional X–H support via `csd_legacy_xh_cno`, `XHPolicy`, and
+  `DEFAULT_XH_POLICY`
 
-## v0.2
+## Planned for `0.2.x`
 
-- X-H bond-length datasets
+- broader X–H datasets and policies
 - experimental plus computational support sets
+- pairwise helper logic such as reference sums and normalization schemes
 - restoration of incomplete experimental data from broader-support predictors
 
-## v0.3
+## Longer-term design ideas
 
 - radial atomic reference functions
 - simple proto-density support based on spherically averaged atomic data

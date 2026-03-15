@@ -80,7 +80,7 @@ class LookupResult:
 class ValuePolicy(Generic[K]):
     """Ordered rule set for resolving element-domain scalar values.
 
-    The v0.1 runtime resolves only element-domain policies even though the
+    The current runtime resolves only element-domain policies even though the
     metadata layer already records a more general ``domain`` concept. During
     construction, element-domain override keys are normalized to canonical
     element symbols and validated as finite floats.
@@ -508,7 +508,9 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
     if not isinstance(transfer, LinearTransfer):
         return None
     if len(transfer.predictors) != 1:
-        raise PolicyError("v0.1 LinearTransfer supports exactly one predictor source")
+        raise PolicyError(
+            "LinearTransfer currently supports exactly one predictor source"
+        )
 
     predictor = transfer.predictors[0]
     if isinstance(base, DatasetRef) and isinstance(predictor, DatasetRef):
@@ -577,7 +579,9 @@ def _apply_linear_transfer(
     """Try to resolve ``symbol`` through linear transfer from predictor data."""
 
     if len(transfer.predictors) != 1:
-        raise PolicyError("v0.1 LinearTransfer supports exactly one predictor source")
+        raise PolicyError(
+            "LinearTransfer currently supports exactly one predictor source"
+        )
 
     predictor_value, note = _lookup_transfer_source_value(
         symbol,
@@ -659,7 +663,9 @@ def _resolve_value(
         target = _resolve_target_ref(policy)
         base_set = resolve_dataset_like(policy.base)
         if base_set.info.domain != "element":
-            raise PolicyError("v0.1 resolver supports only element-domain datasets")
+            raise PolicyError(
+                "the resolver currently supports only element-domain datasets"
+            )
 
         sym = _normalize_element_symbol(symbol)
         if sym is None:
@@ -776,7 +782,7 @@ def lookup_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResul
     """Public entry point for generic element-domain scalar lookup.
 
     This is the same resolver used internally by the radii convenience layer.
-    In v0.1 the runtime supports only element-domain policies.
+    In the current implementation the runtime supports only element-domain policies.
     """
 
     return _lookup_value_with_owner(symbol, policy=policy, owner=None)

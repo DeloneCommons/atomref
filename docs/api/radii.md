@@ -1,6 +1,6 @@
 # atomref.radii
 
-This is the main user-facing module in v0.1.
+This is the main user-facing module for radii workflows.
 
 It provides radii policies, packaged radii-set discovery, lookup helpers, and
 policy-assessment reports.

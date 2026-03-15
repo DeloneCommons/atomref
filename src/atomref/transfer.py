@@ -81,9 +81,9 @@ class SubstitutionTransfer:
 class LinearTransfer:
     """Infer missing target values from one or more predictor datasets or policies.
 
-    In v0.1 the public API stores predictors as a tuple for forward
-    compatibility, but the runtime implementation intentionally accepts exactly
-    one predictor source.
+    In the current implementation the public API stores predictors as a tuple
+    for forward compatibility, but the runtime intentionally accepts exactly one
+    predictor source.
 
     For nested policy predictors, two safeguards apply:
 

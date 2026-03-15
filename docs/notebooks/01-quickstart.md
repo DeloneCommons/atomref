@@ -3,7 +3,7 @@
 [Open the original notebook on GitHub](https://github.com/DeloneCommons/atomref/blob/main/notebooks/01-quickstart.ipynb)
 # atomref quickstart
 
-This notebook covers the main public API in v0.1: element helpers, direct
+This notebook covers the main public API: element helpers, direct
 `get_*` calls, provenance-carrying `lookup_*` calls, and packaged dataset
 discovery.
 ```python
