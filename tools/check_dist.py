@@ -23,6 +23,8 @@ REQUIRED_SDIST_SUFFIXES = {
     "src/atomref/data/registry.json",
     "src/atomref/py.typed",
     "README.md",
+    "CHANGELOG.md",
+    "DEV_PLAN.md",
     "LICENSE",
     "pyproject.toml",
     "notebooks/01-quickstart.ipynb",
@@ -33,6 +35,8 @@ REQUIRED_SDIST_SUFFIXES = {
     "docs/notebooks/03-custom-sets-and-discovery.md",
     "tools/check_notebooks.py",
     "tools/export_notebooks.py",
+    "tools/gen_readme.py",
+    "tools/release_check.py",
     "tools/README.md",
 }
 

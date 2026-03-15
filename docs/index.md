@@ -116,6 +116,7 @@ The repository also ships small maintenance tools. The most important ones are:
 - `python tools/export_notebooks.py` — turn notebooks into Markdown pages for
   the docs,
 - `python tools/gen_readme.py` — regenerate `README.md` from this page.
+- `python tools/release_check.py` — run the full release-preparation checklist, including linting, tests, docs, builds, and artifact validation.
 
 See the [tools README](https://github.com/DeloneCommons/atomref/blob/main/tools/README.md)
 for a short description of each script.

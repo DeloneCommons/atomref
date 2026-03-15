@@ -21,3 +21,10 @@ Those extras currently cover:
 - `test` — pytest and test-only compatibility helpers,
 - `docs` — MkDocs and API documentation tooling,
 - `dev` — flake8, build, and release metadata checks.
+
+
+For a full local pre-release validation pass after installing those extras, run:
+
+```bash
+python tools/release_check.py
+```

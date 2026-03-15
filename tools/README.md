@@ -13,6 +13,8 @@ release preparation.
 - `export_notebooks.py` — render the bundled notebooks into Markdown pages under
   `docs/notebooks/`.
 - `gen_readme.py` — regenerate `README.md` from `docs/index.md`.
+- `release_check.py` — run the full release-preparation checklist,
+  including linting, tests, docs, builds, and artifact validation.
 
 ## Typical commands
 
@@ -21,6 +23,7 @@ python tools/check_registry.py
 python tools/check_notebooks.py
 python tools/export_notebooks.py
 python tools/gen_readme.py
+python tools/release_check.py
 ```
 
 The main project README is generated from the documentation home page. To change
