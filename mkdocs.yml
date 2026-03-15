@@ -1,0 +1,50 @@
+site_name: atomref
+site_url: https://delonecommons.github.io/atomref/
+repo_url: https://github.com/DeloneCommons/atomref
+repo_name: DeloneCommons/atomref
+
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_root_heading: true
+            show_source: false
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Install: guide/install.md
+      - Quickstart: guide/quickstart.md
+      - Policies: guide/policies.md
+      - Custom sets: guide/custom_sets.md
+      - Non-goals: guide/non_goals.md
+  - Datasets:
+      - Overview: datasets/index.md
+      - Covalent radius: datasets/covalent_radius.md
+      - van der Waals radius: datasets/van_der_waals_radius.md
+      - Atomic radius: datasets/atomic_radius.md
+      - X–H bond length: datasets/xh_bond_length.md
+  - Notebooks:
+      - Overview: guide/notebooks.md
+      - Quickstart notebook: notebooks/01-quickstart.md
+      - Policies and assessment notebook: notebooks/02-policies-and-assessment.md
+      - Custom sets and discovery notebook: notebooks/03-custom-sets-and-discovery.md
+  - Development:
+      - Architecture: dev/architecture.md
+      - Data curation: dev/data_curation.md
+      - Development plan: dev/dev_plan.md
+  - API:
+      - Overview: api/index.md
+      - atomref: api/atomref.md
+      - atomref.elements: api/elements.md
+      - atomref.registry: api/registry.md
+      - atomref.transfer: api/transfer.md
+      - atomref.policy: api/policy.md
+      - atomref.radii: api/radii.md
+      - atomref.xh: api/xh.md
