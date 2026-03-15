@@ -14,14 +14,35 @@ It is not meant to be yet another periodic-table encyclopedia. The package is
 for code that needs stable atomic reference values with explicit provenance,
 clear fallback behavior, and honest handling of incomplete preferred datasets.
 
-What you get in v0.1:
+What you get in the current `0.1.x` line:
 
 - stable element metadata,
 - curated named radii sets,
+- provisional X–H bond-length support for hydrogen-normalisation workflows,
 - dataset provenance and coverage metadata,
 - deterministic lookup policies,
-- substitution and linear transfer from support datasets into target datasets,
+- substitution and linear transfer from support datasets or policies into target datasets,
 - user-defined custom element-indexed scalar sets.
+
+## Core terms
+
+`atomref` uses a small vocabulary on purpose.
+
+- **quantity** — the operational property family being requested, such as
+  `covalent_radius`, `van_der_waals_radius`, `atomic_radius`, or
+  `xh_bond_length`.
+- **domain** — the key space used to index that quantity. In the current
+  runtime, the supported domain is `element`, meaning lookups are keyed by an
+  element symbol.
+- **dataset** — one curated named table inside a quantity, such as
+  `cordero2008`, `alvarez2013`, or `csd_legacy_xh_cno`.
+- **policy** — the ordered rule set that decides what value to return when the
+  preferred dataset is incomplete.
+
+The metadata layer already records `domain` explicitly because the package is
+built for later extension, but the current runtime intentionally keeps the
+implementation narrow and stable: **v0.1 resolves only element-domain scalar
+values**.
 
 ## Why this exists
 
@@ -31,7 +52,7 @@ Instead of hiding ad hoc defaults inside algorithm code, you choose a target
 set, describe how missing values may be restored, and keep provenance on what
 was actually returned.
 
-The default v0.1 behavior is intentionally simple and practical:
+The default `0.1.x` behavior is intentionally simple and practical:
 
 - **Cordero covalent radii** (`cordero2008`) are the preferred covalent target
   set, with missing values substituted from the **legacy CSD covalent radii**
@@ -39,6 +60,10 @@ The default v0.1 behavior is intentionally simple and practical:
 - **Alvarez van der Waals radii** (`alvarez2013`) are the preferred vdW target
   set, with missing values restored from the **Rahm isodensity atomic radii**
   (`rahm2016`) through a fitted linear transfer.
+- **CSD/ConQuest hydrogen-normalisation defaults** (`csd_legacy_xh_cno`) are a
+  provisional sparse X–H target set for `C`, `N`, and `O`, with other parent
+  elements inferred from **Cordero covalent radii** through a fitted linear
+  policy.
 
 ## Quick example
 
@@ -48,6 +73,8 @@ The default v0.1 behavior is intentionally simple and practical:
 0.76
 >>> ar.get_vdw_radius("O")
 1.5
+>>> ar.get_xh_bond_length("N")
+1.015
 >>> lookup = ar.lookup_vdw_radius("Pm")
 >>> lookup.value
 2.8972265395148358
@@ -58,16 +85,17 @@ The default v0.1 behavior is intentionally simple and practical:
 ```
 
 `get_*` returns only the number. `lookup_*` returns a `LookupResult` that also
-records where the value came from and whether a transfer model was involved.
+records where the value came from and whether a transfer model or policy source
+was involved.
 
 You can inspect the packaged quantity and dataset catalog directly:
 
 ```pycon
 >>> import atomref as ar
 >>> ar.list_quantities()
-('covalent_radius', 'van_der_waals_radius', 'atomic_radius')
->>> ar.get_quantity_info("atomic_radius")
-QuantityInfo(quantity='atomic_radius', domain='element', units='angstrom', description='Element-indexed isolated-atom or theory-defined atomic radii used as transferable support data.')
+('covalent_radius', 'van_der_waals_radius', 'atomic_radius', 'xh_bond_length')
+>>> ar.get_quantity_info("xh_bond_length")
+QuantityInfo(quantity='xh_bond_length', domain='element', units='angstrom', description='Element-indexed reference X-H bond lengths keyed by parent element X and intended for hydrogen-position normalisation or related geometry workflows.')
 >>> [info.ref.set_id for info in ar.list_dataset_infos("van_der_waals_radius", usage_role="target")]
 ['bondi1964', 'rowland_taylor1996', 'alvarez2013', 'chernyshov2020']
 ```
@@ -79,14 +107,14 @@ You can also load a packaged set directly:
 >>> vdw = ar.get_radii_set("van_der_waals", "alvarez2013")
 >>> vdw.get("O")
 1.5
->>> raw = ar.get_builtin_set(ar.DatasetRef("atomic_radius", "rahm2016"))
->>> raw.get("Pm")
-2.83
+>>> xh = ar.get_xh_set("csd_legacy_xh_cno")
+>>> xh.get("C")
+1.089
 ```
 
 ## Notebook walkthroughs
 
-The repository ships example notebooks for the main v0.1 workflows. In the
+The repository ships example notebooks for the main `0.1.x` workflows. In the
 documentation they are also available as rendered Markdown pages, so users can
 read them without opening Jupyter first.
 
@@ -100,7 +128,7 @@ read them without opening Jupyter first.
 `atomref` is designed as a standalone package, but within Delone Commons it is
 primarily intended to support chemistry-aware packages such as:
 
-- `molcryst`, for covalent-bond detection and contact analysis,
+- `molcryst`, for covalent-bond detection, contact analysis, and hydrogen workflows,
 - future `chemvoro`, for chemistry-aware contact and hydrogen workflows.
 
 By contrast, `pyvoro2` and `pbcgraph` are intentionally general mathematical
@@ -115,8 +143,9 @@ The repository also ships small maintenance tools. The most important ones are:
 - `python tools/check_notebooks.py` — execute notebook code cells,
 - `python tools/export_notebooks.py` — turn notebooks into Markdown pages for
   the docs,
-- `python tools/gen_readme.py` — regenerate `README.md` from this page.
-- `python tools/release_check.py` — run the full release-preparation checklist, including linting, tests, docs, builds, and artifact validation.
+- `python tools/gen_readme.py` — regenerate `README.md` from this page,
+- `python tools/release_check.py` — run the full release-preparation checklist,
+  including linting, tests, docs, builds, and artifact validation.
 
 See the [tools README](https://github.com/DeloneCommons/atomref/blob/main/tools/README.md)
 for a short description of each script.

@@ -8,7 +8,7 @@ from .elements import (
     iter_elements,
     is_valid_element_symbol,
 )
-from .policy import LookupResult, ValuePolicy
+from .policy import LookupResult, ValuePolicy, get_value, lookup_value
 from .radii import (
     DEFAULT_COVALENT_POLICY,
     DEFAULT_VDW_POLICY,
@@ -24,6 +24,16 @@ from .radii import (
     list_radii_sets,
     lookup_covalent_radius,
     lookup_vdw_radius,
+)
+from .xh import (
+    DEFAULT_XH_POLICY,
+    XHPolicy,
+    get_xh_bond_length,
+    get_xh_set,
+    get_xh_set_info,
+    list_xh_set_infos,
+    list_xh_sets,
+    lookup_xh_bond_length,
 )
 from .registry import (
     CoverageInfo,
@@ -65,6 +75,8 @@ __all__ = [
     "SubstitutionTransfer",
     "LookupResult",
     "ValuePolicy",
+    "lookup_value",
+    "get_value",
     "RadiiPolicy",
     "RadiiElementAssessment",
     "RadiiPolicyAssessment",
@@ -79,4 +91,12 @@ __all__ = [
     "lookup_vdw_radius",
     "get_vdw_radius",
     "assess_radii_policy",
+    "XHPolicy",
+    "DEFAULT_XH_POLICY",
+    "list_xh_sets",
+    "list_xh_set_infos",
+    "get_xh_set",
+    "get_xh_set_info",
+    "lookup_xh_bond_length",
+    "get_xh_bond_length",
 ]

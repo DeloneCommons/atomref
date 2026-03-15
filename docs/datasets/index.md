@@ -4,6 +4,7 @@
 Instead, the package records several layers of classification:
 
 - **quantity** — the operational property being requested,
+- **domain** — the key space used to index that quantity,
 - **semantic class** — what the dataset scientifically represents,
 - **origin class** — how the values were obtained,
 - **phase context** — what physical context they describe,
@@ -22,13 +23,16 @@ The most useful catalog helpers are:
 - `atomref.get_quantity_info(...)`
 - `atomref.list_dataset_infos(...)`
 - `atomref.list_radii_set_infos(...)`
+- `atomref.list_xh_set_infos(...)`
 
-If you only need dataset ids, use `list_dataset_ids(...)` or `list_radii_sets(...)`.
-If you want the packaged values themselves, use `get_builtin_set(...)` or
-`get_radii_set(...)`.
+If you only need dataset ids, use `list_dataset_ids(...)`, `list_radii_sets(...)`,
+or `list_xh_sets(...)`.
+If you want the packaged values themselves, use `get_builtin_set(...)`,
+`get_radii_set(...)`, or `get_xh_set(...)`.
 
-## Built-in quantity families in v0.1
+## Built-in quantity families in `0.1.x`
 
 - [Covalent radius](covalent_radius.md)
 - [van der Waals radius](van_der_waals_radius.md)
 - [Atomic radius](atomic_radius.md)
+- [X–H bond length](xh_bond_length.md)

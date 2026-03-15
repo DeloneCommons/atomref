@@ -3,8 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+from .errors import PolicyError
 from .registry import DatasetLike
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from .policy import ValuePolicy
+
+
+@runtime_checkable
+class SupportsValuePolicy(Protocol):
+    """Protocol for wrapper objects that can expose a generic value policy."""
+
+    def as_value_policy(self) -> "ValuePolicy[str]":
+        """Return the generic element-domain value policy."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,23 +38,31 @@ class LinearFit:
 
 @dataclass(frozen=True, slots=True)
 class SubstitutionTransfer:
-    """Use another dataset directly when the base dataset is missing a value."""
+    """Use another dataset or policy directly when the base dataset is missing a value."""
 
-    source: DatasetLike
+    source: DatasetLike | SupportsValuePolicy | ValuePolicy[str]
 
 
 @dataclass(frozen=True, slots=True)
 class LinearTransfer:
-    """Infer missing target values from one or more predictor datasets.
+    """Infer missing target values from one or more predictor datasets or policies.
 
     In v0.1 the public API stores predictors as a tuple for forward
     compatibility, but the runtime implementation intentionally accepts exactly
-    one predictor dataset.
+    one predictor source.
     """
 
-    predictors: tuple[DatasetLike, ...]
+    predictors: tuple[DatasetLike | SupportsValuePolicy | ValuePolicy[str], ...]
     min_points: int = 2
     exclude_placeholders: bool = True
+
+    def __post_init__(self) -> None:
+        """Validate obvious configuration errors eagerly."""
+
+        if not self.predictors:
+            raise PolicyError("LinearTransfer requires at least one predictor")
+        if self.min_points < 2:
+            raise PolicyError("LinearTransfer min_points must be at least 2")
 
 
 TransferModel = SubstitutionTransfer | LinearTransfer

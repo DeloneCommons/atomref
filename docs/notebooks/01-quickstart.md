@@ -15,7 +15,7 @@ print(ar.list_quantities())
 **Output**
 ```text
 Element(z=17, symbol='Cl', name='Chlorine')
-('covalent_radius', 'van_der_waals_radius', 'atomic_radius')
+('covalent_radius', 'van_der_waals_radius', 'atomic_radius', 'xh_bond_length')
 ```
 ```python
 r_c = ar.get_covalent_radius('C')

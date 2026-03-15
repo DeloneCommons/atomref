@@ -8,6 +8,9 @@ import csv
 from functools import lru_cache
 from importlib import resources
 import json
+import math
+from types import MappingProxyType
+import unicodedata
 
 from .elements import canonicalize_element_symbol, get_element, iter_elements
 from .errors import DatasetError
@@ -121,21 +124,44 @@ class ElementScalarSet:
 
         n_z = max(e.z for e in iter_elements())
         values_by_z: list[float | None] = [None] * (n_z + 1)
+        seen_keys: dict[str, str] = {}
+
+        placeholder_f = (
+            None
+            if placeholder_value is None
+            else _coerce_finite_float(
+                placeholder_value,
+                what=f"placeholder value for custom dataset {ref.set_id!r}",
+            )
+        )
 
         for key, value in values.items():
             sym = _normalize_element_domain_symbol(key)
             elem = get_element(sym)
             if elem is None:
                 raise DatasetError(f"invalid element symbol in custom set: {key!r}")
-            values_by_z[elem.z] = None if value is None else float(value)
+            previous = seen_keys.get(sym)
+            if previous is not None and previous != key:
+                raise DatasetError(
+                    f"custom-set keys {previous!r} and {key!r} both normalize to {sym!r}"
+                )
+            seen_keys[sym] = key
+            values_by_z[elem.z] = (
+                None
+                if value is None
+                else _coerce_finite_float(
+                    value,
+                    what=f"value for element {key!r} in custom dataset {ref.set_id!r}",
+                )
+            )
 
         covered_z = tuple(
             z for z, value in enumerate(values_by_z) if z > 0 and value is not None
         )
         has_placeholders = False
-        if placeholder_value is not None:
+        if placeholder_f is not None:
             has_placeholders = any(
-                value is not None and abs(value - placeholder_value) < 1e-12
+                value is not None and abs(value - placeholder_f) < 1e-12
                 for value in values_by_z[1:]
             )
 
@@ -149,7 +175,7 @@ class ElementScalarSet:
             semantic_class=semantic_class,
             origin_class=origin_class,
             phase_context=phase_context,
-            placeholder_value=placeholder_value,
+            placeholder_value=placeholder_f,
             aliases=(),
             references=tuple(references),
             notes=tuple(notes),
@@ -178,6 +204,19 @@ class ElementScalarSet:
 DatasetLike = DatasetRef | ElementScalarSet
 
 
+_DASH_TRANSLATION = str.maketrans(
+    {
+        "‐": "-",
+        "‑": "-",
+        "‒": "-",
+        "–": "-",
+        "—": "-",
+        "―": "-",
+        "−": "-",
+    }
+)
+
+
 def _normalize_element_domain_symbol(symbol: str | None) -> str | None:
     """Normalize element-domain symbols and fold D/T onto hydrogen."""
 
@@ -199,6 +238,35 @@ def _load_registry_json() -> dict[str, object]:
     return data
 
 
+def _freeze_json_like(value: object) -> object:
+    """Recursively freeze JSON-like metadata structures.
+
+    Registry metadata is cached globally. Returning raw dicts or lists from that
+    cache would let callers mutate shared package state through the metadata
+    objects returned by :func:`get_dataset_info`.
+    """
+
+    if isinstance(value, dict):
+        frozen = {str(key): _freeze_json_like(item) for key, item in value.items()}
+        return MappingProxyType(frozen)
+    if isinstance(value, list):
+        return tuple(_freeze_json_like(item) for item in value)
+    return value
+
+
+def _coerce_finite_float(value: object, *, what: str) -> float:
+    """Return ``value`` as a finite float or raise :class:`DatasetError`."""
+
+    try:
+        out = float(value)
+    except (TypeError, ValueError) as exc:
+        raise DatasetError(f"{what} must be a finite float") from exc
+    if not math.isfinite(out):
+        raise DatasetError(f"{what} must be a finite float")
+    return out
+
+
+
 def _get_quantities_mapping() -> Mapping[str, object]:
     """Return the raw ``quantities`` mapping from ``registry.json``."""
 
@@ -206,6 +274,7 @@ def _get_quantities_mapping() -> Mapping[str, object]:
     if not isinstance(quantities, dict):
         raise DatasetError("invalid registry.json: missing quantities mapping")
     return quantities
+
 
 
 def _get_datasets_mapping() -> Mapping[str, object]:
@@ -217,6 +286,7 @@ def _get_datasets_mapping() -> Mapping[str, object]:
     return datasets
 
 
+
 def _datasets_for_quantity(quantity: QuantityId) -> Mapping[str, object]:
     """Return the dataset table for one quantity or raise on unknown input."""
 
@@ -226,10 +296,12 @@ def _datasets_for_quantity(quantity: QuantityId) -> Mapping[str, object]:
     return datasets
 
 
+
 def list_quantities() -> tuple[str, ...]:
     """List packaged quantity identifiers in registry order."""
 
     return tuple(_get_quantities_mapping().keys())
+
 
 
 def get_quantity_info(quantity: QuantityId) -> QuantityInfo:
@@ -253,10 +325,14 @@ def get_quantity_info(quantity: QuantityId) -> QuantityInfo:
     )
 
 
+
 def _canonicalize_alias_token(value: str) -> str:
     """Normalize a dataset id or alias for case-insensitive comparison."""
 
-    return " ".join(value.strip().lower().split())
+    normalized = unicodedata.normalize("NFKC", value)
+    normalized = normalized.translate(_DASH_TRANSLATION)
+    return " ".join(normalized.strip().lower().split())
+
 
 
 def _resolve_set_id(quantity: QuantityId, set_id: str) -> str:
@@ -282,6 +358,7 @@ def _resolve_set_id(quantity: QuantityId, set_id: str) -> str:
     raise DatasetError(f"unknown dataset id for {quantity!r}: {set_id!r}")
 
 
+
 def list_dataset_ids(
     quantity: QuantityId, *, usage_role: str | None = None
 ) -> tuple[str, ...]:
@@ -305,6 +382,7 @@ def list_dataset_ids(
     return tuple(filtered)
 
 
+
 def list_dataset_infos(
     quantity: QuantityId, *, usage_role: str | None = None
 ) -> tuple[DatasetInfo, ...]:
@@ -314,6 +392,7 @@ def list_dataset_infos(
         get_dataset_info(DatasetRef(quantity, set_id))
         for set_id in list_dataset_ids(quantity, usage_role=usage_role)
     )
+
 
 
 def _coerce_reference(obj: object) -> Reference:
@@ -335,6 +414,7 @@ def _coerce_reference(obj: object) -> Reference:
     )
 
 
+
 def _coerce_coverage(obj: object) -> CoverageInfo | None:
     """Coerce raw coverage metadata into :class:`CoverageInfo`."""
 
@@ -352,6 +432,7 @@ def _coerce_coverage(obj: object) -> CoverageInfo | None:
         covered_z=covered_z,
         missing_z=missing_z,
     )
+
 
 
 def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
@@ -401,7 +482,9 @@ def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
         else ()
     )
     storage = (
-        raw_entry.get("storage") if isinstance(raw_entry.get("storage"), dict) else None
+        _freeze_json_like(raw_entry.get("storage"))
+        if isinstance(raw_entry.get("storage"), dict)
+        else None
     )
 
     return DatasetInfo(
@@ -444,7 +527,10 @@ def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
             else None
         ),
         placeholder_value=(
-            float(raw_entry["placeholder_value"])
+            _coerce_finite_float(
+                raw_entry["placeholder_value"],
+                what=f"placeholder value for packaged dataset {actual_ref!r}",
+            )
             if raw_entry.get("placeholder_value") is not None
             else None
         ),
@@ -456,7 +542,7 @@ def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
         aliases=aliases,
         references=references,
         notes=notes,
-        storage=storage,
+        storage=storage if isinstance(storage, Mapping) else None,
         coverage=_coerce_coverage(raw_entry.get("coverage")),
     )
 
@@ -483,7 +569,14 @@ def _load_csv_columns(filename: str) -> dict[str, tuple[float | None, ...]]:
                     values[name][z] = None
                     continue
                 raw = raw.strip()
-                values[name][z] = float(raw) if raw else None
+                values[name][z] = (
+                    _coerce_finite_float(
+                        raw,
+                        what=f"value in {filename!r} column {name!r} for Z={z}",
+                    )
+                    if raw
+                    else None
+                )
     return {name: tuple(vals) for name, vals in values.items()}
 
 
@@ -511,12 +604,14 @@ def get_builtin_set(ref: DatasetRef) -> ElementScalarSet:
     return ElementScalarSet(ref=info.ref, info=info, values_by_z=table[column])
 
 
+
 def resolve_dataset_like(dataset: DatasetLike) -> ElementScalarSet:
     """Resolve either a packaged reference or a custom set to a loaded set."""
 
     if isinstance(dataset, ElementScalarSet):
         return dataset
     return get_builtin_set(dataset)
+
 
 
 def _is_placeholder_value(info: DatasetInfo, value: float) -> bool:

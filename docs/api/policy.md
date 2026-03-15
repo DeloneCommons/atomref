@@ -1,9 +1,22 @@
 # atomref.policy
 
-This module contains the generic resolver that sits below the radii-specific
-API.
+This module contains the generic resolver that sits below the radii-specific and
+X–H-specific convenience APIs.
 
-It is useful when you want to understand exactly how overrides, base datasets,
-transfers, fallbacks, and missing values are ordered and reported.
+Use it when you want to work directly with the common value-selection engine:
+
+- `ValuePolicy` — generic element-domain policy configuration,
+- `lookup_value(...)` — resolve one value together with provenance,
+- `get_value(...)` — resolve only the numeric value,
+- `LookupResult` — the structured result object returned by the resolver.
+
+A few practical notes:
+
+- The current runtime supports **element-domain** scalar policies.
+- `ValuePolicy` normalizes element-symbol overrides eagerly.
+- Transfer sources may be packaged datasets, custom sets, generic policies, or
+  wrapper policies that expose `as_value_policy()`.
+- `LookupResult.is_placeholder` refers to the returned numeric value itself, not
+  to whether any transfer happened.
 
 ::: atomref.policy

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from importlib import resources
+from types import MappingProxyType
+
+import pytest
 
 import atomref as ar
+from atomref.errors import DatasetError
 from atomref.registry import get_builtin_set
 
 
@@ -34,7 +38,12 @@ def test_builtin_set_loading_works() -> None:
 
 def test_list_quantities_and_quantity_info() -> None:
     quantities = ar.list_quantities()
-    assert quantities == ('covalent_radius', 'van_der_waals_radius', 'atomic_radius')
+    assert quantities == (
+        'covalent_radius',
+        'van_der_waals_radius',
+        'atomic_radius',
+        'xh_bond_length',
+    )
 
     info = ar.get_quantity_info('atomic_radius')
     assert info.quantity == 'atomic_radius'
@@ -93,3 +102,42 @@ def test_public_radii_set_helper_returns_packaged_radii_set() -> None:
     assert ds.info.ref.quantity == 'van_der_waals_radius'
     assert ds.info.ref.set_id == 'alvarez2013'
     assert ds.get('O') == 1.5
+
+
+def test_dataset_info_storage_is_frozen() -> None:
+    info = ar.get_dataset_info(ar.DatasetRef('covalent_radius', 'cordero2008'))
+    assert isinstance(info.storage, MappingProxyType)
+    assert info.storage['column'] == 'cordero2008'
+    with pytest.raises(TypeError):
+        info.storage['column'] = 'broken'
+
+    fresh = ar.get_dataset_info(ar.DatasetRef('covalent_radius', 'cordero2008'))
+    assert fresh.storage is not None
+    assert fresh.storage['column'] == 'cordero2008'
+
+
+def test_dataset_alias_resolution_normalizes_dash_variants() -> None:
+    info = ar.get_dataset_info(
+        ar.DatasetRef('covalent_radius', 'Cordero-Alvarez covalent radii')
+    )
+    assert info.ref.set_id == 'cordero2008'
+
+
+def test_custom_set_rejects_normalized_key_collisions() -> None:
+    with pytest.raises(DatasetError):
+        ar.ElementScalarSet.from_mapping(
+            ref=ar.DatasetRef('covalent_radius', 'demo'),
+            values={'H': 0.31, 'D': 0.5},
+            name='Demo',
+            units='angstrom',
+        )
+
+
+def test_custom_set_rejects_non_finite_values() -> None:
+    with pytest.raises(DatasetError):
+        ar.ElementScalarSet.from_mapping(
+            ref=ar.DatasetRef('covalent_radius', 'demo'),
+            values={'C': float('nan')},
+            name='Demo',
+            units='angstrom',
+        )

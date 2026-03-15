@@ -11,6 +11,8 @@ The two most important user-facing ideas in `atomref` are:
 0.76
 >>> ar.get_vdw_radius("O")
 1.5
+>>> ar.get_xh_bond_length("N")
+1.015
 >>> lookup = ar.lookup_vdw_radius("Pm")
 >>> lookup.value
 2.8972265395148358
@@ -29,9 +31,9 @@ You can inspect the packaged quantity layer directly:
 ```pycon
 >>> import atomref as ar
 >>> ar.list_quantities()
-('covalent_radius', 'van_der_waals_radius', 'atomic_radius')
->>> ar.get_quantity_info("atomic_radius")
-QuantityInfo(quantity='atomic_radius', domain='element', units='angstrom', description='Element-indexed isolated-atom or theory-defined atomic radii used as transferable support data.')
+('covalent_radius', 'van_der_waals_radius', 'atomic_radius', 'xh_bond_length')
+>>> ar.get_quantity_info("xh_bond_length")
+QuantityInfo(quantity='xh_bond_length', domain='element', units='angstrom', description='Element-indexed reference X-H bond lengths keyed by parent element X and intended for hydrogen-position normalisation or related geometry workflows.')
 >>> [info.ref.set_id for info in ar.list_radii_set_infos("van_der_waals", usage_role="target")]
 ['bondi1964', 'rowland_taylor1996', 'alvarez2013', 'chernyshov2020']
 ```
@@ -46,6 +48,9 @@ And you can load a packaged set object directly:
 >>> raw = ar.get_builtin_set(ar.DatasetRef("atomic_radius", "rahm2016"))
 >>> raw.get("Pm")
 2.83
+>>> xh = ar.get_xh_set("csd_legacy_xh_cno")
+>>> xh.get("C")
+1.089
 ```
 
 For longer, runnable examples see:

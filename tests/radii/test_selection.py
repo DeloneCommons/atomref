@@ -97,3 +97,53 @@ def test_linear_transfer_rejects_multiple_predictors_in_v0_1() -> None:
     )
     with pytest.raises(PolicyError):
         ar.lookup_vdw_radius("Pm", policy=policy)
+
+
+def test_base_placeholder_note_is_explicit() -> None:
+    policy = ar.RadiiPolicy(kind='covalent', base_set='csd_legacy_cov')
+    lookup = ar.lookup_covalent_radius('Es', policy=policy)
+    assert lookup.source == 'base'
+    assert lookup.is_placeholder is True
+    assert any('placeholder' in note for note in lookup.notes)
+
+
+def test_substitution_placeholder_note_is_explicit() -> None:
+    lookup = ar.lookup_covalent_radius('Es')
+    assert lookup.source == 'transfer_substitution'
+    assert lookup.is_placeholder is True
+    assert any('placeholder' in note for note in lookup.notes)
+
+
+def test_radii_policy_rejects_normalized_override_collisions() -> None:
+    policy = ar.RadiiPolicy(
+        kind='covalent',
+        base_set='cordero2008',
+        overrides={'H': 0.31, 'D': 0.4},
+    )
+    with pytest.raises(PolicyError):
+        ar.lookup_covalent_radius('H', policy=policy)
+
+
+def test_radii_policy_rejects_non_finite_override() -> None:
+    policy = ar.RadiiPolicy(
+        kind='covalent',
+        base_set='cordero2008',
+        overrides={'C': float('nan')},
+    )
+    with pytest.raises(PolicyError):
+        ar.lookup_covalent_radius('C', policy=policy)
+
+
+def test_radii_policy_rejects_negative_fallback() -> None:
+    policy = ar.RadiiPolicy(
+        kind='van_der_waals',
+        base_set='bondi1964',
+        fallback=-1.0,
+    )
+    with pytest.raises(PolicyError):
+        ar.lookup_vdw_radius('Be', policy=policy)
+
+
+def test_linear_transfer_validates_empty_predictors() -> None:
+    with pytest.raises(PolicyError):
+        ar.LinearTransfer(predictors=())

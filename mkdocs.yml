@@ -29,6 +29,7 @@ nav:
       - Covalent radius: datasets/covalent_radius.md
       - van der Waals radius: datasets/van_der_waals_radius.md
       - Atomic radius: datasets/atomic_radius.md
+      - X–H bond length: datasets/xh_bond_length.md
   - Notebooks:
       - Overview: guide/notebooks.md
       - Quickstart notebook: notebooks/01-quickstart.md
@@ -46,3 +47,4 @@ nav:
       - atomref.transfer: api/transfer.md
       - atomref.policy: api/policy.md
       - atomref.radii: api/radii.md
+      - atomref.xh: api/xh.md

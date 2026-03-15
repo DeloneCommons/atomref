@@ -23,6 +23,11 @@
       "domain": "element",
       "units": "angstrom",
       "description": "Element-indexed isolated-atom or theory-defined atomic radii used as transferable support data."
+    },
+    "xh_bond_length": {
+      "domain": "element",
+      "units": "angstrom",
+      "description": "Element-indexed reference X-H bond lengths keyed by parent element X and intended for hydrogen-position normalisation or related geometry workflows."
     }
   },
   "datasets": {
@@ -436,6 +441,65 @@
           "In atomref this dataset is classified as atomic support data, not as a direct condensed-phase van der Waals-radius set, because it describes isolated atoms in vacuum and is used here primarily as a transferable baseline."
         ],
         "usage_role": "support"
+      }
+    },
+    "xh_bond_length": {
+      "csd_legacy_xh_cno": {
+        "name": "CSD legacy X-H neutron-normalisation targets (C/N/O)",
+        "description": "Fixed C-H, N-H, and O-H target bond lengths used by ConQuest for hydrogen-position normalisation.",
+        "semantic_class": "xh_neutron_normalisation",
+        "origin_class": "compiled_experimental",
+        "phase_context": "condensed_phase",
+        "method_summary": "Sparse parent-element target set for hydrogen normalisation. ConQuest moves H along the experimentally determined X-H vector to these neutron-derived distances.",
+        "storage": {
+          "format": "dense_by_z_csv",
+          "filename": "xh_bond_length.csv",
+          "column": "csd_legacy_xh_cno"
+        },
+        "coverage": {
+          "n_values": 3,
+          "z_min": 6,
+          "z_max": 8,
+          "has_placeholders": false,
+          "covered_z": [
+            6,
+            7,
+            8
+          ],
+          "missing_z": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "placeholder_value": null,
+        "extraction_source": "ConQuest User Guide and Tutorials, section 'Hydrogen Atom Location in Crystal Structure Analyses'.",
+        "aliases": [
+          "CSD X-H normalisation defaults",
+          "ConQuest X-H normalisation",
+          "CSD legacy X-H"
+        ],
+        "references": [
+          {
+            "publisher": "Cambridge Crystallographic Data Centre (CCDC)",
+            "title": "ConQuest User Guide and Tutorials",
+            "url": "https://www.ccdc.cam.ac.uk/media/Documentation/C82017ED-FAE4-4D93-BA5A-8D841F1E4314/ConQuest-UserGuide_2020_1.pdf",
+            "note": "Hydrogen Atom Location in Crystal Structure Analyses; ConQuest normalises terminal C-H, N-H, and O-H distances to 1.089 Å, 1.015 Å, and 0.993 Å, respectively."
+          },
+          {
+            "authors": "F. H. Allen; I. J. Bruno",
+            "title": "Bond lengths in organic and metal-organic compounds revisited: X-H bond lengths from neutron diffraction data",
+            "venue": "Acta Cryst. B66 (2010) 380-386"
+          }
+        ],
+        "notes": [
+          "Sparse provisional target set for parent elements C, N, and O only.",
+          "In atomref v0.1.x this dataset seeds transfer-based inference for other parent elements rather than claiming direct curated coverage beyond C/N/O.",
+          "Fuller X-H dataset and policy support is planned for atomref 0.2.x."
+        ],
+        "usage_role": "target"
       }
     }
   }

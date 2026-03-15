@@ -4,13 +4,9 @@ from collections import defaultdict
 from dataclasses import asdict
 
 import atomref as ar
-from atomref.registry import get_builtin_set
+from atomref.registry import _canonicalize_alias_token, get_builtin_set
 
 _ALLOWED_USAGE_ROLES = {"target", "support"}
-
-
-def _canonical_token(value: str) -> str:
-    return " ".join(value.strip().lower().split())
 
 
 def test_dataset_aliases_are_unique_within_each_quantity() -> None:
@@ -19,7 +15,7 @@ def test_dataset_aliases_are_unique_within_each_quantity() -> None:
         for set_id in ar.list_dataset_ids(quantity):
             info = ar.get_dataset_info(ar.DatasetRef(quantity, set_id))
             for token in (set_id, *info.aliases):
-                key = _canonical_token(token)
+                key = _canonicalize_alias_token(token)
                 previous = seen.get(key)
                 assert previous in (None, set_id)
                 seen[key] = set_id

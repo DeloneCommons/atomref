@@ -28,7 +28,8 @@ def _get_builtin_set(ref):
 
 
 def _canonical_token(value: str) -> str:
-    return " ".join(value.strip().lower().split())
+    registry = import_module("atomref.registry")
+    return registry._canonicalize_alias_token(value)
 
 
 def _iter_dataset_refs() -> Iterable[object]:

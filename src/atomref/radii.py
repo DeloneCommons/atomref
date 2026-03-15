@@ -4,11 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
+import math
 from typing import Literal
 
 from .elements import canonicalize_element_symbol, get_element, is_valid_element_symbol
 from .errors import PolicyError
-from .policy import LookupResult, ValuePolicy, _fit_transfer_model, _resolve_value
+from .policy import (
+    LookupResult,
+    ValuePolicy,
+    _fit_transfer_model,
+    get_value,
+    lookup_value,
+)
 from .registry import (
     DatasetInfo,
     DatasetRef,
@@ -59,18 +66,27 @@ class RadiiPolicy:
         else:
             base = DatasetRef(quantity, self.base_set)
 
-        normalized_overrides: dict[str, float] = {}
-        for key, value in self.overrides.items():
-            sym = _normalize_radii_symbol(key)
-            if sym is None or not is_valid_element_symbol(sym):
-                raise PolicyError(f"invalid override element symbol: {key!r}")
-            normalized_overrides[sym] = float(value)
+        checked_overrides = {
+            key: _coerce_non_negative_radii_value(
+                value,
+                what=f"radii override value for {key!r}",
+            )
+            for key, value in self.overrides.items()
+        }
+        checked_fallback = (
+            None
+            if self.fallback is None
+            else _coerce_non_negative_radii_value(
+                self.fallback,
+                what="radii fallback",
+            )
+        )
 
         return ValuePolicy(
             base=base,
             transfers=self.transfers,
-            overrides=normalized_overrides,
-            fallback=self.fallback,
+            overrides=checked_overrides,
+            fallback=checked_fallback,
         )
 
 
@@ -107,6 +123,26 @@ class RadiiPolicyAssessment:
     per_element: tuple[RadiiElementAssessment, ...] = ()
 
 
+
+def _coerce_non_negative_radii_value(value: object, *, what: str) -> float:
+    """Validate a radii-like policy number.
+
+    The generic :class:`atomref.policy.ValuePolicy` accepts any finite scalar.
+    Radii-specific convenience helpers are stricter and reject negative values.
+    """
+
+    try:
+        out = float(value)
+    except (TypeError, ValueError) as exc:
+        raise PolicyError(f"{what} must be a finite float") from exc
+    if not math.isfinite(out):
+        raise PolicyError(f"{what} must be a finite float")
+    if out < 0:
+        raise PolicyError(f"{what} must be non-negative")
+    return out
+
+
+
 def _quantity_for_kind(kind: RadiiKind) -> str:
     """Translate public radii kind names into registry quantity ids."""
 
@@ -116,6 +152,7 @@ def _quantity_for_kind(kind: RadiiKind) -> str:
         raise PolicyError(f"unknown radii kind: {kind!r}") from exc
 
 
+
 def _normalize_radii_symbol(symbol: str | None) -> str | None:
     """Normalize symbols accepted by the radii convenience layer."""
 
@@ -123,6 +160,7 @@ def _normalize_radii_symbol(symbol: str | None) -> str | None:
     if cand in {"D", "T"}:
         cand = "H"
     return cand
+
 
 
 def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
@@ -141,6 +179,7 @@ def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
     )
 
 
+
 def list_radii_sets(
     kind: RadiiKind,
     *,
@@ -149,6 +188,7 @@ def list_radii_sets(
     """List packaged radii-set ids for one radii kind."""
 
     return list_dataset_ids(_quantity_for_kind(kind), usage_role=usage_role)
+
 
 
 def list_radii_set_infos(
@@ -161,16 +201,19 @@ def list_radii_set_infos(
     return list_dataset_infos(_quantity_for_kind(kind), usage_role=usage_role)
 
 
+
 def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:
     """Return metadata for one packaged radii set."""
 
     return get_dataset_info(DatasetRef(_quantity_for_kind(kind), set_id))
 
 
+
 def get_radii_set(kind: RadiiKind, set_id: str) -> RadiiSet:
     """Load one packaged radii set as an :class:`ElementScalarSet`."""
 
     return get_builtin_set(DatasetRef(_quantity_for_kind(kind), set_id))
+
 
 
 def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:
@@ -180,10 +223,12 @@ def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:
         raise PolicyError(f"expected a {expected!r} radii policy, got {policy.kind!r}")
 
 
+
 def _lookup_radius(symbol: str | None, *, policy: RadiiPolicy) -> LookupResult:
     """Shared implementation for radii lookup helpers."""
 
-    return _resolve_value(symbol, policy=policy.as_value_policy())
+    return lookup_value(symbol, policy=policy.as_value_policy())
+
 
 
 def lookup_covalent_radius(
@@ -198,6 +243,7 @@ def lookup_covalent_radius(
     return _lookup_radius(symbol, policy=active)
 
 
+
 def get_covalent_radius(
     symbol: str | None,
     *,
@@ -205,7 +251,10 @@ def get_covalent_radius(
 ) -> float | None:
     """Return only the selected covalent-radius value, without provenance."""
 
-    return lookup_covalent_radius(symbol, policy=policy).value
+    active = DEFAULT_COVALENT_POLICY if policy is None else policy
+    _validate_policy_kind(active, expected="covalent")
+    return get_value(symbol, policy=active.as_value_policy())
+
 
 
 def lookup_vdw_radius(
@@ -220,14 +269,18 @@ def lookup_vdw_radius(
     return _lookup_radius(symbol, policy=active)
 
 
+
 def get_vdw_radius(
     symbol: str | None,
     *,
     policy: RadiiPolicy | None = None,
 ) -> float | None:
-    """Return only the selected van der Waals radius, without provenance."""
+    """Return only the selected van der Waals-radius value, without provenance."""
 
-    return lookup_vdw_radius(symbol, policy=policy).value
+    active = DEFAULT_VDW_POLICY if policy is None else policy
+    _validate_policy_kind(active, expected="van_der_waals")
+    return get_value(symbol, policy=active.as_value_policy())
+
 
 
 def assess_radii_policy(
@@ -254,7 +307,7 @@ def assess_radii_policy(
     per_element: list[RadiiElementAssessment] = []
 
     for symbol in elems:
-        lookup = _resolve_value(symbol, policy=value_policy)
+        lookup = lookup_value(symbol, policy=value_policy)
         if lookup.source == "override":
             n_override += 1
         elif lookup.source == "base":

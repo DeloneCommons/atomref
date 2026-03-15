@@ -10,6 +10,7 @@ MODULES = [
     'atomref.transfer',
     'atomref.policy',
     'atomref.radii',
+    'atomref.xh',
 ]
 
 
