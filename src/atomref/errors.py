@@ -1,9 +1,12 @@
+"""Package-local exceptions used across :mod:`atomref`."""
+
+
 class AtomrefError(Exception):
-    """Base package error."""
+    """Base class for package-defined errors."""
 
 
 class DatasetError(AtomrefError):
-    """Packaged dataset or registry error."""
+    """Raised when packaged data or registry metadata are invalid."""
 
 
 class MissingValueError(AtomrefError):
@@ -11,4 +14,4 @@ class MissingValueError(AtomrefError):
 
 
 class PolicyError(AtomrefError):
-    """Raised for invalid policy configuration."""
+    """Raised for invalid policy configuration or transfer resolution."""

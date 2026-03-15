@@ -28,10 +28,14 @@ class NotebookCheckError(RuntimeError):
 
 
 def iter_notebooks() -> tuple[Path, ...]:
+    """Return the notebooks that are expected to ship with the project."""
+
     return tuple(NOTEBOOKS / name for name in REQUIRED_NOTEBOOKS)
 
 
 def load_notebook(path: Path) -> dict[str, object]:
+    """Load one notebook JSON document."""
+
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise NotebookCheckError(f"{path.name}: expected top-level JSON object")
@@ -39,6 +43,8 @@ def load_notebook(path: Path) -> dict[str, object]:
 
 
 def iter_code_cells(data: dict[str, object], *, path: Path) -> tuple[str, ...]:
+    """Return notebook code-cell sources in order."""
+
     cells = data.get("cells")
     if not isinstance(cells, list):
         raise NotebookCheckError(f"{path.name}: missing notebook cell list")
@@ -66,6 +72,8 @@ def iter_code_cells(data: dict[str, object], *, path: Path) -> tuple[str, ...]:
 
 
 def execute_notebook(path: Path) -> None:
+    """Execute all code cells from one notebook in a shared namespace."""
+
     if not path.exists():
         raise NotebookCheckError(f"missing notebook: {path}")
     data = load_notebook(path)
@@ -84,6 +92,8 @@ def execute_notebook(path: Path) -> None:
 
 
 def main() -> int:
+    """Validate and execute every required notebook."""
+
     notebooks = iter_notebooks()
     for notebook in notebooks:
         execute_notebook(notebook)

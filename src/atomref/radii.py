@@ -32,6 +32,12 @@ _KIND_TO_QUANTITY = {
 
 @dataclass(frozen=True, slots=True)
 class RadiiPolicy:
+    """Policy wrapper specialized for radii lookup.
+
+    ``kind`` determines the target quantity, while the remaining fields mirror
+    the generic :class:`atomref.policy.ValuePolicy` interface.
+    """
+
     kind: RadiiKind
     base_set: str | RadiiSet
     transfers: tuple[TransferModel, ...] = ()
@@ -39,6 +45,8 @@ class RadiiPolicy:
     fallback: float | None = None
 
     def as_value_policy(self) -> ValuePolicy[str]:
+        """Convert the radii policy into the generic scalar-value policy."""
+
         quantity = _quantity_for_kind(self.kind)
         if isinstance(self.base_set, ElementScalarSet):
             if self.base_set.ref.quantity != quantity:
@@ -68,12 +76,16 @@ class RadiiPolicy:
 
 @dataclass(frozen=True, slots=True)
 class RadiiElementAssessment:
+    """Per-element row in a radii policy assessment report."""
+
     symbol: str
     lookup: LookupResult
 
 
 @dataclass(frozen=True, slots=True)
 class RadiiPolicyAssessment:
+    """Summary of how a radii policy behaved over a set of elements."""
+
     kind: RadiiKind
     policy: RadiiPolicy
     elements: tuple[str, ...]
@@ -96,6 +108,8 @@ class RadiiPolicyAssessment:
 
 
 def _quantity_for_kind(kind: RadiiKind) -> str:
+    """Translate public radii kind names into registry quantity ids."""
+
     try:
         return _KIND_TO_QUANTITY[kind]
     except KeyError as exc:
@@ -103,6 +117,8 @@ def _quantity_for_kind(kind: RadiiKind) -> str:
 
 
 def _normalize_radii_symbol(symbol: str | None) -> str | None:
+    """Normalize symbols accepted by the radii convenience layer."""
+
     cand = canonicalize_element_symbol(symbol)
     if cand in {"D", "T"}:
         cand = "H"
@@ -110,6 +126,8 @@ def _normalize_radii_symbol(symbol: str | None) -> str | None:
 
 
 def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
+    """Normalize, validate, deduplicate, and sort assessment element labels."""
+
     symbols: set[str] = set()
     for token in elements:
         sym = _normalize_radii_symbol(token)
@@ -124,65 +142,102 @@ def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
 
 
 def list_radii_sets(
-    kind: RadiiKind, *, usage_role: str | None = None
+    kind: RadiiKind,
+    *,
+    usage_role: str | None = None,
 ) -> tuple[str, ...]:
+    """List packaged radii-set ids for one radii kind."""
+
     return list_dataset_ids(_quantity_for_kind(kind), usage_role=usage_role)
 
 
 def list_radii_set_infos(
-    kind: RadiiKind, *, usage_role: str | None = None
+    kind: RadiiKind,
+    *,
+    usage_role: str | None = None,
 ) -> tuple[DatasetInfo, ...]:
+    """Return packaged metadata objects for radii sets of one kind."""
+
     return list_dataset_infos(_quantity_for_kind(kind), usage_role=usage_role)
 
 
 def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:
+    """Return metadata for one packaged radii set."""
+
     return get_dataset_info(DatasetRef(_quantity_for_kind(kind), set_id))
 
 
 def get_radii_set(kind: RadiiKind, set_id: str) -> RadiiSet:
+    """Load one packaged radii set as an :class:`ElementScalarSet`."""
+
     return get_builtin_set(DatasetRef(_quantity_for_kind(kind), set_id))
 
 
 def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:
+    """Raise when a policy is used with the wrong public radii helper."""
+
     if policy.kind != expected:
         raise PolicyError(f"expected a {expected!r} radii policy, got {policy.kind!r}")
 
 
 def _lookup_radius(symbol: str | None, *, policy: RadiiPolicy) -> LookupResult:
+    """Shared implementation for radii lookup helpers."""
+
     return _resolve_value(symbol, policy=policy.as_value_policy())
 
 
 def lookup_covalent_radius(
-    symbol: str | None, *, policy: RadiiPolicy | None = None
+    symbol: str | None,
+    *,
+    policy: RadiiPolicy | None = None,
 ) -> LookupResult:
+    """Resolve a covalent radius together with provenance information."""
+
     active = DEFAULT_COVALENT_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="covalent")
     return _lookup_radius(symbol, policy=active)
 
 
 def get_covalent_radius(
-    symbol: str | None, *, policy: RadiiPolicy | None = None
+    symbol: str | None,
+    *,
+    policy: RadiiPolicy | None = None,
 ) -> float | None:
+    """Return only the selected covalent-radius value, without provenance."""
+
     return lookup_covalent_radius(symbol, policy=policy).value
 
 
 def lookup_vdw_radius(
-    symbol: str | None, *, policy: RadiiPolicy | None = None
+    symbol: str | None,
+    *,
+    policy: RadiiPolicy | None = None,
 ) -> LookupResult:
+    """Resolve a van der Waals radius together with provenance information."""
+
     active = DEFAULT_VDW_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="van_der_waals")
     return _lookup_radius(symbol, policy=active)
 
 
 def get_vdw_radius(
-    symbol: str | None, *, policy: RadiiPolicy | None = None
+    symbol: str | None,
+    *,
+    policy: RadiiPolicy | None = None,
 ) -> float | None:
+    """Return only the selected van der Waals radius, without provenance."""
+
     return lookup_vdw_radius(symbol, policy=policy).value
 
 
 def assess_radii_policy(
-    elements: Iterable[str], *, policy: RadiiPolicy, detail: bool = False
+    elements: Iterable[str],
+    *,
+    policy: RadiiPolicy,
+    detail: bool = False,
 ) -> RadiiPolicyAssessment:
+    """Assess how a radii policy resolves values over a set of elements."""
+
     elems = _normalize_assessment_elements(elements)
     value_policy = policy.as_value_policy()
 
@@ -260,9 +315,11 @@ DEFAULT_COVALENT_POLICY = RadiiPolicy(
         SubstitutionTransfer(source=DatasetRef("covalent_radius", "csd_legacy_cov")),
     ),
 )
+"""Default covalent-radii policy used by the convenience helpers."""
 
 DEFAULT_VDW_POLICY = RadiiPolicy(
     kind="van_der_waals",
     base_set="alvarez2013",
     transfers=(LinearTransfer(predictors=(DatasetRef("atomic_radius", "rahm2016"),)),),
 )
+"""Default vdW-radii policy used by the convenience helpers."""

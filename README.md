@@ -1,104 +1,133 @@
 # atomref
 
-`atomref` is a small pure-Python package for curated atomic reference data and
-policy-based lookup in geometry and structure-analysis code.
+[![CI](https://github.com/DeloneCommons/atomref/actions/workflows/ci.yml/badge.svg)](https://github.com/DeloneCommons/atomref/actions/workflows/ci.yml)
+[![Docs](https://github.com/DeloneCommons/atomref/actions/workflows/docs.yml/badge.svg)](https://github.com/DeloneCommons/atomref/actions/workflows/docs.yml)
+[![PyPI](https://img.shields.io/pypi/v/atomref.svg)](https://pypi.org/project/atomref/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/atomref.svg)](https://pypi.org/project/atomref/)
+[![License](https://img.shields.io/pypi/l/atomref.svg)](https://github.com/DeloneCommons/atomref/blob/main/LICENSE)
 
-It is **not** a periodic-table encyclopedia. The package is meant to sit under
-higher-level scientific software and provide:
+`atomref` is a small pure-Python package for **curated atomic reference data**
+and **provenance-aware lookup policies** used by geometry and
+structure-analysis algorithms.
+
+It is not meant to be yet another periodic-table encyclopedia. The package is
+for code that needs stable atomic reference values with explicit provenance,
+clear fallback behavior, and honest handling of incomplete preferred datasets.
+
+What you get in v0.1:
 
 - stable element metadata,
-- named radii sets,
-- explicit dataset provenance,
+- curated named radii sets,
+- dataset provenance and coverage metadata,
 - deterministic lookup policies,
-- transfer from broader-support datasets into narrower target sets.
-
-For v0.1 the public scope is intentionally radii-first.
+- substitution and linear transfer from support datasets into target datasets,
+- user-defined custom element-indexed scalar sets.
 
 ## Why this exists
 
-Many geometry algorithms need a complete reference table, but the scientifically
-preferred dataset is often incomplete. `atomref` makes that situation explicit:
-choose a target dataset, add one or more transfer steps, and keep provenance on
-what was returned.
+Scientific software often wants a complete lookup table, but the best dataset
+for the job is rarely complete. `atomref` makes that situation explicit.
+Instead of hiding ad hoc defaults inside algorithm code, you choose a target
+set, describe how missing values may be restored, and keep provenance on what
+was actually returned.
 
-The default examples mirror the current `molcryst` behavior:
+The default v0.1 behavior is intentionally simple and practical:
 
-- covalent radii: use `cordero2008`, substitute from `csd_legacy_cov`
-- van der Waals radii: use `alvarez2013`, linearly transfer from
-  `atomic_radius:rahm2016`
+- **Cordero covalent radii** (`cordero2008`) are the preferred covalent target
+  set, with missing values substituted from the **legacy CSD covalent radii**
+  (`csd_legacy_cov`).
+- **Alvarez van der Waals radii** (`alvarez2013`) are the preferred vdW target
+  set, with missing values restored from the **Rahm isodensity atomic radii**
+  (`rahm2016`) through a fitted linear transfer.
 
 ## Quick example
 
-```python
-import atomref as ar
-
-r_c = ar.get_covalent_radius("C")
-r_vdw = ar.get_vdw_radius("O")
-
-lookup = ar.lookup_vdw_radius("Pm")
-print(lookup.value, lookup.source, lookup.resolved_from)
+```pycon
+>>> import atomref as ar
+>>> ar.get_covalent_radius("C")
+0.76
+>>> ar.get_vdw_radius("O")
+1.5
+>>> lookup = ar.lookup_vdw_radius("Pm")
+>>> lookup.value
+2.8972265395148358
+>>> lookup.source
+'transfer_linear'
+>>> lookup.resolved_from
+(DatasetRef(quantity='atomic_radius', set_id='rahm2016'),)
 ```
 
-## Public API split: `get_*` vs `lookup_*`
+`get_*` returns only the number. `lookup_*` returns a `LookupResult` that also
+records where the value came from and whether a transfer model was involved.
 
-- `get_*` returns only the selected numeric value, or `None`.
-- `lookup_*` returns the provenance-carrying `LookupResult` object.
+You can inspect the packaged quantity and dataset catalog directly:
 
-This follows the current `molcryst` pattern.
-
-## Current built-in quantities
-
-- `covalent_radius`
-- `van_der_waals_radius`
-- `atomic_radius` (support quantity; currently used for transfer from
-  `rahm2016`)
-
-You can inspect the packaged quantity layer directly:
-
-```python
-import atomref as ar
-
-print(ar.list_quantities())
-print(ar.get_quantity_info("atomic_radius"))
-print(ar.list_dataset_infos("van_der_waals_radius", usage_role="target"))
-print(ar.list_dataset_infos("atomic_radius", usage_role="support"))
+```pycon
+>>> import atomref as ar
+>>> ar.list_quantities()
+('covalent_radius', 'van_der_waals_radius', 'atomic_radius')
+>>> ar.get_quantity_info("atomic_radius")
+QuantityInfo(quantity='atomic_radius', domain='element', units='angstrom', description='Element-indexed isolated-atom or theory-defined atomic radii used as transferable support data.')
+>>> [info.ref.set_id for info in ar.list_dataset_infos("van_der_waals_radius", usage_role="target")]
+['bondi1964', 'rowland_taylor1996', 'alvarez2013', 'chernyshov2020']
 ```
 
-You can also retrieve the packaged set object directly:
+You can also load a packaged set directly:
 
-```python
-import atomref as ar
-
-vdw = ar.get_radii_set("van_der_waals", "alvarez2013")
-print(vdw.get("O"))
-
-raw = ar.get_builtin_set(ar.DatasetRef("atomic_radius", "rahm2016"))
-print(raw.get("Pm"))
+```pycon
+>>> import atomref as ar
+>>> vdw = ar.get_radii_set("van_der_waals", "alvarez2013")
+>>> vdw.get("O")
+1.5
+>>> raw = ar.get_builtin_set(ar.DatasetRef("atomic_radius", "rahm2016"))
+>>> raw.get("Pm")
+2.83
 ```
 
-## Notebooks
+## Notebook walkthroughs
 
-Hands-on notebooks live in the repository and mirror the main v0.1 workflows:
+The repository ships example notebooks for the main v0.1 workflows. In the
+documentation they are also available as rendered Markdown pages, so users can
+read them without opening Jupyter first.
 
-- [`01-quickstart.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/01-quickstart.ipynb)
-- [`02-policies-and-assessment.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/02-policies-and-assessment.ipynb)
-- [`03-custom-sets-and-discovery.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/03-custom-sets-and-discovery.ipynb)
+- [Notebook overview](https://delonecommons.github.io/atomref/guide/notebooks/)
+- [Quickstart notebook](https://delonecommons.github.io/atomref/notebooks/01-quickstart/)
+- [Policies and assessment notebook](https://delonecommons.github.io/atomref/notebooks/02-policies-and-assessment/)
+- [Custom sets and discovery notebook](https://delonecommons.github.io/atomref/notebooks/03-custom-sets-and-discovery/)
 
-Open them locally in Jupyter or browse them on GitHub for worked examples of
-lookup, transfer-backed policies, dataset discovery, and custom element-scalar
-sets.
+## Relationship to Delone Commons
 
-## Relationship to the Delone Commons ecosystem
+`atomref` is designed as a standalone package, but within Delone Commons it is
+primarily intended to support chemistry-aware packages such as:
 
-`atomref` is intended to be reusable outside the surrounding ecosystem, but it
-fits naturally beneath:
+- `molcryst`, for covalent-bond detection and contact analysis,
+- future `chemvoro`, for chemistry-aware contact and hydrogen workflows.
 
-- `molcryst`
-- `pyvoro2`
-- `pbcgraph`
+By contrast, `pyvoro2` and `pbcgraph` are intentionally general mathematical
+packages and are not direct consumers of `atomref`.
 
-Those packages should consume atomic reference data from `atomref` rather than
-re-curating such datasets independently.
+## Data curation and developer tools
 
-For data-curation changes, validate the packaged registry against the bundled
-CSV tables with `python tools/check_registry.py`.
+The repository also ships small maintenance tools. The most important ones are:
+
+- `python tools/check_registry.py` — validate curated registry metadata against
+  packaged CSV tables,
+- `python tools/check_notebooks.py` — execute notebook code cells,
+- `python tools/export_notebooks.py` — turn notebooks into Markdown pages for
+  the docs,
+- `python tools/gen_readme.py` — regenerate `README.md` from this page.
+
+See the [tools README](https://github.com/DeloneCommons/atomref/blob/main/tools/README.md)
+for a short description of each script.
+
+---
+
+This README is generated from `docs/index.md`.
+
+To regenerate it:
+
+```bash
+python tools/gen_readme.py
+```
+
+Edit the documentation sources instead of editing `README.md` directly.

@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 import csv
-import json
 from functools import lru_cache
 from importlib import resources
+import json
 
 from .elements import canonicalize_element_symbol, get_element, iter_elements
 from .errors import DatasetError
@@ -18,12 +18,20 @@ DomainId = str
 
 @dataclass(frozen=True, slots=True)
 class DatasetRef:
+    """Stable reference to a packaged dataset.
+
+    The ``quantity`` identifies the operational property family, while
+    ``set_id`` names a specific curated dataset within that family.
+    """
+
     quantity: QuantityId
     set_id: str
 
 
 @dataclass(frozen=True, slots=True)
 class Reference:
+    """Bibliographic record attached to packaged dataset metadata."""
+
     authors: str | None = None
     year: int | None = None
     title: str | None = None
@@ -36,6 +44,8 @@ class Reference:
 
 @dataclass(frozen=True, slots=True)
 class CoverageInfo:
+    """Coverage summary for an element-indexed scalar dataset."""
+
     n_values: int
     z_min: int | None = None
     z_max: int | None = None
@@ -46,6 +56,8 @@ class CoverageInfo:
 
 @dataclass(frozen=True, slots=True)
 class QuantityInfo:
+    """Metadata shared by all datasets that belong to one quantity."""
+
     quantity: QuantityId
     domain: DomainId
     units: str | None = None
@@ -54,6 +66,13 @@ class QuantityInfo:
 
 @dataclass(frozen=True, slots=True)
 class DatasetInfo:
+    """Curated metadata for one packaged dataset.
+
+    This object keeps operational classification such as ``ref.quantity`` and
+    ``usage_role`` separate from scientific classification such as
+    ``semantic_class`` and ``phase_context``.
+    """
+
     ref: DatasetRef
     domain: DomainId
     units: str | None
@@ -75,6 +94,8 @@ class DatasetInfo:
 
 @dataclass(frozen=True, slots=True)
 class ElementScalarSet:
+    """Element-indexed scalar dataset stored densely by atomic number."""
+
     ref: DatasetRef
     info: DatasetInfo
     values_by_z: tuple[float | None, ...]
@@ -96,6 +117,8 @@ class ElementScalarSet:
         notes: Iterable[str] = (),
         placeholder_value: float | None = None,
     ) -> "ElementScalarSet":
+        """Build a custom element-domain dataset from a symbol-keyed mapping."""
+
         n_z = max(e.z for e in iter_elements())
         values_by_z: list[float | None] = [None] * (n_z + 1)
 
@@ -143,6 +166,8 @@ class ElementScalarSet:
         return cls(ref=ref, info=info, values_by_z=tuple(values_by_z))
 
     def get(self, symbol: str | None) -> float | None:
+        """Return the scalar value for ``symbol`` or ``None`` if absent."""
+
         sym = _normalize_element_domain_symbol(symbol)
         elem = get_element(sym)
         if elem is None:
@@ -154,6 +179,8 @@ DatasetLike = DatasetRef | ElementScalarSet
 
 
 def _normalize_element_domain_symbol(symbol: str | None) -> str | None:
+    """Normalize element-domain symbols and fold D/T onto hydrogen."""
+
     cand = canonicalize_element_symbol(symbol)
     if cand in {"D", "T"}:
         return "H"
@@ -162,6 +189,8 @@ def _normalize_element_domain_symbol(symbol: str | None) -> str | None:
 
 @lru_cache(maxsize=1)
 def _load_registry_json() -> dict[str, object]:
+    """Load the packaged registry JSON as a validated top-level mapping."""
+
     path = resources.files("atomref.data").joinpath("registry.json")
     with path.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
@@ -171,6 +200,8 @@ def _load_registry_json() -> dict[str, object]:
 
 
 def _get_quantities_mapping() -> Mapping[str, object]:
+    """Return the raw ``quantities`` mapping from ``registry.json``."""
+
     quantities = _load_registry_json().get("quantities")
     if not isinstance(quantities, dict):
         raise DatasetError("invalid registry.json: missing quantities mapping")
@@ -178,6 +209,8 @@ def _get_quantities_mapping() -> Mapping[str, object]:
 
 
 def _get_datasets_mapping() -> Mapping[str, object]:
+    """Return the raw ``datasets`` mapping from ``registry.json``."""
+
     datasets = _load_registry_json().get("datasets")
     if not isinstance(datasets, dict):
         raise DatasetError("invalid registry.json: missing datasets mapping")
@@ -185,6 +218,8 @@ def _get_datasets_mapping() -> Mapping[str, object]:
 
 
 def _datasets_for_quantity(quantity: QuantityId) -> Mapping[str, object]:
+    """Return the dataset table for one quantity or raise on unknown input."""
+
     datasets = _get_datasets_mapping().get(quantity)
     if not isinstance(datasets, dict):
         raise DatasetError(f"unknown quantity: {quantity!r}")
@@ -192,10 +227,14 @@ def _datasets_for_quantity(quantity: QuantityId) -> Mapping[str, object]:
 
 
 def list_quantities() -> tuple[str, ...]:
+    """List packaged quantity identifiers in registry order."""
+
     return tuple(_get_quantities_mapping().keys())
 
 
 def get_quantity_info(quantity: QuantityId) -> QuantityInfo:
+    """Return quantity-level metadata for a packaged quantity."""
+
     raw = _get_quantities_mapping().get(quantity)
     if not isinstance(raw, dict):
         raise DatasetError(f"unknown quantity: {quantity!r}")
@@ -207,15 +246,22 @@ def get_quantity_info(quantity: QuantityId) -> QuantityInfo:
         raw.get("description") if isinstance(raw.get("description"), str) else None
     )
     return QuantityInfo(
-        quantity=quantity, domain=domain, units=units, description=description
+        quantity=quantity,
+        domain=domain,
+        units=units,
+        description=description,
     )
 
 
 def _canonicalize_alias_token(value: str) -> str:
+    """Normalize a dataset id or alias for case-insensitive comparison."""
+
     return " ".join(value.strip().lower().split())
 
 
 def _resolve_set_id(quantity: QuantityId, set_id: str) -> str:
+    """Resolve a dataset id or alias to its canonical packaged set id."""
+
     by_quantity = _datasets_for_quantity(quantity)
     if set_id in by_quantity:
         return set_id
@@ -239,6 +285,12 @@ def _resolve_set_id(quantity: QuantityId, set_id: str) -> str:
 def list_dataset_ids(
     quantity: QuantityId, *, usage_role: str | None = None
 ) -> tuple[str, ...]:
+    """List packaged dataset identifiers for a quantity.
+
+    When ``usage_role`` is provided, only datasets with a matching normalized
+    role such as ``"target"`` or ``"support"`` are returned.
+    """
+
     dataset_ids = tuple(_datasets_for_quantity(quantity).keys())
     if usage_role is None:
         return dataset_ids
@@ -256,6 +308,8 @@ def list_dataset_ids(
 def list_dataset_infos(
     quantity: QuantityId, *, usage_role: str | None = None
 ) -> tuple[DatasetInfo, ...]:
+    """Return packaged dataset metadata objects for a quantity."""
+
     return tuple(
         get_dataset_info(DatasetRef(quantity, set_id))
         for set_id in list_dataset_ids(quantity, usage_role=usage_role)
@@ -263,6 +317,8 @@ def list_dataset_infos(
 
 
 def _coerce_reference(obj: object) -> Reference:
+    """Coerce a raw registry reference entry into :class:`Reference`."""
+
     if not isinstance(obj, dict):
         raise DatasetError("invalid reference entry in registry.json")
     return Reference(
@@ -280,6 +336,8 @@ def _coerce_reference(obj: object) -> Reference:
 
 
 def _coerce_coverage(obj: object) -> CoverageInfo | None:
+    """Coerce raw coverage metadata into :class:`CoverageInfo`."""
+
     if not isinstance(obj, dict):
         return None
     covered = obj.get("covered_z")
@@ -297,6 +355,8 @@ def _coerce_coverage(obj: object) -> CoverageInfo | None:
 
 
 def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
+    """Return curated metadata for a packaged dataset reference."""
+
     actual_set_id = _resolve_set_id(ref.quantity, ref.set_id)
     actual_ref = DatasetRef(quantity=ref.quantity, set_id=actual_set_id)
 
@@ -403,6 +463,8 @@ def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
 
 @lru_cache(maxsize=None)
 def _load_csv_columns(filename: str) -> dict[str, tuple[float | None, ...]]:
+    """Load all value columns from one packaged dense-by-Z CSV table."""
+
     path = resources.files("atomref.data").joinpath(filename)
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -427,6 +489,8 @@ def _load_csv_columns(filename: str) -> dict[str, tuple[float | None, ...]]:
 
 @lru_cache(maxsize=None)
 def get_builtin_set(ref: DatasetRef) -> ElementScalarSet:
+    """Load a packaged dataset as an :class:`ElementScalarSet`."""
+
     info = get_dataset_info(ref)
     if info.domain != "element":
         raise DatasetError(
@@ -448,12 +512,16 @@ def get_builtin_set(ref: DatasetRef) -> ElementScalarSet:
 
 
 def resolve_dataset_like(dataset: DatasetLike) -> ElementScalarSet:
+    """Resolve either a packaged reference or a custom set to a loaded set."""
+
     if isinstance(dataset, ElementScalarSet):
         return dataset
     return get_builtin_set(dataset)
 
 
 def _is_placeholder_value(info: DatasetInfo, value: float) -> bool:
+    """Return ``True`` when ``value`` equals the dataset's placeholder value."""
+
     if info.placeholder_value is None:
         return False
     return abs(value - info.placeholder_value) < 1e-12

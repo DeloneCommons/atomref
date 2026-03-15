@@ -1,17 +1,25 @@
 # Notebook gallery
 
-`atomref` ships example Jupyter notebooks that mirror the main v0.1 user
-workflows. They live in the repository under `notebooks/` and can be opened
-locally with JupyterLab, VS Code, or any other notebook frontend.
+`atomref` ships example Jupyter notebooks that cover the main v0.1 workflows.
+Each notebook is available in two forms:
 
-Available notebooks:
+- the original `.ipynb` file in the repository,
+- a rendered Markdown copy included in these docs.
+
+That way users can either run the notebooks locally or read them directly on the
+documentation site.
+
+## Available notebooks
+
+- [Quickstart notebook](../notebooks/01-quickstart.md) — basic imports,
+  `get_*` vs `lookup_*`, quantity discovery, and packaged-set access.
+- [Policies and assessment notebook](../notebooks/02-policies-and-assessment.md)
+  — overrides, transfer-backed policies, and policy summaries.
+- [Custom sets and discovery notebook](../notebooks/03-custom-sets-and-discovery.md)
+  — user-defined sets, catalog inspection, and metadata exploration.
+
+The original notebook files are also in the repository:
 
 - [`01-quickstart.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/01-quickstart.ipynb)
-  – basic imports, element helpers, `get_*` vs `lookup_*`, quantity discovery.
 - [`02-policies-and-assessment.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/02-policies-and-assessment.ipynb)
-  – transfer policies, substitution vs linear transfer, policy assessment.
 - [`03-custom-sets-and-discovery.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/03-custom-sets-and-discovery.ipynb)
-  – custom user-defined sets, catalog inspection, metadata discovery.
-
-The notebooks are plain JSON files without heavy execution metadata so they stay
-diff-friendly in version control.

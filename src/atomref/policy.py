@@ -34,6 +34,12 @@ LookupSource = Literal[
 
 @dataclass(frozen=True, slots=True)
 class LookupResult:
+    """Result of resolving one value through a policy.
+
+    ``value`` carries the final scalar value when one could be produced, while
+    ``source`` and the remaining metadata explain how that value was obtained.
+    """
+
     value: float | None
     source: LookupSource
     target: DatasetRef
@@ -43,6 +49,8 @@ class LookupResult:
     notes: tuple[str, ...] = ()
 
     def __float__(self) -> float:
+        """Coerce the resolved value to ``float`` or raise if it is missing."""
+
         if self.value is None:
             raise TypeError("reference value is missing")
         return float(self.value)
@@ -50,6 +58,8 @@ class LookupResult:
 
 @dataclass(frozen=True, slots=True)
 class ValuePolicy(Generic[K]):
+    """Ordered rule set for resolving element-domain scalar values."""
+
     base: DatasetLike
     transfers: tuple[TransferModel, ...] = ()
     overrides: Mapping[K, float] = field(default_factory=dict)
@@ -57,6 +67,11 @@ class ValuePolicy(Generic[K]):
 
 
 def _normalize_element_symbol(symbol: str | None) -> str | None:
+    """Normalize user input to a packaged element symbol.
+
+    The current resolver treats ``D`` and ``T`` as hydrogen aliases.
+    """
+
     cand = canonicalize_element_symbol(symbol)
     if cand in {"D", "T"}:
         cand = "H"
@@ -68,6 +83,8 @@ def _normalize_element_symbol(symbol: str | None) -> str | None:
 
 
 def _resolve_target_ref(policy: ValuePolicy[object]) -> DatasetRef:
+    """Return the target dataset reference implied by a policy base."""
+
     return resolve_dataset_like(policy.base).ref
 
 
@@ -78,6 +95,8 @@ def _fit_linear_transfer(
     min_points: int,
     exclude_placeholders: bool,
 ) -> LinearFit:
+    """Fit a one-predictor linear transfer model between two datasets."""
+
     xs: list[float] = []
     ys: list[float] = []
 
@@ -133,6 +152,8 @@ def _fit_linear_transfer_cached(
     min_points: int,
     exclude_placeholders: bool,
 ) -> LinearFit:
+    """Cache fits between two packaged datasets for repeated reuse."""
+
     return _fit_linear_transfer(
         get_builtin_set(base_ref),
         get_builtin_set(predictor_ref),
@@ -142,6 +163,8 @@ def _fit_linear_transfer_cached(
 
 
 def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit | None:
+    """Return the fit object for a transfer model when it needs one."""
+
     if not isinstance(transfer, LinearTransfer):
         return None
     if len(transfer.predictors) != 1:
@@ -150,7 +173,10 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
     predictor = transfer.predictors[0]
     if isinstance(base, DatasetRef) and isinstance(predictor, DatasetRef):
         return _fit_linear_transfer_cached(
-            base, predictor, transfer.min_points, transfer.exclude_placeholders
+            base,
+            predictor,
+            transfer.min_points,
+            transfer.exclude_placeholders,
         )
     return _fit_linear_transfer(
         resolve_dataset_like(base),
@@ -161,8 +187,13 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
 
 
 def _apply_substitution_transfer(
-    symbol: str, *, target: DatasetRef, transfer: SubstitutionTransfer
+    symbol: str,
+    *,
+    target: DatasetRef,
+    transfer: SubstitutionTransfer,
 ) -> tuple[LookupResult | None, str | None]:
+    """Try to resolve ``symbol`` by direct substitution from another dataset."""
+
     source_set = resolve_dataset_like(transfer.source)
     value = source_set.get(symbol)
     if value is None:
@@ -182,8 +213,14 @@ def _apply_substitution_transfer(
 
 
 def _apply_linear_transfer(
-    symbol: str, *, base: DatasetLike, target: DatasetRef, transfer: LinearTransfer
+    symbol: str,
+    *,
+    base: DatasetLike,
+    target: DatasetRef,
+    transfer: LinearTransfer,
 ) -> tuple[LookupResult | None, str | None]:
+    """Try to resolve ``symbol`` through linear transfer from predictor data."""
+
     if len(transfer.predictors) != 1:
         raise PolicyError("v0.1 LinearTransfer supports exactly one predictor dataset")
 
@@ -194,7 +231,8 @@ def _apply_linear_transfer(
     predictor_f = float(predictor_value)
 
     if transfer.exclude_placeholders and _is_placeholder_value(
-        predictor_set.info, predictor_f
+        predictor_set.info,
+        predictor_f,
     ):
         return None, f"predictor value in {predictor_set.ref.set_id} is a placeholder"
 
@@ -217,6 +255,8 @@ def _apply_linear_transfer(
 
 
 def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResult:
+    """Resolve a value through override, base, transfer, and fallback steps."""
+
     target = _resolve_target_ref(policy)
     base_set = resolve_dataset_like(policy.base)
     if base_set.info.domain != "element":
@@ -251,11 +291,16 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
     for transfer in policy.transfers:
         if isinstance(transfer, SubstitutionTransfer):
             result, note = _apply_substitution_transfer(
-                sym, target=target, transfer=transfer
+                sym,
+                target=target,
+                transfer=transfer,
             )
         elif isinstance(transfer, LinearTransfer):
             result, note = _apply_linear_transfer(
-                sym, base=policy.base, target=target, transfer=transfer
+                sym,
+                base=policy.base,
+                target=target,
+                transfer=transfer,
             )
         else:  # pragma: no cover - closed union today
             raise PolicyError(f"unsupported transfer model: {type(transfer)!r}")
