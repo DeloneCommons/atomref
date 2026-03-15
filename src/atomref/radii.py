@@ -123,7 +123,6 @@ class RadiiPolicyAssessment:
     per_element: tuple[RadiiElementAssessment, ...] = ()
 
 
-
 def _coerce_non_negative_radii_value(value: object, *, what: str) -> float:
     """Validate a radii-like policy number.
 
@@ -142,7 +141,6 @@ def _coerce_non_negative_radii_value(value: object, *, what: str) -> float:
     return out
 
 
-
 def _quantity_for_kind(kind: RadiiKind) -> str:
     """Translate public radii kind names into registry quantity ids."""
 
@@ -152,7 +150,6 @@ def _quantity_for_kind(kind: RadiiKind) -> str:
         raise PolicyError(f"unknown radii kind: {kind!r}") from exc
 
 
-
 def _normalize_radii_symbol(symbol: str | None) -> str | None:
     """Normalize symbols accepted by the radii convenience layer."""
 
@@ -160,7 +157,6 @@ def _normalize_radii_symbol(symbol: str | None) -> str | None:
     if cand in {"D", "T"}:
         cand = "H"
     return cand
-
 
 
 def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
@@ -179,7 +175,6 @@ def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
     )
 
 
-
 def list_radii_sets(
     kind: RadiiKind,
     *,
@@ -188,7 +183,6 @@ def list_radii_sets(
     """List packaged radii-set ids for one radii kind."""
 
     return list_dataset_ids(_quantity_for_kind(kind), usage_role=usage_role)
-
 
 
 def list_radii_set_infos(
@@ -201,19 +195,16 @@ def list_radii_set_infos(
     return list_dataset_infos(_quantity_for_kind(kind), usage_role=usage_role)
 
 
-
 def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:
     """Return metadata for one packaged radii set."""
 
     return get_dataset_info(DatasetRef(_quantity_for_kind(kind), set_id))
 
 
-
 def get_radii_set(kind: RadiiKind, set_id: str) -> RadiiSet:
     """Load one packaged radii set as an :class:`ElementScalarSet`."""
 
     return get_builtin_set(DatasetRef(_quantity_for_kind(kind), set_id))
-
 
 
 def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:
@@ -223,12 +214,10 @@ def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:
         raise PolicyError(f"expected a {expected!r} radii policy, got {policy.kind!r}")
 
 
-
 def _lookup_radius(symbol: str | None, *, policy: RadiiPolicy) -> LookupResult:
     """Shared implementation for radii lookup helpers."""
 
     return lookup_value(symbol, policy=policy.as_value_policy())
-
 
 
 def lookup_covalent_radius(
@@ -243,7 +232,6 @@ def lookup_covalent_radius(
     return _lookup_radius(symbol, policy=active)
 
 
-
 def get_covalent_radius(
     symbol: str | None,
     *,
@@ -254,7 +242,6 @@ def get_covalent_radius(
     active = DEFAULT_COVALENT_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="covalent")
     return get_value(symbol, policy=active.as_value_policy())
-
 
 
 def lookup_vdw_radius(
@@ -269,7 +256,6 @@ def lookup_vdw_radius(
     return _lookup_radius(symbol, policy=active)
 
 
-
 def get_vdw_radius(
     symbol: str | None,
     *,
@@ -280,7 +266,6 @@ def get_vdw_radius(
     active = DEFAULT_VDW_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="van_der_waals")
     return get_value(symbol, policy=active.as_value_policy())
-
 
 
 def assess_radii_policy(

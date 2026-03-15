@@ -38,7 +38,10 @@ class LinearFit:
 
 @dataclass(frozen=True, slots=True)
 class SubstitutionTransfer:
-    """Use another dataset or policy directly when the base dataset is missing a value."""
+    """Use another dataset or policy directly when the base dataset is missing.
+
+    The selected value is copied from the source rather than inferred.
+    """
 
     source: DatasetLike | SupportsValuePolicy | ValuePolicy[str]
 

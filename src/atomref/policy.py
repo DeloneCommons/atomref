@@ -167,7 +167,6 @@ class _TransferSourceValue:
     notes: tuple[str, ...] = ()
 
 
-
 def _coerce_policy_float(value: object, *, what: str) -> float:
     """Return a finite float for policy configuration values."""
 
@@ -178,7 +177,6 @@ def _coerce_policy_float(value: object, *, what: str) -> float:
     if not math.isfinite(out):
         raise PolicyError(f"{what} must be a finite float")
     return out
-
 
 
 def _normalize_element_symbol(symbol: str | None) -> str | None:
@@ -197,12 +195,10 @@ def _normalize_element_symbol(symbol: str | None) -> str | None:
     return cand
 
 
-
 def _resolve_target_ref(policy: ValuePolicy[object]) -> DatasetRef:
     """Return the target dataset reference implied by a policy base."""
 
     return resolve_dataset_like(policy.base).ref
-
 
 
 def _coerce_nested_policy(source: object) -> ValuePolicy[str] | None:
@@ -216,7 +212,6 @@ def _coerce_nested_policy(source: object) -> ValuePolicy[str] | None:
             raise PolicyError("policy-like transfer sources must return ValuePolicy")
         return nested
     return None
-
 
 
 def _materialize_transfer_source(
@@ -247,14 +242,15 @@ def _materialize_transfer_source(
     for elem in iter_elements():
         lookup = lookup_value(elem.symbol, policy=nested_policy)
         values[elem.z] = lookup.value
-        placeholders[elem.z] = lookup.is_placeholder if lookup.value is not None else False
+        placeholders[elem.z] = (
+            lookup.is_placeholder if lookup.value is not None else False
+        )
     return _ResolvedElementSource(
         ref=target,
         values_by_z=tuple(values),
         placeholder_by_z=tuple(placeholders),
         via_policy=True,
     )
-
 
 
 def _lookup_transfer_source_value(
@@ -304,7 +300,6 @@ def _lookup_transfer_source_value(
         ),
         None,
     )
-
 
 
 def _fit_linear_transfer(
@@ -381,7 +376,6 @@ def _fit_linear_transfer_cached(
     )
 
 
-
 def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit | None:
     """Return the fit object for a transfer model when it needs one."""
 
@@ -404,7 +398,6 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
         min_points=transfer.min_points,
         exclude_placeholders=transfer.exclude_placeholders,
     )
-
 
 
 def _apply_substitution_transfer(
@@ -443,7 +436,6 @@ def _apply_substitution_transfer(
     )
 
 
-
 def _apply_linear_transfer(
     symbol: str,
     *,
@@ -456,7 +448,10 @@ def _apply_linear_transfer(
     if len(transfer.predictors) != 1:
         raise PolicyError("v0.1 LinearTransfer supports exactly one predictor source")
 
-    predictor_value, note = _lookup_transfer_source_value(symbol, transfer.predictors[0])
+    predictor_value, note = _lookup_transfer_source_value(
+        symbol,
+        transfer.predictors[0],
+    )
     if predictor_value is None:
         return None, note
 
@@ -476,7 +471,8 @@ def _apply_linear_transfer(
         notes.append("linear fit used policy-materialized predictor values")
         if predictor_value.lookup_source not in (None, "base"):
             notes.append(
-                f"policy predictor resolved the value via {predictor_value.lookup_source}"
+                "policy predictor resolved the value via "
+                f"{predictor_value.lookup_source}"
             )
 
     return (
@@ -491,7 +487,6 @@ def _apply_linear_transfer(
         ),
         None,
     )
-
 
 
 def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResult:
@@ -511,7 +506,12 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
         sym = _normalize_element_symbol(symbol)
         if sym is None:
             note = "unknown element" if symbol is not None else "missing element symbol"
-            return LookupResult(value=None, source="missing", target=target, notes=(note,))
+            return LookupResult(
+                value=None,
+                source="missing",
+                target=target,
+                notes=(note,),
+            )
 
         if sym in policy.blocked:
             return LookupResult(
@@ -589,7 +589,6 @@ def _resolve_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupRes
         assert popped == policy_id  # internal stack discipline
 
 
-
 def lookup_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResult:
     """Public entry point for generic element-domain scalar lookup.
 
@@ -598,7 +597,6 @@ def lookup_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResul
     """
 
     return _resolve_value(symbol, policy=policy)
-
 
 
 def get_value(symbol: str | None, *, policy: ValuePolicy[str]) -> float | None:

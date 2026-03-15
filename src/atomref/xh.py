@@ -9,7 +9,15 @@ import math
 from .elements import canonicalize_element_symbol, is_valid_element_symbol
 from .errors import PolicyError
 from .policy import LookupResult, ValuePolicy, get_value, lookup_value
-from .registry import DatasetInfo, DatasetRef, ElementScalarSet, get_builtin_set, get_dataset_info, list_dataset_ids, list_dataset_infos
+from .registry import (
+    DatasetInfo,
+    DatasetRef,
+    ElementScalarSet,
+    get_builtin_set,
+    get_dataset_info,
+    list_dataset_ids,
+    list_dataset_infos,
+)
 from .transfer import LinearTransfer, TransferModel
 
 XHSet = ElementScalarSet
@@ -37,7 +45,9 @@ class XHPolicy:
         if isinstance(self.base_set, ElementScalarSet):
             if self.base_set.ref.quantity != _QUANTITY:
                 raise PolicyError(
-                    f"base_set quantity {self.base_set.ref.quantity!r} is incompatible with X-H lookup"
+                    "base_set quantity "
+                    f"{self.base_set.ref.quantity!r} is incompatible "
+                    "with X-H lookup"
                 )
             base = self.base_set
         else:
@@ -70,7 +80,6 @@ class XHPolicy:
         )
 
 
-
 def _coerce_non_negative_xh_value(value: object, *, what: str) -> float:
     """Validate an X-H-like policy number."""
 
@@ -85,7 +94,6 @@ def _coerce_non_negative_xh_value(value: object, *, what: str) -> float:
     return out
 
 
-
 def _normalize_xh_symbol(symbol: str | None) -> str | None:
     """Normalize symbols accepted by the X-H convenience layer."""
 
@@ -95,12 +103,10 @@ def _normalize_xh_symbol(symbol: str | None) -> str | None:
     return cand
 
 
-
 def list_xh_sets(*, usage_role: str | None = None) -> tuple[str, ...]:
     """List packaged X-H set ids."""
 
     return list_dataset_ids(_QUANTITY, usage_role=usage_role)
-
 
 
 def list_xh_set_infos(*, usage_role: str | None = None) -> tuple[DatasetInfo, ...]:
@@ -109,19 +115,16 @@ def list_xh_set_infos(*, usage_role: str | None = None) -> tuple[DatasetInfo, ..
     return list_dataset_infos(_QUANTITY, usage_role=usage_role)
 
 
-
 def get_xh_set_info(set_id: str) -> DatasetInfo:
     """Return metadata for one packaged X-H set."""
 
     return get_dataset_info(DatasetRef(_QUANTITY, set_id))
 
 
-
 def get_xh_set(set_id: str) -> XHSet:
     """Load one packaged X-H set as an :class:`ElementScalarSet`."""
 
     return get_builtin_set(DatasetRef(_QUANTITY, set_id))
-
 
 
 def lookup_xh_bond_length(
@@ -141,7 +144,6 @@ def lookup_xh_bond_length(
             notes=("H is not a valid parent element for xh_bond_length",),
         )
     return lookup
-
 
 
 def get_xh_bond_length(

@@ -143,7 +143,8 @@ class ElementScalarSet:
             previous = seen_keys.get(sym)
             if previous is not None and previous != key:
                 raise DatasetError(
-                    f"custom-set keys {previous!r} and {key!r} both normalize to {sym!r}"
+                    "custom-set keys "
+                    f"{previous!r} and {key!r} both normalize to {sym!r}"
                 )
             seen_keys[sym] = key
             values_by_z[elem.z] = (
@@ -266,7 +267,6 @@ def _coerce_finite_float(value: object, *, what: str) -> float:
     return out
 
 
-
 def _get_quantities_mapping() -> Mapping[str, object]:
     """Return the raw ``quantities`` mapping from ``registry.json``."""
 
@@ -274,7 +274,6 @@ def _get_quantities_mapping() -> Mapping[str, object]:
     if not isinstance(quantities, dict):
         raise DatasetError("invalid registry.json: missing quantities mapping")
     return quantities
-
 
 
 def _get_datasets_mapping() -> Mapping[str, object]:
@@ -286,7 +285,6 @@ def _get_datasets_mapping() -> Mapping[str, object]:
     return datasets
 
 
-
 def _datasets_for_quantity(quantity: QuantityId) -> Mapping[str, object]:
     """Return the dataset table for one quantity or raise on unknown input."""
 
@@ -296,12 +294,10 @@ def _datasets_for_quantity(quantity: QuantityId) -> Mapping[str, object]:
     return datasets
 
 
-
 def list_quantities() -> tuple[str, ...]:
     """List packaged quantity identifiers in registry order."""
 
     return tuple(_get_quantities_mapping().keys())
-
 
 
 def get_quantity_info(quantity: QuantityId) -> QuantityInfo:
@@ -325,14 +321,12 @@ def get_quantity_info(quantity: QuantityId) -> QuantityInfo:
     )
 
 
-
 def _canonicalize_alias_token(value: str) -> str:
     """Normalize a dataset id or alias for case-insensitive comparison."""
 
     normalized = unicodedata.normalize("NFKC", value)
     normalized = normalized.translate(_DASH_TRANSLATION)
     return " ".join(normalized.strip().lower().split())
-
 
 
 def _resolve_set_id(quantity: QuantityId, set_id: str) -> str:
@@ -358,7 +352,6 @@ def _resolve_set_id(quantity: QuantityId, set_id: str) -> str:
     raise DatasetError(f"unknown dataset id for {quantity!r}: {set_id!r}")
 
 
-
 def list_dataset_ids(
     quantity: QuantityId, *, usage_role: str | None = None
 ) -> tuple[str, ...]:
@@ -382,7 +375,6 @@ def list_dataset_ids(
     return tuple(filtered)
 
 
-
 def list_dataset_infos(
     quantity: QuantityId, *, usage_role: str | None = None
 ) -> tuple[DatasetInfo, ...]:
@@ -392,7 +384,6 @@ def list_dataset_infos(
         get_dataset_info(DatasetRef(quantity, set_id))
         for set_id in list_dataset_ids(quantity, usage_role=usage_role)
     )
-
 
 
 def _coerce_reference(obj: object) -> Reference:
@@ -414,7 +405,6 @@ def _coerce_reference(obj: object) -> Reference:
     )
 
 
-
 def _coerce_coverage(obj: object) -> CoverageInfo | None:
     """Coerce raw coverage metadata into :class:`CoverageInfo`."""
 
@@ -432,7 +422,6 @@ def _coerce_coverage(obj: object) -> CoverageInfo | None:
         covered_z=covered_z,
         missing_z=missing_z,
     )
-
 
 
 def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
@@ -604,14 +593,12 @@ def get_builtin_set(ref: DatasetRef) -> ElementScalarSet:
     return ElementScalarSet(ref=info.ref, info=info, values_by_z=table[column])
 
 
-
 def resolve_dataset_like(dataset: DatasetLike) -> ElementScalarSet:
     """Resolve either a packaged reference or a custom set to a loaded set."""
 
     if isinstance(dataset, ElementScalarSet):
         return dataset
     return get_builtin_set(dataset)
-
 
 
 def _is_placeholder_value(info: DatasetInfo, value: float) -> bool:
