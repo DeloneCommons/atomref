@@ -1,3 +1,6 @@
+# user-specific
+atomref-development.code-workspace
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
