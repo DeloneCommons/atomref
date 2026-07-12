@@ -17,12 +17,11 @@ from .elements import (
 )
 from .errors import PolicyError
 from .registry import (
-    DatasetLike,
     DatasetRef,
     ElementScalarSet,
+    ScalarDatasetLike,
     _is_placeholder_value,
-    get_builtin_set,
-    resolve_dataset_like,
+    resolve_scalar_dataset_like,
 )
 from .transfer import (
     LinearFit,
@@ -86,7 +85,7 @@ class ValuePolicy(Generic[K]):
     element symbols and validated as finite floats.
     """
 
-    base: DatasetLike
+    base: ScalarDatasetLike
     transfers: tuple[TransferModel, ...] = ()
     overrides: Mapping[K, float] = field(default_factory=dict)
     fallback: float | None = None
@@ -102,7 +101,7 @@ class ValuePolicy(Generic[K]):
                 _coerce_policy_float(self.fallback, what="policy fallback"),
             )
 
-        base_set = resolve_dataset_like(self.base)
+        base_set = resolve_scalar_dataset_like(self.base)
         if base_set.info.domain != "element":
             return
 
@@ -210,7 +209,7 @@ def _normalize_element_symbol(symbol: str | None) -> str | None:
 def _resolve_target_ref(policy: ValuePolicy[object]) -> DatasetRef:
     """Return the target dataset reference implied by a policy base."""
 
-    return resolve_dataset_like(policy.base).ref
+    return resolve_scalar_dataset_like(policy.base).ref
 
 
 def _policy_resolution_tokens(
@@ -260,13 +259,13 @@ def _coerce_nested_policy(
 
 
 def _materialize_transfer_source(
-    source: DatasetLike | SupportsValuePolicy | ValuePolicy[str],
+    source: ScalarDatasetLike | SupportsValuePolicy | ValuePolicy[str],
 ) -> _ResolvedElementSource:
     """Materialize any element-domain transfer source into dense by-Z arrays."""
 
     nested_policy, nested_owner = _coerce_nested_policy(source)
     if nested_policy is None:
-        dataset = resolve_dataset_like(source)
+        dataset = resolve_scalar_dataset_like(source)
         placeholders = tuple(
             False
             if value is None
@@ -317,13 +316,13 @@ def _materialize_transfer_source(
 
 def _lookup_transfer_source_value(
     symbol: str,
-    source: DatasetLike | SupportsValuePolicy | ValuePolicy[str],
+    source: ScalarDatasetLike | SupportsValuePolicy | ValuePolicy[str],
 ) -> tuple[_TransferSourceValue | None, str | None]:
     """Resolve one element value from a transfer source or nested policy."""
 
     nested_policy, nested_owner = _coerce_nested_policy(source)
     if nested_policy is None:
-        source_set = resolve_dataset_like(source)
+        source_set = resolve_scalar_dataset_like(source)
         value = source_set.get(symbol)
         if value is None:
             return None, f"no value in {source_set.ref.set_id}"
@@ -493,7 +492,7 @@ def _fit_linear_transfer_cached(
     """Cache fits between two packaged datasets for repeated reuse."""
 
     return _fit_linear_transfer(
-        get_builtin_set(base_ref),
+        resolve_scalar_dataset_like(base_ref),
         _materialize_transfer_source(predictor_ref),
         min_points=min_points,
         exclude_placeholders=exclude_placeholders,
@@ -502,7 +501,9 @@ def _fit_linear_transfer_cached(
     )
 
 
-def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit | None:
+def _fit_transfer_model(
+    base: ScalarDatasetLike, transfer: TransferModel
+) -> LinearFit | None:
     """Return the fit object for a transfer model when it needs one."""
 
     if not isinstance(transfer, LinearTransfer):
@@ -523,7 +524,7 @@ def _fit_transfer_model(base: DatasetLike, transfer: TransferModel) -> LinearFit
             transfer.fit_max_depth,
         )
     return _fit_linear_transfer(
-        resolve_dataset_like(base),
+        resolve_scalar_dataset_like(base),
         _materialize_transfer_source(predictor),
         min_points=transfer.min_points,
         exclude_placeholders=transfer.exclude_placeholders,
@@ -572,7 +573,7 @@ def _apply_substitution_transfer(
 def _apply_linear_transfer(
     symbol: str,
     *,
-    base: DatasetLike,
+    base: ScalarDatasetLike,
     target: DatasetRef,
     transfer: LinearTransfer,
 ) -> tuple[LookupResult | None, str | None]:
@@ -661,7 +662,7 @@ def _resolve_value(
     stack_token = _ACTIVE_POLICY_TOKENS.set(active_tokens + resolution_tokens)
     try:
         target = _resolve_target_ref(policy)
-        base_set = resolve_dataset_like(policy.base)
+        base_set = resolve_scalar_dataset_like(policy.base)
         if base_set.info.domain != "element":
             raise PolicyError(
                 "the resolver currently supports only element-domain datasets"

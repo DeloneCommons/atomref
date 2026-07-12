@@ -18,10 +18,10 @@ from .registry import (
     DatasetInfo,
     DatasetRef,
     ElementScalarSet,
-    get_builtin_set,
     get_dataset_info,
     list_dataset_ids,
     list_dataset_infos,
+    resolve_scalar_dataset_like,
 )
 from .transfer import LinearTransfer, TransferModel
 
@@ -129,7 +129,7 @@ def get_xh_set_info(set_id: str) -> DatasetInfo:
 def get_xh_set(set_id: str) -> XHSet:
     """Load one packaged X-H set as an :class:`ElementScalarSet`."""
 
-    return get_builtin_set(DatasetRef(_QUANTITY, set_id))
+    return resolve_scalar_dataset_like(DatasetRef(_QUANTITY, set_id))
 
 
 def lookup_xh_bond_length(

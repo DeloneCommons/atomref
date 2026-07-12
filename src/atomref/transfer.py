@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, Protocol, runtime_checkable
 
 from .errors import PolicyError
-from .registry import DatasetLike
+from .registry import ScalarDatasetLike
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from .policy import ValuePolicy
@@ -74,7 +74,7 @@ class SubstitutionTransfer:
     The selected value is copied from the source rather than inferred.
     """
 
-    source: DatasetLike | SupportsValuePolicy | ValuePolicy[str]
+    source: ScalarDatasetLike | SupportsValuePolicy | ValuePolicy[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,7 +96,9 @@ class LinearTransfer:
     enough to allow one additional completion step at prediction time.
     """
 
-    predictors: tuple[DatasetLike | SupportsValuePolicy | ValuePolicy[str], ...]
+    predictors: tuple[
+        ScalarDatasetLike | SupportsValuePolicy | ValuePolicy[str], ...
+    ]
     min_points: int = 2
     exclude_placeholders: bool = True
     fit_sources: tuple[TransferValueSource, ...] = _DEFAULT_LINEAR_FIT_SOURCES

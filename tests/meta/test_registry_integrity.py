@@ -8,6 +8,18 @@ from atomref.registry import _canonicalize_alias_token, get_builtin_set
 
 _ALLOWED_USAGE_ROLES = {"target", "support"}
 
+_PRE_STAGE_2_SCALAR_REFS = (
+    ar.DatasetRef("covalent_radius", "cordero2008"),
+    ar.DatasetRef("covalent_radius", "csd_legacy_cov"),
+    ar.DatasetRef("van_der_waals_radius", "bondi1964"),
+    ar.DatasetRef("van_der_waals_radius", "rowland_taylor1996"),
+    ar.DatasetRef("van_der_waals_radius", "alvarez2013"),
+    ar.DatasetRef("van_der_waals_radius", "chernyshov2020"),
+    ar.DatasetRef("van_der_waals_radius", "csd_legacy_vdw"),
+    ar.DatasetRef("atomic_radius", "rahm2016"),
+    ar.DatasetRef("xh_bond_length", "csd_legacy_xh_cno"),
+)
+
 
 def test_dataset_aliases_are_unique_within_each_quantity() -> None:
     for quantity in ar.list_quantities():
@@ -35,21 +47,32 @@ def test_every_built_in_dataset_loads_and_matches_coverage_metadata() -> None:
             assert info.references
             assert info.coverage is not None
 
+            if isinstance(dataset, ar.ElementScalarSet):
+                values_by_z = dataset.values_by_z
+            else:
+                assert isinstance(dataset, ar.ElementRadialSet)
+                values_by_z = dataset.profiles_by_z
+
             max_z = (
                 info.coverage.z_max
                 if info.coverage.z_max is not None
-                else len(dataset.values_by_z) - 1
+                else len(values_by_z) - 1
             )
             covered_z = tuple(
                 z
-                for z, value in enumerate(dataset.values_by_z)
+                for z, value in enumerate(values_by_z)
                 if z > 0 and value is not None and z <= max_z
             )
             covered_set = set(covered_z)
             missing_z = tuple(z for z in range(1, max_z + 1) if z not in covered_set)
-            has_placeholders = info.placeholder_value is not None and any(
-                value is not None and abs(value - info.placeholder_value) < 1e-12
-                for value in dataset.values_by_z[1 : max_z + 1]
+            has_placeholders = (
+                isinstance(dataset, ar.ElementScalarSet)
+                and info.placeholder_value is not None
+                and any(
+                    value is not None
+                    and abs(value - info.placeholder_value) < 1e-12
+                    for value in values_by_z[1 : max_z + 1]
+                )
             )
 
             coverage = asdict(info.coverage)
@@ -61,6 +84,11 @@ def test_every_built_in_dataset_loads_and_matches_coverage_metadata() -> None:
                 assert tuple(coverage["covered_z"]) == covered_z
             if coverage["missing_z"]:
                 assert tuple(coverage["missing_z"]) == missing_z
+
+
+def test_pre_stage_2_packaged_datasets_remain_scalar() -> None:
+    for ref in _PRE_STAGE_2_SCALAR_REFS:
+        assert isinstance(get_builtin_set(ref), ar.ElementScalarSet)
 
 
 def test_non_atomic_quantities_have_at_least_one_target_dataset() -> None:

@@ -1,4 +1,4 @@
-"""Dataset registry and packaged element-scalar set loading."""
+"""Dataset registry and packaged element-set loading."""
 
 from __future__ import annotations
 
@@ -7,10 +7,14 @@ from dataclasses import dataclass
 import csv
 from functools import lru_cache
 from importlib import resources
+import io
 import json
 import math
+import stat
 from types import MappingProxyType
 import unicodedata
+import zipfile
+import zlib
 
 from .elements import canonicalize_element_symbol, get_element, iter_elements
 from .errors import DatasetError
@@ -47,7 +51,7 @@ class Reference:
 
 @dataclass(frozen=True, slots=True)
 class CoverageInfo:
-    """Coverage summary for an element-indexed scalar dataset."""
+    """Coverage summary for an element-indexed dataset."""
 
     n_values: int
     z_min: int | None = None
@@ -202,7 +206,35 @@ class ElementScalarSet:
         return self.values_by_z[elem.z]
 
 
-DatasetLike = DatasetRef | ElementScalarSet
+@dataclass(frozen=True, slots=True)
+class ElementRadialSet:
+    """Element-indexed radial profiles sampled on one shared grid."""
+
+    ref: DatasetRef
+    info: DatasetInfo
+    radii: tuple[float, ...]
+    profiles_by_z: tuple[tuple[float, ...] | None, ...]
+
+    def get(self, element: str | int | None) -> tuple[float, ...] | None:
+        """Return the immutable profile for an element symbol or atomic number."""
+
+        if isinstance(element, int) and not isinstance(element, bool):
+            z = element
+        elif isinstance(element, str) or element is None:
+            sym = _normalize_element_domain_symbol(element)
+            elem = get_element(sym)
+            if elem is None:
+                return None
+            z = elem.z
+        else:
+            return None
+        if z <= 0 or z >= len(self.profiles_by_z):
+            return None
+        return self.profiles_by_z[z]
+
+
+BuiltinSet = ElementScalarSet | ElementRadialSet
+ScalarDatasetLike = DatasetRef | ElementScalarSet
 
 
 _DASH_TRANSLATION = str.maketrans(
@@ -570,13 +602,159 @@ def _load_csv_columns(filename: str) -> dict[str, tuple[float | None, ...]]:
 
 
 @lru_cache(maxsize=None)
-def get_builtin_set(ref: DatasetRef) -> ElementScalarSet:
-    """Load a packaged dataset as an :class:`ElementScalarSet`."""
+def _load_radial_csv_zip(
+    filename: str,
+    member: str,
+    radius_column: str,
+    density_columns: tuple[tuple[int, str], ...],
+) -> tuple[tuple[float, ...], tuple[tuple[float, ...] | None, ...]]:
+    """Load shared-grid profiles from a single-member ZIP containing CSV."""
 
-    info = get_dataset_info(ref)
+    try:
+        archive_bytes = _read_package_data_bytes(filename)
+        with zipfile.ZipFile(io.BytesIO(archive_bytes), mode="r") as archive:
+            members = archive.infolist()
+            if len(members) != 1:
+                raise DatasetError(
+                    f"radial ZIP archive {filename!r} must contain exactly one member"
+                )
+            member_info = members[0]
+            if member_info.is_dir():
+                raise DatasetError(
+                    f"radial ZIP archive {filename!r} contains a directory entry"
+                )
+            unix_mode = (member_info.external_attr >> 16) & 0xFFFF
+            file_type = stat.S_IFMT(unix_mode)
+            if (
+                member_info.create_system == 3
+                and file_type not in (0, stat.S_IFREG)
+            ):
+                raise DatasetError(
+                    f"radial ZIP archive {filename!r} member is not a regular file"
+                )
+            if member_info.filename != member:
+                raise DatasetError(
+                    f"radial ZIP archive {filename!r} does not contain the declared "
+                    f"member {member!r}"
+                )
+            if member_info.flag_bits & 0x1:
+                raise DatasetError(
+                    f"radial ZIP archive {filename!r} contains an encrypted member"
+                )
+            csv_bytes = archive.read(member_info)
+    except DatasetError:
+        raise
+    except (
+        OSError,
+        RuntimeError,
+        NotImplementedError,
+        zipfile.BadZipFile,
+        zipfile.LargeZipFile,
+        zlib.error,
+    ) as exc:
+        raise DatasetError(f"invalid radial ZIP archive: {filename!r}") from exc
+
+    try:
+        csv_text = csv_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DatasetError(
+            f"invalid UTF-8 CSV member {member!r} in radial ZIP {filename!r}"
+        ) from exc
+
+    radii: list[float] = []
+    profiles: dict[int, list[float]] = {z: [] for z, _ in density_columns}
+    expected_columns = (radius_column, *(name for _, name in density_columns))
+    try:
+        with io.StringIO(csv_text, newline="") as text_handle:
+            reader = csv.DictReader(text_handle)
+            if (
+                reader.fieldnames is None
+                or tuple(reader.fieldnames) != expected_columns
+            ):
+                raise DatasetError(
+                    f"invalid radial CSV columns in {member!r} from {filename!r}"
+                )
+            for row_number, row in enumerate(reader, start=2):
+                radii.append(
+                    _coerce_finite_float(
+                        row.get(radius_column),
+                        what=(
+                            f"radius in {filename!r} row {row_number} "
+                            f"column {radius_column!r}"
+                        ),
+                    )
+                )
+                for z, column in density_columns:
+                    profiles[z].append(
+                        _coerce_finite_float(
+                            row.get(column),
+                            what=(
+                                f"profile value in {filename!r} row {row_number} "
+                                f"column {column!r}"
+                            ),
+                        )
+                    )
+    except DatasetError:
+        raise
+    except (csv.Error, ValueError) as exc:
+        raise DatasetError(
+            f"invalid radial CSV member {member!r} in {filename!r}"
+        ) from exc
+
+    n_z = max(elem.z for elem in iter_elements())
+    profiles_by_z: list[tuple[float, ...] | None] = [None] * (n_z + 1)
+    for z, values in profiles.items():
+        if z <= 0 or z > n_z:
+            raise DatasetError(f"invalid atomic number in {filename!r}: {z}")
+        profiles_by_z[z] = tuple(values)
+    return tuple(radii), tuple(profiles_by_z)
+
+
+def _read_package_data_bytes(filename: str) -> bytes:
+    """Read a packaged data resource without requiring a filesystem path."""
+
+    path = resources.files("atomref.data").joinpath(filename)
+    with path.open("rb") as handle:
+        return handle.read()
+
+
+def _radial_density_columns(info: DatasetInfo) -> tuple[tuple[int, str], ...]:
+    """Return expected ``(Z, column)`` pairs from radial storage metadata."""
+
+    if not isinstance(info.storage, Mapping) or info.coverage is None:
+        raise DatasetError(f"invalid radial storage metadata for dataset: {info.ref!r}")
+    pattern = info.storage.get("density_column_pattern")
+    if not isinstance(pattern, str) or "{z" not in pattern:
+        raise DatasetError(f"invalid radial storage metadata for dataset: {info.ref!r}")
+
+    coverage = info.coverage
+    if coverage.covered_z:
+        covered_z = coverage.covered_z
+    elif coverage.z_min is not None and coverage.z_max is not None:
+        covered_z = tuple(range(coverage.z_min, coverage.z_max + 1))
+    else:
+        raise DatasetError(
+            f"invalid radial coverage metadata for dataset: {info.ref!r}"
+        )
+    if len(covered_z) != coverage.n_values:
+        raise DatasetError(
+            f"invalid radial coverage metadata for dataset: {info.ref!r}"
+        )
+
+    try:
+        return tuple((z, pattern.format(z=z)) for z in covered_z)
+    except (KeyError, ValueError) as exc:
+        raise DatasetError(
+            f"invalid radial density-column pattern for dataset: {info.ref!r}"
+        ) from exc
+
+
+def _load_element_scalar_set(info: DatasetInfo) -> ElementScalarSet:
+    """Load one dense-by-Z scalar CSV dataset."""
+
     if info.domain != "element":
         raise DatasetError(
-            f"only element-domain datasets are currently supported: {info.ref!r}"
+            f"element scalar storage requires an element domain: {info.ref!r}"
         )
     if not isinstance(info.storage, Mapping):
         raise DatasetError(f"missing storage metadata for dataset: {info.ref!r}")
@@ -593,12 +771,82 @@ def get_builtin_set(ref: DatasetRef) -> ElementScalarSet:
     return ElementScalarSet(ref=info.ref, info=info, values_by_z=table[column])
 
 
-def resolve_dataset_like(dataset: DatasetLike) -> ElementScalarSet:
-    """Resolve either a packaged reference or a custom set to a loaded set."""
+def _load_element_radial_set(info: DatasetInfo) -> ElementRadialSet:
+    """Load one shared-grid radial CSV from a single-member ZIP archive."""
+
+    if info.domain != "element":
+        raise DatasetError(
+            f"element radial storage requires an element domain: {info.ref!r}"
+        )
+    if not isinstance(info.storage, Mapping):
+        raise DatasetError(f"missing storage metadata for dataset: {info.ref!r}")
+    filename = info.storage.get("filename")
+    member = info.storage.get("member")
+    radius_column = info.storage.get("radius_column")
+    if (
+        not isinstance(filename, str)
+        or not isinstance(member, str)
+        or not member
+        or not isinstance(radius_column, str)
+    ):
+        raise DatasetError(f"invalid radial storage metadata for dataset: {info.ref!r}")
+
+    density_columns = _radial_density_columns(info)
+    radii, profiles_by_z = _load_radial_csv_zip(
+        filename,
+        member,
+        radius_column,
+        density_columns,
+    )
+    return ElementRadialSet(
+        ref=info.ref,
+        info=info,
+        radii=radii,
+        profiles_by_z=profiles_by_z,
+    )
+
+
+@lru_cache(maxsize=None)
+def _load_builtin_set(ref: DatasetRef) -> BuiltinSet:
+    """Load a canonical packaged dataset by its declared storage kind."""
+
+    info = get_dataset_info(ref)
+    if not isinstance(info.storage, Mapping):
+        raise DatasetError(f"missing storage metadata for dataset: {info.ref!r}")
+    storage_kind = info.storage.get("kind")
+    if storage_kind == "element_scalar_csv":
+        return _load_element_scalar_set(info)
+    if storage_kind == "element_radial_csv_zip":
+        return _load_element_radial_set(info)
+    raise DatasetError(
+        f"unknown storage kind {storage_kind!r} for dataset: {info.ref!r}"
+    )
+
+
+def get_builtin_set(ref: DatasetRef) -> BuiltinSet:
+    """Load a scalar or radial packaged dataset through the shared registry."""
+
+    canonical_ref = get_dataset_info(ref).ref
+    return _load_builtin_set(canonical_ref)
+
+
+def resolve_scalar_dataset_like(
+    dataset: ScalarDatasetLike | ElementRadialSet,
+) -> ElementScalarSet:
+    """Resolve a packaged reference or custom set, requiring scalar payload."""
 
     if isinstance(dataset, ElementScalarSet):
         return dataset
-    return get_builtin_set(dataset)
+    if isinstance(dataset, ElementRadialSet):
+        raise DatasetError(
+            f"dataset {dataset.ref!r} has a radial payload; scalar dataset required"
+        )
+    loaded = get_builtin_set(dataset)
+    if not isinstance(loaded, ElementScalarSet):
+        raise DatasetError(
+            f"dataset {loaded.ref!r} has a radial payload; scalar dataset required"
+        )
+    return loaded
 
 
 def _is_placeholder_value(info: DatasetInfo, value: float) -> bool:

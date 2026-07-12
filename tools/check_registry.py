@@ -16,6 +16,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 _ALLOWED_USAGE_ROLES = {"target", "support"}
+_ALLOWED_STORAGE_KINDS = {"element_scalar_csv", "element_radial_csv_zip"}
 
 
 def _load_atomref_module():
@@ -96,37 +97,67 @@ def _validate_dataset_metadata(errors: list[str]) -> None:
         if info.storage is None:
             errors.append(f"missing storage metadata for {ref!r}")
         else:
+            kind = info.storage.get("kind")
             filename = info.storage.get("filename")
-            column = info.storage.get("column")
-            fmt = info.storage.get("format")
+            if kind not in _ALLOWED_STORAGE_KINDS:
+                errors.append(f"unsupported storage kind for {ref!r}: {kind!r}")
             if not isinstance(filename, str) or not filename:
                 errors.append(f"invalid storage filename for {ref!r}: {filename!r}")
-            if not isinstance(column, str) or not column:
-                errors.append(f"invalid storage column for {ref!r}: {column!r}")
-            if fmt != "dense_by_z_csv":
-                errors.append(f"unsupported storage format for {ref!r}: {fmt!r}")
+            if kind == "element_scalar_csv":
+                column = info.storage.get("column")
+                fmt = info.storage.get("format")
+                if not isinstance(column, str) or not column:
+                    errors.append(f"invalid storage column for {ref!r}: {column!r}")
+                if fmt != "dense_by_z_csv":
+                    errors.append(f"unsupported storage format for {ref!r}: {fmt!r}")
+            elif kind == "element_radial_csv_zip":
+                member = info.storage.get("member")
+                radius_column = info.storage.get("radius_column")
+                density_pattern = info.storage.get("density_column_pattern")
+                if not isinstance(member, str) or not member:
+                    errors.append(
+                        f"invalid radial archive member for {ref!r}: {member!r}"
+                    )
+                if not isinstance(radius_column, str) or not radius_column:
+                    errors.append(
+                        f"invalid radial radius column for {ref!r}: {radius_column!r}"
+                    )
+                if not isinstance(density_pattern, str) or "{z" not in density_pattern:
+                    errors.append(
+                        f"invalid radial density-column pattern for {ref!r}: "
+                        f"{density_pattern!r}"
+                    )
 
+        values_by_z = (
+            dataset.values_by_z
+            if isinstance(dataset, ar.ElementScalarSet)
+            else dataset.profiles_by_z
+        )
         coverage = info.coverage
         if coverage is None:
             errors.append(f"missing coverage metadata for {ref!r}")
-            max_z = len(dataset.values_by_z) - 1
+            max_z = len(values_by_z) - 1
         else:
             max_z = (
                 coverage.z_max
                 if coverage.z_max is not None
-                else len(dataset.values_by_z) - 1
+                else len(values_by_z) - 1
             )
 
         covered_z = tuple(
             z
-            for z, value in enumerate(dataset.values_by_z)
+            for z, value in enumerate(values_by_z)
             if z > 0 and value is not None and z <= max_z
         )
         covered_set = set(covered_z)
         missing_z = tuple(z for z in range(1, max_z + 1) if z not in covered_set)
-        has_placeholders = info.placeholder_value is not None and any(
-            value is not None and abs(value - info.placeholder_value) < 1e-12
-            for value in dataset.values_by_z[1 : max_z + 1]
+        has_placeholders = (
+            isinstance(dataset, ar.ElementScalarSet)
+            and info.placeholder_value is not None
+            and any(
+                value is not None and abs(value - info.placeholder_value) < 1e-12
+                for value in dataset.values_by_z[1 : max_z + 1]
+            )
         )
 
         if coverage is not None:

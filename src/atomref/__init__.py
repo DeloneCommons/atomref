@@ -36,9 +36,11 @@ from .xh import (
     lookup_xh_bond_length,
 )
 from .registry import (
+    BuiltinSet,
     CoverageInfo,
     DatasetInfo,
     DatasetRef,
+    ElementRadialSet,
     ElementScalarSet,
     QuantityInfo,
     Reference,
@@ -58,9 +60,11 @@ __all__ = [
     "get_element",
     "iter_elements",
     "is_valid_element_symbol",
+    "BuiltinSet",
     "CoverageInfo",
     "DatasetInfo",
     "DatasetRef",
+    "ElementRadialSet",
     "ElementScalarSet",
     "QuantityInfo",
     "Reference",

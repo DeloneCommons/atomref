@@ -555,12 +555,21 @@ The limit also provides a simple numerical contract:
 
 ### 6.6 Packaged representation
 
-The preferred representation is one compressed wide CSV in the existing package
-data directory:
+The consumer representation is one deterministic single-member ZIP archive in
+the existing package data directory:
 
 ```text
-src/atomref/data/proatomic_density_neutral.csv.gz
+src/atomref/data/proatomic_density_neutral.zip
 ```
+
+The archive MUST contain exactly one regular file named:
+
+```text
+proatomic_density_neutral.csv
+```
+
+It remains a container for a plain wide CSV, not a binary scientific-data
+format.
 
 Preferred logical structure:
 
@@ -576,8 +585,15 @@ Binding requirements:
 - one density column per Z from 1 through 103;
 - columns ordered by increasing Z;
 - exact source decimal values retained where practical;
-- deterministic row and line ordering;
-- deterministic gzip output, including fixed gzip timestamp;
+- deterministic CSV bytes, row ordering, column ordering, and LF line endings;
+- exactly one archive member named `proatomic_density_neutral.csv`;
+- no directory entries or additional archive members;
+- fixed member timestamp `(1980, 1, 1, 0, 0, 0)`;
+- normalized Unix platform metadata (`create_system = 3`) and regular-file
+  mode metadata (`external_attr = 0o100644 << 16`, `internal_attr = 0`);
+- empty archive and member comments;
+- no uncontrolled ZIP extra fields;
+- fixed `ZIP_DEFLATED` compression with explicit compression level 9;
 - no duplicated symbol columns;
 - no ionic or configuration data;
 - no second large metadata file.
@@ -587,10 +603,9 @@ The element symbol mapping MUST come from the existing element registry.
 All interpretive metadata SHOULD live in the existing `registry.json`, with
 license/citation text also added to `NOTICE.md` and public documentation.
 
-The agent MAY choose another standard-library-readable compressed representation
-only when it is demonstrably simpler or safer and remains reproducibly
-inspectable. Do not introduce a binary format merely for minor speed or size
-improvements.
+This owner-approved ZIP representation is binding for the `0.2.x` consumer
+snapshot. Do not substitute another container or introduce a binary scientific
+data format.
 
 ### 6.7 Licensing and attribution
 
@@ -644,7 +659,7 @@ Preferred registry storage identifiers:
 
 ```text
 element_scalar_csv
-element_radial_csv_gzip
+element_radial_csv_zip
 ```
 
 or an equivalent pair of clear stable identifiers.
@@ -655,7 +670,7 @@ The registry remains the single source of truth for:
 - aliases;
 - coverage;
 - scientific metadata;
-- storage kind and filename;
+- storage kind, filename, and archive member where applicable;
 - provenance and references;
 - loading dispatch.
 
@@ -735,7 +750,7 @@ Preferred new files for `0.2.0`:
 
 ```text
 src/atomref/proatoms.py
-src/atomref/data/proatomic_density_neutral.csv.gz
+src/atomref/data/proatomic_density_neutral.zip
 tools/build_proatomic_density_snapshot.py
 tests/proatoms/test_dataset.py
 tests/proatoms/test_density.py
@@ -770,6 +785,7 @@ coverage.
 
 - storage kind;
 - filename;
+- archive member name where applicable;
 - radius column;
 - density-column convention;
 - native coordinate unit;
@@ -1757,7 +1773,7 @@ the generator project.
 2. Add one compressed package-data file.
 3. Add the `proatomic_density` quantity and dataset metadata to `registry.json`.
 4. Update `NOTICE.md` with CC BY attribution and exact DOIs.
-5. Update package build inclusion for `.gz`.
+5. Update package build inclusion for `.zip`.
 6. Extend registry, package-data, and distribution checks.
 7. Add focused source/data-integrity tests.
 8. Document the maintainer tool briefly in `tools/README.md`.
@@ -1796,7 +1812,7 @@ The builder MUST:
 - verify every profile is monotonically non-increasing within a documented
   numerical tolerance;
 - write columns in increasing Z order;
-- create deterministic gzip output;
+- create the deterministic single-member ZIP defined in Section 6.6;
 - support a check mode and a write mode;
 - print a concise source/output summary.
 
@@ -1830,6 +1846,10 @@ Add one atomref-side set ID clearly identifying:
 - upstream v2 lineage.
 
 The exact ID remains a review point.
+
+Its storage metadata MUST declare `element_radial_csv_zip`, filename
+`proatomic_density_neutral.zip`, and member
+`proatomic_density_neutral.csv`.
 
 The new dataset MUST load through:
 
@@ -2088,7 +2108,7 @@ Update:
 
 - version to `0.2.0`;
 - package keywords for proatomic density/electron density/IAS;
-- build inclusion for `.gz`;
+- build inclusion for `.zip`;
 - installed-wheel smoke tests.
 
 #### Installed-wheel smoke test
@@ -2276,14 +2296,14 @@ chore: prepare atomref 0.2.1
 ### 14.1 `0.2.0` scope and compatibility
 
 - [ ] Version is `0.2.0`.
-- [ ] Existing `0.1.x` public APIs remain available.
-- [ ] Existing scalar values and default policies are unchanged.
-- [ ] Runtime dependencies remain empty.
-- [ ] Runtime performs no network access.
-- [ ] No ionic or profile-correlation behavior is exposed.
+- [x] Existing `0.1.x` public APIs remain available.
+- [x] Existing scalar values and default policies are unchanged.
+- [x] Runtime dependencies remain empty.
+- [x] Runtime performs no network access.
+- [x] No ionic or profile-correlation behavior is exposed.
 - [ ] `get_builtin_set()` loads every packaged scalar and radial dataset.
-- [ ] Scalar policy code rejects radial sets clearly.
-- [ ] Registry discovery and metadata work identically across payload kinds.
+- [x] Scalar policy code rejects radial sets clearly.
+- [x] Registry discovery and metadata work identically across payload kinds.
 
 ### 14.2 `0.2.0` data
 
@@ -2298,9 +2318,10 @@ chore: prepare atomref 0.2.1
 - [ ] First retained point above 20 bohr brackets the endpoint.
 - [ ] All retained densities are finite and positive.
 - [ ] All retained profiles are monotone non-increasing within tolerance.
-- [ ] Compressed output is deterministic.
+- [ ] ZIP output satisfies the deterministic single-member contract in Section
+      6.6.
 - [ ] Snapshot is built by the maintainer tool, not hand-edited.
-- [ ] Wheel and sdist contain the profile data.
+- [ ] Wheel and sdist contain `proatomic_density_neutral.zip`.
 - [ ] Registry and notice contain CC BY attribution and exact DOIs.
 
 ### 14.3 `0.2.0` density API

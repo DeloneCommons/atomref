@@ -4,9 +4,11 @@ import atomref as ar
 
 
 REQUIRED_PUBLIC_NAMES = {
+    'BuiltinSet',
     'Element',
     'DatasetRef',
     'DatasetInfo',
+    'ElementRadialSet',
     'ElementScalarSet',
     'QuantityInfo',
     'LookupResult',

@@ -20,10 +20,10 @@ from .registry import (
     DatasetInfo,
     DatasetRef,
     ElementScalarSet,
-    get_builtin_set,
     get_dataset_info,
     list_dataset_ids,
     list_dataset_infos,
+    resolve_scalar_dataset_like,
 )
 from .transfer import LinearFit, LinearTransfer, SubstitutionTransfer, TransferModel
 
@@ -204,7 +204,7 @@ def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:
 def get_radii_set(kind: RadiiKind, set_id: str) -> RadiiSet:
     """Load one packaged radii set as an :class:`ElementScalarSet`."""
 
-    return get_builtin_set(DatasetRef(_quantity_for_kind(kind), set_id))
+    return resolve_scalar_dataset_like(DatasetRef(_quantity_for_kind(kind), set_id))
 
 
 def _validate_policy_kind(policy: RadiiPolicy, *, expected: RadiiKind) -> None:

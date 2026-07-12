@@ -5,8 +5,8 @@ Publicly, `atomref` is still radii-first, with a small provisional X–H helper.
 Internally, the package is built around four layers:
 
 1. **elements** — stable element metadata and symbol canonicalization,
-2. **registry** — curated quantity and dataset metadata plus packaged data
-   loading,
+2. **registry** — curated quantity and dataset metadata plus generic packaged
+   scalar/radial data loading,
 3. **policy core** — generic value selection with overrides, transfers,
    fallbacks, blocked keys, and provenance,
 4. **quantity wrappers** — convenience APIs such as `atomref.radii` and
@@ -32,11 +32,20 @@ implements only one domain:
 
 - `element`
 
-That means:
+Packaged element data currently use two explicit storage kinds:
 
-- packaged built-in sets are currently element-indexed scalar tables,
-- `ValuePolicy` resolves element symbols,
-- transfer fitting is performed over element-wise overlap.
+- `element_scalar_csv` for dense-by-Z scalar tables,
+- `element_radial_csv_zip` for a single-member ZIP containing shared-grid
+  radial profiles.
+
+`get_builtin_set()` dispatches both kinds and returns the `BuiltinSet` union of
+`ElementScalarSet` and `ElementRadialSet`. Scalar consumers narrow that union
+through `resolve_scalar_dataset_like()`.
+
+The policy and transfer machinery remains intentionally scalar-only:
+`ValuePolicy` resolves element scalars and transfer fitting uses element-wise
+scalar overlap. Radial profiles receive no `ValuePolicy`, substitution, or
+linear-transfer behavior.
 
 The metadata keeps `domain` explicit now so later versions can extend the data
 model without having to reinterpret existing registry entries.

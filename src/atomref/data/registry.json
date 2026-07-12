@@ -40,6 +40,7 @@
         "phase_context": "condensed_phase",
         "method_summary": "Derived from crystallographic bond distances (primarily single bonds) across the periodic table.",
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "covalent.csv",
           "column": "cordero2008"
@@ -78,6 +79,7 @@
         "phase_context": "mixed_or_legacy",
         "method_summary": null,
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "covalent.csv",
           "column": "csd_legacy_cov"
@@ -121,6 +123,7 @@
         "phase_context": "mixed_or_legacy",
         "method_summary": "Bondi compiled van der Waals radii from a combination of experimental sources (e.g., crystal structures, liquid-state properties, gas kinetic data) to reproduce molecular/atomic volumes and sizes. This set is widely used as a historical reference and in many computational chemistry defaults.",
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "van_der_waals.csv",
           "column": "bondi1964"
@@ -206,6 +209,7 @@
         "phase_context": "condensed_phase",
         "method_summary": "Rowland & Taylor analyzed distributions of intermolecular nonbonded contact distances in organic crystal structures from the Cambridge Structural Database (CSD). They fitted/estimated characteristic contact distances and solved for per-element radii by least-squares analysis over many element-pair distance distributions.",
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "van_der_waals.csv",
           "column": "rowland_taylor1996"
@@ -255,6 +259,7 @@
         "phase_context": "condensed_phase",
         "method_summary": null,
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "van_der_waals.csv",
           "column": "alvarez2013"
@@ -301,6 +306,7 @@
         "phase_context": "condensed_phase",
         "method_summary": "Chernyshov et al. introduce a line-of-sight (LoS) criterion to identify 'direct' interatomic contacts in complex molecular crystals. vdW radii are then inferred from statistically analyzed contact-distance distributions for specific atom types, yielding radii (including R_half and R_max variants) intended to better reflect steric/anistropic effects than simple distance-based heuristics.",
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "van_der_waals.csv",
           "column": "chernyshov2020"
@@ -351,6 +357,7 @@
         "phase_context": "mixed_or_legacy",
         "method_summary": null,
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "van_der_waals.csv",
           "column": "csd_legacy_vdw"
@@ -405,6 +412,7 @@
         "phase_context": "isolated_atom",
         "method_summary": "Rahm et al. computed relativistic all-electron DFT electron densities (close to the basis-set limit) for isolated atoms and ions. Radii are defined by an electron-density threshold, producing a consistent, theory-based size measure that correlates well with structural van der Waals radii derived from crystal structures.",
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "van_der_waals.csv",
           "column": "rahm2016"
@@ -452,6 +460,7 @@
         "phase_context": "condensed_phase",
         "method_summary": "Sparse parent-element target set for hydrogen normalisation. ConQuest moves H along the experimentally determined X-H vector to these neutron-derived distances.",
         "storage": {
+          "kind": "element_scalar_csv",
           "format": "dense_by_z_csv",
           "filename": "xh_bond_length.csv",
           "column": "csd_legacy_xh_cno"
