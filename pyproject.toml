@@ -64,6 +64,7 @@ packages = ["src/atomref"]
 include = [
   "src/atomref/data/*.csv",
   "src/atomref/data/*.json",
+  "src/atomref/data/*.zip",
 ]
 
 [tool.hatch.build.targets.sdist]

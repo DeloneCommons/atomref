@@ -31,7 +31,7 @@ You can inspect the packaged quantity layer directly:
 ```pycon
 >>> import atomref as ar
 >>> ar.list_quantities()
-('covalent_radius', 'van_der_waals_radius', 'atomic_radius', 'xh_bond_length')
+('covalent_radius', 'van_der_waals_radius', 'atomic_radius', 'xh_bond_length', 'proatomic_density')
 >>> ar.get_quantity_info("xh_bond_length")
 QuantityInfo(quantity='xh_bond_length', domain='element', units='angstrom', description='Element-indexed reference X-H bond lengths keyed by parent element X and intended for hydrogen-position normalisation or related geometry workflows.')
 >>> [info.ref.set_id for info in ar.list_radii_set_infos("van_der_waals", usage_role="target")]

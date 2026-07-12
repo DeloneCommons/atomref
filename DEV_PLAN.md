@@ -2301,28 +2301,28 @@ chore: prepare atomref 0.2.1
 - [x] Runtime dependencies remain empty.
 - [x] Runtime performs no network access.
 - [x] No ionic or profile-correlation behavior is exposed.
-- [ ] `get_builtin_set()` loads every packaged scalar and radial dataset.
+- [x] `get_builtin_set()` loads every packaged scalar and radial dataset.
 - [x] Scalar policy code rejects radial sets clearly.
 - [x] Registry discovery and metadata work identically across payload kinds.
 
 ### 14.2 `0.2.0` data
 
-- [ ] Source profiles hash matches the pinned `profiles.csv`.
-- [ ] Source metadata hash matches the pinned `metadata.json`.
-- [ ] Upstream dataset ID and version match.
-- [ ] Basis ID and basis hash match.
-- [ ] Exactly 103 neutral profiles are selected.
-- [ ] Coverage is exactly Z=1..103.
-- [ ] Retained row count is 1127.
-- [ ] Public limit is exactly 20 bohr.
-- [ ] First retained point above 20 bohr brackets the endpoint.
-- [ ] All retained densities are finite and positive.
-- [ ] All retained profiles are monotone non-increasing within tolerance.
-- [ ] ZIP output satisfies the deterministic single-member contract in Section
+- [x] Source profiles hash matches the pinned `profiles.csv`.
+- [x] Source metadata hash matches the pinned `metadata.json`.
+- [x] Upstream dataset ID and version match.
+- [x] Basis ID and basis hash match.
+- [x] Exactly 103 neutral profiles are selected.
+- [x] Coverage is exactly Z=1..103.
+- [x] Retained row count is 1127.
+- [x] Public limit is exactly 20 bohr.
+- [x] First retained point above 20 bohr brackets the endpoint.
+- [x] All retained densities are finite and positive.
+- [x] All retained profiles are monotone non-increasing within tolerance.
+- [x] ZIP output satisfies the deterministic single-member contract in Section
       6.6.
-- [ ] Snapshot is built by the maintainer tool, not hand-edited.
-- [ ] Wheel and sdist contain `proatomic_density_neutral.zip`.
-- [ ] Registry and notice contain CC BY attribution and exact DOIs.
+- [x] Snapshot is built by the maintainer tool, not hand-edited.
+- [x] Wheel and sdist contain `proatomic_density_neutral.zip`.
+- [x] Registry and notice contain CC BY attribution and exact DOIs.
 
 ### 14.3 `0.2.0` density API
 
@@ -2746,4 +2746,3 @@ Disposition:
 Review notes:
   - ...
 ```
-

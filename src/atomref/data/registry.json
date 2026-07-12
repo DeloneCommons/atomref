@@ -28,6 +28,11 @@
       "domain": "element",
       "units": "angstrom",
       "description": "Element-indexed reference X-H bond lengths keyed by parent element X and intended for hydrogen-position normalisation or related geometry workflows."
+    },
+    "proatomic_density": {
+      "domain": "element",
+      "units": "electron/bohr^3",
+      "description": "Element-indexed neutral spherical proatomic density profiles sampled on a shared radial grid."
     }
   },
   "datasets": {
@@ -507,6 +512,83 @@
           "Sparse provisional target set for parent elements C, N, and O only.",
           "In atomref v0.1.x this dataset seeds transfer-based inference for other parent elements rather than claiming direct curated coverage beyond C/N/O.",
           "Fuller X-H dataset and policy support is planned for atomref 0.2.x."
+        ],
+        "usage_role": "target"
+      }
+    },
+    "proatomic_density": {
+      "pbe0_sfx2c_dyallv4z_h-lr_neutral_v2": {
+        "name": "Neutral H-Lr proatomic densities (PBE0/sf-X2C/dyall-v4z, upstream v2)",
+        "description": "Neutral spherical proatomic reference densities for H through Lr derived from the atomref-proatoms 2.0.0 PBE0/sf-X2C/dyall-v4z dataset and truncated to a 20-bohr public domain with one retained source bracketing point.",
+        "semantic_class": "proatomic_density_radial",
+        "origin_class": "computed_theoretical",
+        "phase_context": "isolated_atom",
+        "method_summary": "PBE0 self-consistent spherical fractional-occupation UKS with spin-free one-electron X2C and the dyall-v4z basis.",
+        "storage": {
+          "kind": "element_radial_csv_zip",
+          "format": "wide_csv_zip",
+          "filename": "proatomic_density_neutral.zip",
+          "member": "proatomic_density_neutral.csv",
+          "radius_column": "r_bohr",
+          "density_column_pattern": "z{z:03d}",
+          "native_coordinate_unit": "bohr",
+          "native_density_unit": "electron/bohr^3",
+          "public_max_radius_bohr": 20.0,
+          "retained_bracketing_radius_bohr": 20.1644204667093,
+          "retained_rows": 1127,
+          "interpolation_contract": "loglog_positive_bracketed_v1",
+          "monotonicity_relative_tolerance": 1e-12,
+          "charge_scope": "neutral atoms only",
+          "source_project": "atomref-proatoms",
+          "source_release": "2.0.0",
+          "source_archive_commit": "5b330d8215eea95b273e38a6f4962ecf917e71e6",
+          "source_dataset_id": "pbe0_sfx2c_dyallv4z_h-lr_spherical_v2",
+          "source_profiles_sha256": "b5520ab009542d52098dd6dbb920966d8d13377a4a5004f584a7bd15cd41c299",
+          "source_metadata_sha256": "32c833ca69fa0f7eb9ed32841aafc638123ff872861e636156610e417fc4c514",
+          "basis_id": "dyall-v4z",
+          "basis_sha256": "0ee543855f8b1e7fbe9868d4abb844d8e8cc8b8c2694067b2b40de014bb4be94",
+          "profile_data_version": "2.0.0",
+          "electronic_method": "PBE0",
+          "scf_model": "self-consistent spherical fractional-occupation UKS",
+          "relativity": "spin-free one-electron X2C",
+          "data_license": "CC BY 4.0",
+          "data_license_url": "https://creativecommons.org/licenses/by/4.0/",
+          "concept_doi": "10.5281/zenodo.21291021",
+          "version_doi": "10.5281/zenodo.21291022"
+        },
+        "coverage": {
+          "n_values": 103,
+          "z_min": 1,
+          "z_max": 103,
+          "has_placeholders": false
+        },
+        "placeholder_value": null,
+        "extraction_source": "Deterministic neutral, truncated consumer snapshot built from atomref-proatoms 2.0.0 dataset pbe0_sfx2c_dyallv4z_h-lr_spherical_v2.",
+        "aliases": [
+          "neutral H-Lr PBE0 proatomic densities",
+          "atomref-proatoms neutral v2"
+        ],
+        "references": [
+          {
+            "authors": "Ivan Yu. Chernyshov",
+            "year": 2026,
+            "title": "atomref-proatoms: spherical atomic and ionic reference densities",
+            "doi": "10.5281/zenodo.21291021",
+            "note": "Concept DOI; cite with atomref-proatoms release 2.0.0 and the exact dataset ID."
+          },
+          {
+            "authors": "Ivan Yu. Chernyshov",
+            "year": 2026,
+            "title": "atomref-proatoms 2.0.0",
+            "doi": "10.5281/zenodo.21291022",
+            "note": "Version-specific DOI for the immutable source archive."
+          }
+        ],
+        "notes": [
+          "These method-, basis-, state-, and sphericalization-defined reference densities are not unique basis-independent atomic observables.",
+          "The public validity domain is 0 <= r <= 20 bohr; the retained point at 20.1644204667093 bohr is an internal interpolation bracket only.",
+          "Detailed state and generation metadata remain available in the exact atomref-proatoms 2.0.0 archive.",
+          "The imported data are licensed CC BY 4.0 separately from atomref code."
         ],
         "usage_role": "target"
       }

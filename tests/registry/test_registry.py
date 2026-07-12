@@ -138,10 +138,15 @@ def install_synthetic_radial_registry(monkeypatch: pytest.MonkeyPatch):
 
 def test_packaged_data_files_exist() -> None:
     pkg = 'atomref.data'
-    assert resources.files(pkg).joinpath('periodic_table.csv').is_file()
-    assert resources.files(pkg).joinpath('covalent.csv').is_file()
-    assert resources.files(pkg).joinpath('van_der_waals.csv').is_file()
-    assert resources.files(pkg).joinpath('registry.json').is_file()
+    for filename in (
+        'periodic_table.csv',
+        'covalent.csv',
+        'van_der_waals.csv',
+        'xh_bond_length.csv',
+        'proatomic_density_neutral.zip',
+        'registry.json',
+    ):
+        assert resources.files(pkg).joinpath(filename).is_file(), filename
 
 
 def test_registry_lists_vdw_sets_but_not_atomic_support_sets() -> None:
@@ -361,6 +366,7 @@ def test_list_quantities_and_quantity_info() -> None:
         'van_der_waals_radius',
         'atomic_radius',
         'xh_bond_length',
+        'proatomic_density',
     )
 
     info = ar.get_quantity_info('atomic_radius')
@@ -368,6 +374,10 @@ def test_list_quantities_and_quantity_info() -> None:
     assert info.domain == 'element'
     assert info.units == 'angstrom'
     assert 'support' in (info.description or '')
+
+    proatomic = ar.get_quantity_info('proatomic_density')
+    assert proatomic.domain == 'element'
+    assert proatomic.units == 'electron/bohr^3'
 
 
 def test_rahm_note_no_longer_claims_it_is_classified_as_vdw() -> None:
