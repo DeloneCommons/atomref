@@ -23,6 +23,7 @@ nav:
       - Quickstart: guide/quickstart.md
       - Policies: guide/policies.md
       - Custom sets: guide/custom_sets.md
+      - Proatomic density: guide/proatomic_density.md
       - Non-goals: guide/non_goals.md
   - Datasets:
       - Overview: datasets/index.md
@@ -46,5 +47,6 @@ nav:
       - atomref.registry: api/registry.md
       - atomref.transfer: api/transfer.md
       - atomref.policy: api/policy.md
+      - atomref.proatoms: api/proatoms.md
       - atomref.radii: api/radii.md
       - atomref.xh: api/xh.md

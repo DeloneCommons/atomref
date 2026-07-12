@@ -15,6 +15,10 @@ REQUIRED_PUBLIC_NAMES = {
     'RadiiPolicy',
     'DEFAULT_COVALENT_POLICY',
     'DEFAULT_VDW_POLICY',
+    'BOHR_TO_ANGSTROM',
+    'DEFAULT_PROATOMIC_DENSITY_SET',
+    'ProatomicDensityProfile',
+    'ProatomicDensitySet',
     'LinearTransfer',
     'SubstitutionTransfer',
     'get_builtin_set',
@@ -35,6 +39,12 @@ REQUIRED_PUBLIC_NAMES = {
     'list_dataset_infos',
     'list_radii_sets',
     'list_radii_set_infos',
+    'get_proatomic_density',
+    'get_proatomic_density_profile',
+    'get_proatomic_density_set',
+    'get_proatomic_density_set_info',
+    'list_proatomic_density_sets',
+    'list_proatomic_density_set_infos',
 }
 
 

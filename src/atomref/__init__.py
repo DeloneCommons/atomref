@@ -9,6 +9,18 @@ from .elements import (
     is_valid_element_symbol,
 )
 from .policy import LookupResult, ValuePolicy, get_value, lookup_value
+from .proatoms import (
+    BOHR_TO_ANGSTROM,
+    DEFAULT_PROATOMIC_DENSITY_SET,
+    ProatomicDensityProfile,
+    ProatomicDensitySet,
+    get_proatomic_density,
+    get_proatomic_density_profile,
+    get_proatomic_density_set,
+    get_proatomic_density_set_info,
+    list_proatomic_density_set_infos,
+    list_proatomic_density_sets,
+)
 from .radii import (
     DEFAULT_COVALENT_POLICY,
     DEFAULT_VDW_POLICY,
@@ -81,6 +93,16 @@ __all__ = [
     "ValuePolicy",
     "lookup_value",
     "get_value",
+    "BOHR_TO_ANGSTROM",
+    "DEFAULT_PROATOMIC_DENSITY_SET",
+    "ProatomicDensityProfile",
+    "ProatomicDensitySet",
+    "list_proatomic_density_sets",
+    "list_proatomic_density_set_infos",
+    "get_proatomic_density_set",
+    "get_proatomic_density_set_info",
+    "get_proatomic_density_profile",
+    "get_proatomic_density",
     "RadiiPolicy",
     "RadiiElementAssessment",
     "RadiiPolicyAssessment",
