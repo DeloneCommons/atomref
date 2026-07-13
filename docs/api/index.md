@@ -10,6 +10,9 @@ documented because they expose the actual data model behind the package.
 
 - get a single value: use `get_covalent_radius(...)`, `get_vdw_radius(...)`, or
   `get_xh_bond_length(...)`
+- evaluate a neutral proatomic profile or pairwise estimate: use
+  `get_proatomic_density(...)`, `estimate_proatomic_boundary(...)`, or
+  `estimate_promolecular_density_minimum(...)`
 - inspect provenance: use `lookup_covalent_radius(...)`,
   `lookup_vdw_radius(...)`, `lookup_xh_bond_length(...)`, or the generic
   `lookup_value(...)`
@@ -29,5 +32,6 @@ documented because they expose the actual data model behind the package.
 - [Registry and packaged datasets](registry.md)
 - [Transfer models](transfer.md)
 - [Generic policy core](policy.md)
+- [Proatomic density and pairwise estimates](proatoms.md)
 - [Radii API](radii.md)
 - [X–H API](xh.md)

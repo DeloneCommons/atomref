@@ -34,7 +34,13 @@ components remain above the cutoff.
 
 The search has a declared spatial resolution of `0.01 bohr`. It returns one
 resolved minimum and, when useful, one competitive alternative. It does not
-attempt to preserve every mathematical microminimum.
+attempt to preserve every mathematical microminimum. Raw refined candidates
+from the required `0.02` and `0.01 bohr` passes, and from the `0.005 bohr`
+fallback when used, are combined before one resolution-coalescing step.
+Position-sorted candidates connected by successive gaps below `0.01 bohr`
+represent one resolved valley. Distinct adjacent binary64 grid coordinates are
+retained so both endpoints and the midpoint remain available near cutoff
+contact. Refined cutoff endpoints and nuclei are discarded rather than clamped.
 
 For identical atoms, symmetry still fixes the returned coordinate at `R/2`.
 The Li–Li example shows why this rule is necessary: the raw interpolant has
@@ -82,7 +88,7 @@ Those facts matter under an “expose every local minimum” contract. They do n
 materially improve a stable pairwise divider, and the revised minimum mode
 coalesces or rejects structure below its declared resolution.
 
-## Proposed public shape
+## Public API
 
 ```python
 estimate_proatomic_boundary(...)

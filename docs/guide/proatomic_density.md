@@ -46,3 +46,42 @@ The ZIP snapshot loads lazily through `get_builtin_set()`. Loaded sets, shared
 grids, stored values, and cached profile views are immutable. This API describes
 method-, basis-, state-, and sphericalization-defined isolated-atom references,
 not unique basis-independent atomic observables or molecular densities.
+
+## Pairwise estimates
+
+Three functions expose the Stage 4 pairwise model:
+
+```python
+boundary = ar.estimate_proatomic_boundary("C", "O", 1.5, distance_unit="bohr")
+minimum = ar.estimate_promolecular_density_minimum(
+    "C", "O", 1.5, distance_unit="bohr"
+)
+same_boundary = ar.estimate_ias_position(
+    "C", "O", 1.5, mode="boundary", distance_unit="bohr"
+)
+```
+
+Coordinates are measured from the first atom toward the second. `boundary` is
+the dispatcher default: it returns the equal-neutral-proatom divider while the
+two fixed tail contours overlap, and the midpoint of their gap after they
+separate. `minimum` instead returns one practically resolved minimum of the
+summed promolecular line density, searched only where both components reach
+the fixed `1e-4 electron/bohr^3` cutoff. Its declared spatial resolution is
+`0.01 bohr`, and it never silently switches to boundary mode. For unlike
+atoms, any returned primary or alternative minimum lies strictly inside that
+overlap interval. Raw candidates from every executed grid pass are combined
+before one position-connected resolution grouping; distinct adjacent binary64
+grid points are retained. A refinement that lands on a cutoff endpoint or
+nucleus is discarded; when no strict-interior valley remains, the typed result
+reports `no_resolved_interior_minimum` without a coordinate.
+
+Both functions return an immutable `IASPositionResult` containing the method,
+status, units, component densities, cutoff geometry, search diagnostics, and
+dataset/interpolation/numerical-contract provenance. Valid pairs for which a
+mode is not scientifically applicable return a typed result with no coordinate;
+missing profiles return `None`.
+
+These are neutral-proatom estimates. Neither mode locates a molecular QTAIM
+zero-flux surface or an exact molecular-density critical point. The numerical
+choice and its limitations are documented in the
+[IAS method-selection study](../dev/ias_method_selection.md).

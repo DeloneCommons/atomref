@@ -61,7 +61,15 @@ def _smoke_test_wheel() -> None:
                 "assert ar.get_vdw_radius('C') == 1.77; "
                 "assert 'atomic_radius' in ar.list_quantities(); "
                 "assert 'rahm2016' in ar.list_dataset_ids("
-                "'atomic_radius', usage_role='support')"
+                "'atomic_radius', usage_role='support'); "
+                "boundary = ar.estimate_proatomic_boundary("
+                "'C', 'O', 1.5, distance_unit='bohr'); "
+                "assert boundary is not None; "
+                "assert boundary.method == 'equal_proatom_density'; "
+                "minimum = ar.estimate_promolecular_density_minimum("
+                "'C', 'O', 1.5, distance_unit='bohr'); "
+                "assert minimum is not None; "
+                "assert minimum.requested_mode == 'minimum'"
             ),
         )
 
