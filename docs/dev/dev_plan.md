@@ -1,33 +1,21 @@
 # Development plan
 
-## Current status (implemented in the `0.1.x` line)
+The authoritative implementation plan is the root-level
+[`DEV_PLAN.md`](https://github.com/DeloneCommons/atomref/blob/main/DEV_PLAN.md).
+This compact page exists only for the current documentation structure and will
+be removed during the planned `0.2.1` documentation cleanup.
 
-- stable element metadata
-- curated covalent, van der Waals, and atomic-radius support datasets
-- explicit provenance and coverage metadata
-- generic value-policy core plus radii and X–H convenience wrappers
-- substitution and linear transfer
-- custom element-indexed scalar sets
-- policy-backed transfer sources
-- nested-policy safeguards, transfer-depth tracking, and cycle detection
-- provisional X–H support via `csd_legacy_xh_cno`, `XHPolicy`, and
-  `DEFAULT_XH_POLICY`
+## Current `0.2.0` direction
 
-## Planned for `0.2.x`
+The accepted density work provides neutral H–Lr spherical proatomic profiles
+and scalar log–log evaluation. Stage 4 now defines two explicit pairwise modes:
 
-- broader X–H datasets and policies
-- experimental plus computational support sets
-- pairwise helper logic such as reference sums and normalization schemes
-- restoration of incomplete experimental data from broader-support predictors
+- a default stable proatomic boundary based on homonuclear symmetry, equal
+  proatomic contributions, and a fixed low-density contour fallback;
+- an optional, cutoff-bounded and resolution-limited promolecular density
+  minimum for Bader-oriented comparison.
 
-## Longer-term design ideas
+The mode-selection evidence and limitations are summarized in
+[Pairwise boundary and IAS-proxy method selection](ias_method_selection.md).
 
-- radial atomic reference functions
-- simple proto-density support based on spherically averaged atomic data
-
-## Possible future directions
-
-- more radii sets
-- uncertainty and confidence flags
-- ion-specific or atom-type-specific domains
-- density-derived radii and related reference transforms
+Neither mode is an exact molecular-density QTAIM surface.

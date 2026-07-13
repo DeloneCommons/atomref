@@ -20,6 +20,7 @@ REQUIRED_NOTEBOOKS = (
     "01-quickstart.ipynb",
     "02-policies-and-assessment.ipynb",
     "03-custom-sets-and-discovery.ipynb",
+    "04-ias-method-selection-study.ipynb",
 )
 
 

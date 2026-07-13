@@ -1,8 +1,8 @@
 # atomref 0.2.x development plan
 
-> **Status:** third review draft  
+> **Status:** fourth review draft — Stage 4 replanned after numerical review  
 > **Plan lifecycle state:** `ACTIVE`  
-> **Primary target:** `atomref 0.2.0` — dataset architecture, neutral proatomic density, IAS analysis, and an executed feature notebook  
+> **Primary target:** `atomref 0.2.0` — dataset architecture, neutral proatomic density, two-mode pairwise boundary/IAS-proxy analysis, and executed notebooks  
 > **Planned follow-up:** `atomref 0.2.1` — notebook/documentation infrastructure, complete API reference, and README positioning  
 > **Source data:** `atomref-proatoms 2.0.0`, dataset `pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`
 
@@ -15,8 +15,8 @@ repository, but it should remain understandable to a human reviewer.
 The plan has three scopes:
 
 1. **`0.2.0` binding implementation work** — generic packaged-dataset loading,
-   neutral radial density data, interpolation, IAS analysis, tests, and one
-   executed explanatory notebook.
+   neutral radial density data, interpolation, two-mode pairwise
+   boundary/IAS-proxy analysis, tests, and executed explanatory notebooks.
 2. **`0.2.1` planned documentation work** — direct rendering of saved executed
    notebooks, richer notebook explanations, complete docstring-based API
    reference, and a marketing-oriented README rewrite.
@@ -135,7 +135,8 @@ Examples:
 - no runtime dependency on `atomref-proatoms`;
 - reproducible source verification;
 - explicit units and failures outside the supported domain;
-- exposing all relevant IAS minima rather than hiding them.
+- keeping the stable proatomic-boundary mode distinct from the optional
+  promolecular-minimum mode, with the cutoff and practical resolution explicit.
 
 ### 2.2 Preferred first design
 
@@ -156,7 +157,7 @@ Examples:
 - exact class and function names;
 - whether two closely related result classes are combined;
 - precise internal CSV column names;
-- exact local-minimum refinement algorithm;
+- exact practical valley-refinement implementation;
 - whether density and IAS implementation share one module or use two modules.
 
 ### 2.3 Open decision
@@ -165,9 +166,11 @@ An open decision is intentionally left for focused design work during the
 relevant stage. It MUST be resolved explicitly before implementation of the
 dependent behavior.
 
-The main open decision in this plan is the exact IAS local-minimum search and
-candidate-merging algorithm. The required outputs and invariants are binding;
-the numerical search mechanics are not yet final.
+The earlier open decision about exhaustive IAS local-minimum enumeration is
+resolved by Sections 10 and 11. `0.2.0` uses two explicit modes: a stable
+proatomic-boundary mode and a resolution-limited promolecular-minimum mode.
+Final public spelling may still be adjusted during Stage 4B, but the scientific
+meaning, cutoff policy, default mode, and invariants are binding.
 
 ## 3. Agent operating rules
 
@@ -274,30 +277,44 @@ accepted the `0.2.0` functionality and release state.
 `atomref 0.2.0` should establish the package as a small source of **reference
 atoms for structure algorithms**, not only a radii lookup package.
 
-The release should support two new workflows:
+The release should support these workflows:
 
 ```python
 import atomref as ar
 
 rho = ar.get_proatomic_density("O", 0.75)
-analysis = ar.estimate_ias_position("C", "O", 1.43)
+
+boundary = ar.estimate_proatomic_boundary("C", "O", 1.43)
+minimum = ar.estimate_promolecular_density_minimum("C", "O", 1.43)
+
+# One convenience entry point with an explicit policy choice.
+selected = ar.estimate_ias_position("C", "O", 1.43, mode="boundary")
 ```
 
-The first evaluates a frozen neutral spherical proatomic density.
+The density call evaluates a frozen neutral spherical proatomic density.
 
-The second evaluates the promolecular density along the vector between two
-atoms and returns a transparent analysis of its minima, including a practical
-averaged IAS estimate.
+The pairwise helpers expose two related but scientifically different
+approximations:
+
+- **`boundary` mode** returns a stable neutral-proatom divider. It uses exact
+  homonuclear symmetry, equal proatomic contributions in the meaningful-overlap
+  region, and the midpoint between fixed low-density contours when the contours
+  no longer overlap.
+- **`minimum` mode** searches for one practically resolved minimum of the summed
+  promolecular line density inside the meaningful-overlap region. This is the
+  more Bader-oriented proxy, but it is optional, resolution-limited, and may
+  report ambiguity or no resolved minimum.
 
 The release is successful when a quantum-chemistry, crystallographic, or
 molecular-software developer can immediately understand:
 
-- what the supplied profiles represent;
-- where they came from;
+- what the supplied profiles represent and where they came from;
 - how to evaluate them;
-- how the IAS approximation is constructed;
+- the difference between the two pairwise modes;
+- why `boundary` is the default;
+- where the fixed tail cutoff enters;
 - what numerical domain is supported;
-- what the result does and does not claim physically.
+- what each result does and does not claim physically.
 
 ## 5. Release scope
 
@@ -316,14 +333,20 @@ molecular-software developer can immediately understand:
 - independent radius-coordinate and density-output unit selection;
 - a strict public radius domain of `0 <= r <= 20 bohr`;
 - positive-region log–log interpolation;
-- approximate IAS analysis for two atoms separated by a supplied distance;
-- discovery and inspection of all relevant local minima;
-- global-minimum identification;
-- a geometrically interpretable minimum-width measure;
-- a dimensionless depth-weighted minima center;
-- a weighted positional spread or equivalent ambiguity measure;
-- explicit provenance, method, basis, units, limitations, and data licensing;
-- one executed and saved notebook for proatomic density and IAS workflows,
+- a cached fixed neutral-proatom tail radius for every packaged element at
+  `1e-4 electron/bohr^3`;
+- a stable pairwise proatomic-boundary estimator;
+- an optional, cutoff-bounded and resolution-limited promolecular-density
+  minimum estimator;
+- a convenience dispatcher with an explicit `mode` and default
+  `mode="boundary"`;
+- exact homonuclear midpoint behavior in both modes;
+- explicit low-density-gap, one-atom-dominance, boundary-dominated,
+  no-resolved-minimum, and competing-minimum diagnostics;
+- pair-reversal and unit-invariance guarantees;
+- explicit provenance, method, cutoff, units, limitations, and data licensing;
+- an executed supporting notebook explaining the Stage 4 method decision;
+- one executed feature notebook for proatomic density and pairwise workflows,
   including explanatory Markdown cells and plots;
 - minimum accurate user/API documentation needed to release the functionality;
 - tests, packaging checks, and release metadata.
@@ -348,8 +371,9 @@ molecular-software developer can immediately understand:
 - removing the duplicate documentation copy of the development plan;
 - simplifying notebook/documentation CI after the new workflow is stable.
 
-`0.2.1` MUST NOT change density or IAS numerical results except to fix a
-confirmed defect with an explicit changelog entry and regression test.
+`0.2.1` MUST NOT change density, cutoff radii, pairwise mode semantics, or
+selected coordinates except to fix a confirmed defect with an explicit
+changelog entry and regression test.
 
 ### 5.3 Excluded from `0.2.0` and `0.2.1`
 
@@ -755,7 +779,9 @@ tools/build_proatomic_density_snapshot.py
 tests/proatoms/test_dataset.py
 tests/proatoms/test_density.py
 tests/proatoms/test_ias.py
-notebooks/04-proatomic-density-and-ias.ipynb
+notebooks/04-ias-method-selection-study.ipynb
+notebooks/05-proatomic-density-and-ias.ipynb
+docs/dev/ias_method_selection.md
 ```
 
 The exact test split is flexible.
@@ -938,11 +964,11 @@ Changing `density_unit` must change only reported density values. It must not
 change:
 
 - selected interpolation interval;
-- radius geometry;
-- local-minimum positions;
-- global-minimum identity;
-- dimensionless weights;
-- weighted IAS position or spread.
+- cutoff radii or contour-overlap geometry;
+- selected pairwise mode or method;
+- returned coordinate;
+- resolved-minimum identity;
+- ambiguity, domination, or low-density-gap status.
 
 ### 8.6 Error and missing-data behavior
 
@@ -1045,9 +1071,9 @@ far-tail zeros.
 The two projects should still document compatible positive-positive log–log
 behavior.
 
-## 10. IAS scientific contract
+## 10. Pairwise proatomic boundary and IAS-proxy scientific contract
 
-### 10.1 Objective
+### 10.1 Two related quantities, not one hidden policy
 
 For atoms A and B separated by distance `R`, define `x` from A toward B:
 
@@ -1056,41 +1082,67 @@ A ---- x ----> B
 0             R
 ```
 
-The promolecular line density is:
+The component and summed neutral-promolecular line densities are:
 
 \[
-f(x; R) = \rho_A(x) + \rho_B(R - x)
+\rho_A(x),\qquad \rho_B(R-x),\qquad
+f(x;R)=\rho_A(x)+\rho_B(R-x)
 \]
 
-for:
+for `0 <= x <= R`.
 
-\[
-0 \le x \le R
-\]
+`0.2.0` deliberately exposes two different pairwise estimates:
 
-The IAS helper analyzes minima of this one-dimensional function.
+1. **Proatomic boundary** — a stable geometric divider based on equal neutral
+   proatomic contributions, with a fixed low-density contour fallback.
+2. **Promolecular density minimum** — one practically resolved minimum of
+   `f(x;R)` inside a region where both proatomic contributions remain above the
+   fixed tail cutoff.
 
-### 10.2 Interpretation
+They MUST NOT be presented as interchangeable definitions. The first is the
+production default because it is unique, fast, and stable. The second is
+available because a line-density minimum is closer in spirit to a
+bond-critical-point coordinate and is useful for Bader-oriented calibration,
+but it is a neutral-promolecular proxy rather than a molecular QTAIM result.
 
-The result is an **approximate neutral-proatom IAS coordinate**.
+### 10.2 Interpretation and naming
 
-It is not:
+Neither mode returns:
 
 - a QTAIM zero-flux surface;
 - a molecular-density topological critical point;
 - an environment-relaxed atomic boundary;
 - an ionic, charged, or self-consistent stockholder boundary;
-- evidence that the underlying isolated-atom partition is unique.
+- proof of a bond or interaction.
 
-The wording “approximate IAS position” or “promolecular density minimum along
-the atom–atom vector” should be used consistently.
+User-facing documentation SHOULD use:
 
-### 10.3 Input domain and units
+- “neutral-proatom boundary estimate” for `boundary` mode;
+- “promolecular line-density minimum” or “promolecular IAS proxy” for
+  `minimum` mode;
+- “pairwise IAS-position proxy” only for the mode-selecting convenience API.
 
-Preferred public function:
+The phrase “most probable position” MUST NOT be used because no probability
+model is defined.
+
+Scientific reference context:
+
+- molecular QTAIM basin boundaries are zero-flux surfaces of the molecular
+  density: R. F. W. Bader, *Chemical Reviews* **91** (1991), 893–928,
+  `doi:10.1021/cr00005a013`;
+- the equal-proatom rule is a pairwise stockholder balance based on free-atom
+  reference densities: F. L. Hirshfeld, *Theoretica Chimica Acta* **44**
+  (1977), 129–138, `doi:10.1007/BF00549096`.
+
+These references motivate the interpretation; they do not turn either neutral-
+proatom mode into a molecular QTAIM calculation.
+
+### 10.3 Public functions and default policy
+
+Preferred public API:
 
 ```python
-estimate_ias_position(
+estimate_proatomic_boundary(
     atom_a,
     atom_b,
     distance,
@@ -1098,9 +1150,43 @@ estimate_ias_position(
     distance_unit="angstrom",
     density_unit="electron/bohr^3",
     set_id=DEFAULT_PROATOMIC_DENSITY_SET,
-    ...
+)
+
+estimate_promolecular_density_minimum(
+    atom_a,
+    atom_b,
+    distance,
+    *,
+    distance_unit="angstrom",
+    density_unit="electron/bohr^3",
+    set_id=DEFAULT_PROATOMIC_DENSITY_SET,
+)
+
+estimate_ias_position(
+    atom_a,
+    atom_b,
+    distance,
+    *,
+    mode="boundary",
+    distance_unit="angstrom",
+    density_unit="electron/bohr^3",
+    set_id=DEFAULT_PROATOMIC_DENSITY_SET,
 )
 ```
+
+Binding behavior:
+
+- `mode` accepts only `"boundary"` and `"minimum"` in `0.2.0`;
+- the default is `"boundary"`;
+- the dispatcher calls the same internal implementation as the corresponding
+  direct function;
+- `minimum` mode MUST NOT silently fall back to `boundary` mode;
+- callers can compare the two direct results without hidden policy changes.
+
+The exact public names remain a preferred first design. Any rename MUST preserve
+these three roles and the explicit default.
+
+### 10.4 Input domain and units
 
 Binding input rules:
 
@@ -1108,320 +1194,453 @@ Binding input rules:
 - distance must be finite and strictly positive;
 - distance must not exceed 20 bohr after conversion;
 - the result coordinate is measured from atom A toward atom B;
-- all reported positions and widths use `distance_unit`;
+- all reported positions use `distance_unit`;
 - component and summed densities use `density_unit`;
 - D/T follow hydrogen behavior;
 - missing element profiles return `None`;
-- invalid distance or unit raises `ValueError`.
+- invalid distance, mode, or unit raises `ValueError`.
 
-Distance and density units are independent. Converting the density unit must not
-change any reported position, tie, width, weight, spread, or status.
+All scientific decisions MUST be performed in bohr and electron/bohr³. Output
+conversion occurs only after method selection, status classification, and
+coordinate calculation. Changing `density_unit` MUST NOT change geometry,
+method, status, or ambiguity.
 
-### 10.4 Required result information
+No universal lower distance such as `0.5 angstrom` is imposed. Extremely short
+or dominated pairs are handled by explicit statuses instead of an arbitrary
+ban.
 
-The public result MUST expose:
+### 10.5 Fixed neutral-proatom tail cutoff
 
-1. all distinct interior local minima found under the documented numerical
-   rules;
-2. the density value and position of each minimum;
-3. the global minimum or all globally tied minima;
-4. a width measure for the global minimum basin, or for each tied global basin;
-5. a depth-weighted center of the local-minimum positions;
-6. a weighted positional spread or equivalent ambiguity measure;
-7. source dataset and interpolation provenance;
-8. enough input information to interpret the coordinate orientation;
-9. whether a boundary candidate invalidates or weakens the ordinary interior
-   IAS interpretation.
+The `0.2.0` numerical contract uses the fixed per-atom cutoff:
 
-Do not return only one unexplained float.
+\[
+\rho_c = 10^{-4}\ \mathrm{electron/bohr^3}.
+\]
 
-### 10.5 Preferred result types
+For every profile, define the unique cutoff radius:
+
+\[
+\rho_A(r_A^c)=\rho_c,
+\qquad
+\rho_B(r_B^c)=\rho_c.
+\]
+
+This is a model policy for ignoring weak neutral-proatom tails. It MUST NOT be
+described as a universal lower bound for a chemically meaningful QTAIM bond
+critical point.
+
+The cutoff is applied to each component separately. Therefore a gap where both
+components are below the cutoff can have a summed density below
+`2 * rho_c`, not necessarily below `rho_c`.
+
+The cutoff is fixed rather than user-configurable in `0.2.0`. It MUST be exposed
+in result metadata and included in the pairwise numerical-contract identifier.
+
+### 10.6 Shared result information
+
+Use one small immutable result type for both direct functions and the dispatcher
+unless implementation evidence strongly favors two types.
 
 Preferred first design:
 
 ```python
 @dataclass(frozen=True, slots=True)
-class IASMinimum:
-    position_from_a: float
-    position_from_b: float
-    fraction_from_a: float
-    rho_a: float
-    rho_b: float
-    rho_sum: float
-    width: float | None
-    width_left: float | None
-    width_right: float | None
-    width_is_clipped: bool
-
-
-@dataclass(frozen=True, slots=True)
-class IASResult:
+class IASPositionResult:
     atom_a: str
     atom_b: str
     distance: float
     distance_unit: str
     density_unit: str
-    local_minima: tuple[IASMinimum, ...]
-    global_minima: tuple[IASMinimum, ...]
-    weighted_position_from_a: float | None
-    weighted_fraction_from_a: float | None
-    weighted_spread: float | None
-    weighting_power: float
-    width_fraction: float
+    requested_mode: str
+    method: str
     status: str
+    position_from_a: float | None
+    position_from_b: float | None
+    fraction_from_a: float | None
+    rho_a: float | None
+    rho_b: float | None
+    rho_sum: float | None
+    cutoff_density: float
+    cutoff_radius_a: float
+    cutoff_radius_b: float
+    contour_separation: float
+    alternative_position_from_a: float | None
+    alternative_rho_sum: float | None
+    relative_depth_gap: float | None
+    search_resolution: float | None
+    search_converged: bool | None
     dataset_id: str
     interpolation_contract: str
+    pairwise_contract: str
 ```
 
-The exact field list is preferred, not binding. It may be simplified if all
-required information remains explicit and typed.
+The exact field list is preferred, not binding. The result MUST still expose:
 
-Useful convenience behavior MAY include:
+1. the returned coordinate or an explicit absence;
+2. requested mode and actual method;
+3. status;
+4. component and summed density at a returned coordinate;
+5. cutoff, cutoff radii, and signed contour separation;
+6. enough minimum-search diagnostics to interpret ambiguity when `mode` is
+   `"minimum"`;
+7. dataset, interpolation, and pairwise-contract provenance;
+8. coordinate orientation.
 
-```python
-result.weighted_position_from_b
-result.has_unique_global_minimum
-result.unique_global_minimum
-```
+Do not return one unexplained float.
 
-Do not create a synthetic singular “global minimum” when multiple minima are
-equal within the declared tolerance without preserving the tie.
+### 10.7 Proatomic-boundary mode
 
-### 10.6 Local minima
-
-The implementation MUST deliberately search for multiple minima.
-
-It MUST NOT assume that the complete objective is globally unimodal.
-
-Possible sources of multiple candidates include:
-
-- shell structure;
-- slope changes at profile interpolation knots;
-- symmetric pairs;
-- very short separations;
-- shallow numerical splitting of one broad basin.
-
-All reported minima must be sorted by position from A.
-
-Adjacent numerical duplicates must be merged under documented position and
-density tolerances.
-
-The exact candidate search and merge procedure is an open Stage 4 decision.
-
-### 10.7 Global minima and ties
-
-Let:
+Let the signed contour separation be:
 
 \[
-f_{\min} = \min_i f_i
+d_c=R-r_A^c-r_B^c.
 \]
 
-A candidate is globally tied when its value agrees with `f_min` under documented
-relative and absolute tolerances.
-
-The result MUST retain every tied global candidate.
-
-For a homonuclear pair:
-
-- the complete objective is symmetric around `R/2`;
-- the candidate set should be symmetric within tolerance;
-- the weighted center should be `R/2` within numerical tolerance;
-- the implementation must not discard symmetric off-center minima merely to
-  force a unique midpoint global minimum.
-
-### 10.8 Width measure
-
-The preferred minimum-width definition is the connected interval around a
-minimum for which:
+For a homonuclear pair, return exactly:
 
 \[
-f(x) \le (1 + \epsilon) f_i
+x=R/2.
 \]
 
-where:
+Use status `low_density_gap` when its two cutoff contours are separated;
+otherwise use the ordinary successful status. The coordinate remains `R/2` in
+either regime.
 
-- `f_i` is the density at that minimum;
-- `epsilon` is a documented dimensionless rise fraction;
-- preferred default `epsilon = 0.05`.
+For an unlike pair:
 
-The width is:
+- if `d_c > 0`, the cutoff contours do not overlap. Return the midpoint of the
+  two contour points:
 
-```text
-x_right - x_left
-```
+  \[
+  x=\frac{r_A^c+(R-r_B^c)}{2}
+   =\frac{R+r_A^c-r_B^c}{2};
+  \]
 
-This gives a directly interpretable distance:
+  use method `cutoff_gap_midpoint` and status `low_density_gap`;
+- if the contours overlap or touch, solve the unique monotone equation:
 
-- small width: narrow minimum;
-- large width: broad minimum.
+  \[
+  \rho_A(x)=\rho_B(R-x);
+  \]
 
-The result should record:
+  use method `equal_proatom_density`;
+- if an unlike atom dominates the entire interval and the equal-contribution
+  equation has no interior solution, return no coordinate with status
+  `one_atom_dominates`.
 
-- the width;
-- left and right crossing positions;
-- the rise fraction;
-- whether a crossing was clipped by a neighboring basin or domain boundary.
+At `R=r_A^c+r_B^c`, the contour midpoint and equal-contribution definitions meet
+at the same coordinate. The implementation SHOULD classify this as
+`cutoff_contact` or otherwise make contact visible without changing the
+coordinate.
 
-This definition is preferred because it:
+### 10.8 Promolecular-minimum mode
 
-- is unit invariant in density;
-- does not require numerical second derivatives;
-- remains meaningful at interpolation knots;
-- is easy to explain to users.
-
-The agent MAY propose a better robust geometric measure during Stage 4, but must
-justify it before implementation.
-
-### 10.9 Depth-weighted minima center
-
-The averaged coordinate must use dimensionless weights.
-
-Preferred weighting:
+This mode searches only the meaningful-overlap interval where both neutral
+proatomic contributions are at least the cutoff:
 
 \[
-w_i = \left(\frac{f_{\min}}{f_i}\right)^p
+I_c=
+\left[
+\max(0,R-r_B^c),
+\min(R,r_A^c)
+\right].
 \]
 
-with preferred default:
+Binding behavior:
 
-\[
-p = 1
-\]
+- for an unlike pair, if `I_c` is empty, return no minimum coordinate with
+  status `low_density_gap`;
+- for a homonuclear pair, return exactly `R/2` by symmetry, even if `I_c` is
+  empty or the raw interpolant contains slightly lower symmetric off-center
+  shell minima; retain `low_density_gap` as the status when applicable;
+- for unlike pairs, find one **practically resolved** interior minimum of
+  `f(x;R)` under Section 11’s fixed spatial-resolution contract;
+- do not enumerate or expose every mathematical microminimum;
+- retain at most the selected resolved valley and one materially competitive
+  alternative;
+- if no interior valley is resolved, return no coordinate with status
+  `no_resolved_interior_minimum`;
+- if a boundary value is lower than the selected interior valley, retain the
+  candidate as a diagnostic but use status `boundary_dominated`;
+- if two separated resolved valleys are practically competitive, return the
+  deeper one and expose the runner-up and relative depth gap with status
+  `ambiguous_competing_minima`;
+- if the adaptive passes do not stabilize, return the finest-pass candidate
+  with status `search_unstable` and `search_converged=False`.
 
-The weighted position is:
+The result MUST identify a homonuclear return as `homonuclear_midpoint`, not
+mislabel it as a numerically discovered minimum when the midpoint fails the
+resolved-valley check.
 
-\[
-x_{\mathrm{weighted}}
-=
-\frac{\sum_i w_i x_i}{\sum_i w_i}
-\]
+The following concepts from the superseded all-minima design are intentionally
+absent from `0.2.0`:
 
-The weighted positional spread is:
+- exhaustive local-minimum lists;
+- exact global-tie enumeration;
+- basin widths and watershed clipping;
+- weighted averages of separate minima;
+- high-precision reconstruction of sub-ULP event topology.
 
-\[
-\sigma_x
-=
-\sqrt{
-\frac{\sum_i w_i(x_i-x_{\mathrm{weighted}})^2}
-{\sum_i w_i}
-}
-\]
+### 10.9 Why both modes are retained
 
-Properties:
+`boundary` mode is the recommended production choice for geometry and weighted
+Voronoi/Laguerre workflows because it is unique, continuous at cutoff contact,
+symmetry-preserving, and inexpensive.
 
-- the deepest minimum has weight 1;
-- shallower minima have weights below 1;
-- equal minima receive equal weights;
-- converting density units does not change the result;
-- a symmetric homonuclear candidate set averages to the midpoint;
-- large spread indicates separated competing minima.
+`minimum` mode is retained for Bader-oriented research and calibration because a
+line-density minimum is a more direct promolecular analogue of an internuclear
+critical-point coordinate. Its optional status and diagnostics make the model
+limitations visible instead of hiding them behind an averaged coordinate.
 
-Do not exponentiate a raw dimensional density difference such as
-`exp(-(rho_i-rho_min))`. Its numerical result changes with density units unless
-an additional scale is defined.
+Documentation SHOULD demonstrate both modes on the same pairs and MUST explain
+that disagreement between them is a scientific-model difference, not
+necessarily a numerical error.
 
-The preferred weighting formula is a Stage 4 review point. Another
-dimensionless, monotone depth weighting MAY replace it with explicit owner
-approval or a strong documented reason.
-
-### 10.10 Boundary behavior
-
-The objective must also be evaluated at `x=0` and `x=R`.
-
-A global boundary minimum is not an ordinary interior IAS intersection.
-
-The result MUST make this visible, for example through statuses such as:
-
-```text
-ok
-multiple_global_minima
-boundary_dominated
-no_interior_minimum
-```
-
-The exact vocabulary may change.
-
-When interior minima exist but a boundary value is lower, the result may still
-report the interior minima and their weighted center as diagnostics, but it must
-not label the result unconditionally valid.
-
-### 10.11 Pair-reversal invariance
+### 10.10 Pair reversal and homonuclear symmetry
 
 For a result on `(A, B, R)` and the reversed result `(B, A, R)`:
 
-- every position `x` must correspond to `R - x`;
-- objective density values must agree within tolerance;
-- global-tie counts must agree;
-- widths must agree;
-- weighted position must transform to `R - x_weighted`;
-- weighted spread must remain unchanged;
-- status must remain equivalent.
+- a returned position `x` corresponds to `R-x`;
+- method and status remain equivalent after A/B relabeling;
+- component densities swap;
+- summed density, cutoff regime, search convergence, relative depth gap, and
+  practical ambiguity remain unchanged;
+- an alternative minimum, when present, also transforms to `R-x_alt`;
+- `one_atom_dominates` identifies the correspondingly relabeled atom.
 
-This is a binding acceptance invariant.
+For every homonuclear pair and every valid distance, both public modes return
+exactly `R/2` after output-unit conversion within the ordinary conversion
+rounding.
 
-## 11. IAS numerical implementation decision gate
+Canonical internal orientation MAY be used to make reversal invariance
+structural.
 
-Before implementing the search, Stage 4 MUST add a short design note inside the
-module docstring, tests, or this plan resolving:
+### 10.11 Status and failure semantics
 
-1. how the candidate mesh or interval partition is constructed;
-2. how local minima are detected;
-3. how candidate positions are refined;
-4. how minima on interpolation knots are handled;
-5. how adjacent numerical duplicates are merged;
-6. how global ties are defined;
-7. how width crossings are located;
-8. which default tolerances are used;
-9. what performance is expected for one pair and repeated pairs.
+The exact vocabulary may be adjusted, but the result model MUST distinguish at
+least:
 
-### 11.1 Preferred first approach
+```text
+ok
+low_density_gap
+one_atom_dominates
+no_resolved_interior_minimum
+boundary_dominated
+ambiguous_competing_minima
+search_unstable
+```
 
-A reasonable first approach is:
+The method field MUST distinguish at least:
 
-1. Construct a deterministic candidate grid from relevant A profile knots and
-   transformed B profile knots `R - r_j` within `[0, R]`.
-2. Add interval midpoints or another minimal set of probes needed to avoid
-   missing an interior basin.
-3. Evaluate the objective on this grid.
-4. Identify candidate minima from neighboring values.
-5. Refine only candidate neighborhoods with a small dependency-free bounded
-   minimizer such as golden-section search.
-6. Evaluate exact knot candidates explicitly.
-7. Merge candidates that represent the same basin.
-8. Evaluate boundary values separately.
-9. Compute ties, widths, weighted center, spread, and status.
+```text
+homonuclear_midpoint
+equal_proatom_density
+cutoff_gap_midpoint
+promolecular_density_minimum
+none
+```
 
-This approach is preferred because it uses the actual interpolation structure
-rather than an arbitrary fixed global step.
+Missing profiles return `None`. A scientifically non-applicable pair with valid
+profiles returns a typed result with `position_from_a=None`; it is not treated
+as missing data or an exception.
 
-However, the repository owner expects to discuss or propose an alternative IAS
-algorithm. Therefore this section is not binding implementation detail.
+## 11. Pairwise numerical implementation decision
 
-### 11.2 Performance guardrail
+The earlier exact all-minima design is retained only as supporting numerical
+research. Production Stage 4 uses the smaller contract below.
 
-Correctness comes first, but the implementation is intended for structure
-algorithms and must not be unnecessarily expensive.
+### 11.1 Shared profile preparation and cutoff radii
 
-Add a lightweight benchmark or timing-oriented test outside fragile CI
-thresholds. Record approximate local timings for:
+For every loaded profile, cache:
+
+- logarithmic radii;
+- logarithmic densities;
+- ordinary log–log segment coefficients;
+- the fixed `1e-4 electron/bohr^3` cutoff radius.
+
+Because each packaged profile is strictly decreasing over its stored positive
+segments, the cutoff radius is unique. Locate the bracketing stored values and
+invert the accepted log–log segment analytically. Do not run a general root
+finder for a cached one-dimensional inverse.
+
+Dataset validation MUST confirm for every packaged H–Lr profile that:
+
+- all positive segments are strictly decreasing;
+- the first stored value is above the cutoff;
+- the profile falls below the cutoff before the 20-bohr public limit;
+- substituting the cached radius reproduces the cutoff within a documented
+  floating-point tolerance.
+
+### 11.2 Boundary-mode algorithm
+
+1. Validate and convert `R` to bohr.
+2. Apply canonical pair orientation if used.
+3. Read the two cached cutoff radii.
+4. For identical atoms, return `R/2` immediately.
+5. If the cutoff contours have a positive gap, return their midpoint.
+6. Otherwise solve
+
+   \[
+   g(x)=\log\rho_A(x)-\log\rho_B(R-x)=0.
+   \]
+
+   The function is monotone non-increasing under the packaged profile contract,
+   so bracketed bisection is sufficient.
+7. If the endpoint signs do not bracket a root, return
+   `one_atom_dominates`.
+8. Stop bisection when the coordinate bracket is no wider than `1e-10 bohr` or
+   binary64 adjacency is reached.
+9. Evaluate and report component densities using the public Stage 3 profile
+   convention at the selected coordinate.
+10. Transform orientation and units only after the native result is complete.
+
+Use the continuous log–log segment representation for the equality comparison.
+One-ULP exact-knot value round trips MUST NOT create or remove an equality
+crossing.
+
+### 11.3 Practical minimum-mode algorithm
+
+The search is intentionally resolution-limited. Its public spatial resolution
+is:
+
+```text
+IAS_MINIMUM_RESOLUTION_BOHR = 0.01
+```
+
+This is approximately `0.0053 angstrom`, far below the intended chemical-geometry
+scale while large enough to coalesce the sub-resolution shell and interpolation
+splittings that made exhaustive Stage 4A disproportionately complex.
+
+For unlike atoms with a nonempty significant-overlap interval `I_c`:
+
+1. Evaluate `f(x;R)` on a deterministic uniform grid over `I_c` with step no
+   larger than `0.02 bohr`. Include both interval endpoints, the interval
+   midpoint, and the equal-proatom-density coordinate when it exists.
+2. A sample-resolved valley is an interior sample no higher than its immediate
+   neighbors.
+3. Refine each sampled valley only inside its neighboring sample bracket with a
+   small dependency-free bounded minimizer. Golden-section search is acceptable
+   because the bracket is already local and the public contract coalesces
+   smaller internal structure.
+4. Repeat with step no larger than `0.01 bohr`.
+5. Combine candidates from both passes. Candidates closer than `0.01 bohr`
+   belong to one resolved valley; retain the lowest sampled/refined value as
+   that valley’s representative.
+6. If the selected resolved valley changes by more than `0.01 bohr`, or its
+   density changes by more than `1e-4` relative, run one fallback pass with step
+   no larger than `0.005 bohr`.
+7. After the fallback, return the finest supported representative and set
+   `search_converged` according to the same practical criteria. Do not invoke
+   Decimal arithmetic merely to classify smaller structure.
+8. Sort resolved valleys by density. Retain the selected valley and at most one
+   runner-up separated by at least `0.01 bohr`.
+9. Mark `ambiguous_competing_minima` when the runner-up is within `1e-4`
+   relative density of the selected valley. This is a declared practical
+   equivalence policy, not a binary64 equality tolerance.
+10. Compare `f(0)` and `f(R)` with the selected interior value. If either is
+    lower by more than the ordinary floating-point comparison envelope, use
+    `boundary_dominated`.
+
+For a homonuclear pair, return `R/2` without running this search. The
+implementation MAY evaluate nearby samples to report whether the midpoint also
+behaves as a resolved minimum, but this diagnostic MUST NOT move the returned
+coordinate.
+
+If no interior valley is found on the finest pass, return
+`no_resolved_interior_minimum`. Do not clamp a minimum to a cutoff endpoint or
+nucleus.
+
+### 11.4 Tolerance categories
+
+Keep these concepts separate:
+
+- **tail cutoff:** `1e-4 electron/bohr^3`; a fixed model policy;
+- **minimum spatial resolution:** `0.01 bohr`; a fixed practical-resolution
+  policy;
+- **competitive depth gap:** `1e-4` relative; a user-visible ambiguity policy;
+- **equality bisection tolerance:** `1e-10 bohr`; a numerical convergence
+  tolerance;
+- **ordinary floating-point envelope:** only for comparisons whose outcome is
+  not already defined by the practical policies above.
+
+Do not reuse one large `isclose` tolerance for cutoff contact, equality,
+minimum competition, and binary64 roundoff. Do not tune tolerances only to make
+individual examples pass.
+
+### 11.5 No exact-knot or all-minima machinery in production
+
+The production algorithm MUST NOT add:
+
+- an exact Decimal event sweep;
+- exhaustive one-sided derivative topology;
+- sub-ULP cell reconstruction;
+- proximity merging of mathematical basins;
+- global-tie lists;
+- watershed-width construction;
+- weighted averaging across minima.
+
+Exact profile knots are ordinary samples under the Stage 3 evaluator. A
+sub-resolution feature that changes only under exact-event reconstruction is
+outside the declared `minimum`-mode resolution and cannot affect
+`boundary` mode.
+
+The archived Stage 4A design and review cases remain useful as a conservative
+development reference and as supporting information explaining this decision.
+
+### 11.6 Performance guardrail
+
+The intended downstream use includes repeated pair evaluation.
+
+Record local, non-CI timings for:
 
 - first call including data load;
-- cached density evaluation;
-- one IAS pair;
-- a modest batch of representative IAS pairs.
+- cached cutoff-radius access;
+- one `boundary` pair;
+- one ordinary `minimum` pair;
+- one fallback-pass `minimum` pair;
+- a deterministic 1,000-pair batch in each mode.
 
-Do not add a benchmarking dependency.
+Targets on the recorded development machine are:
 
-If the preferred knot-based approach is too slow, optimize the implementation
-without changing public semantics. Possible optimizations include:
+```text
+cached boundary mode: comfortably below 0.2 ms/pair
+cached minimum mode:  comfortably below 1.0 ms/pair in the ordinary case
+```
 
-- cached logarithmic arrays;
-- index-aware interval evaluation;
-- reduced candidate probing;
-- precomputed per-profile segment coefficients;
-- a coarse-to-fine search validated against a slower reference.
+These are design targets, not portable CI thresholds. No benchmarking or
+numerical runtime dependency may be added.
 
-Do not optimize by assuming one global minimum.
+### 11.7 Validation reference and supporting study
+
+Stage 4 validation MUST use two references for different purposes:
+
+1. a slower fine-grid-and-refinement search inside `I_c` to validate the
+   practical minimum contract at and above `0.01 bohr` resolution;
+2. the archived exact-event Stage 4A cases to confirm that intentionally omitted
+   microstructure cannot change boundary mode and is either coalesced or
+   reported as unresolved/ambiguous in minimum mode.
+
+The executed notebook:
+
+```text
+notebooks/04-ias-method-selection-study.ipynb
+```
+
+and its compact documentation page MUST record:
+
+- cutoff-radius coverage for H–Lr;
+- representative boundary/minimum comparisons;
+- homonuclear Li–Li behavior;
+- low-density-gap behavior;
+- practical-reference agreement and timings;
+- the numerical pathologies that motivated abandoning exhaustive all-minima
+  production semantics;
+- the final two-mode decision and limitations.
+
+Agreement with actual molecular-density QTAIM coordinates is scientifically
+valuable and SHOULD be added when a curated benchmark is available. It is not a
+claim made by `0.2.0`, and absence of such a benchmark must remain explicit in
+the documentation.
 
 ## 12. Documentation and notebook strategy
 
@@ -1430,9 +1649,10 @@ Do not optimize by assuming one global minimum.
 `0.2.0` must contain enough documentation to use the new API safely:
 
 - accurate public docstrings for new objects;
-- one concise density/IAS guide or equivalent section;
-- exact provenance, units, range, and limitations;
-- one executed feature notebook with plots;
+- one concise density/pairwise-boundary guide or equivalent section;
+- exact provenance, units, range, cutoff, mode semantics, and limitations;
+- one executed Stage 4 method-selection notebook;
+- one executed user-facing feature notebook with plots;
 - a changelog entry and working README mention.
 
 The broad documentation redesign belongs to `0.2.1` after the API is accepted.
@@ -1440,15 +1660,39 @@ The broad documentation redesign belongs to `0.2.1` after the API is accepted.
 Do not move the README marketing rewrite, complete existing-notebook rewrite,
 or all-module docstring conversion into the critical path of `0.2.0`.
 
-### 12.2 `0.2.0` feature notebook is mandatory
+### 12.2 `0.2.0` Stage 4 supporting notebook is mandatory
+
+Add and execute:
+
+```text
+notebooks/04-ias-method-selection-study.ipynb
+```
+
+This notebook is supporting information for the numerical and scientific
+decision. It MUST:
+
+- clearly label all helper functions as research prototypes rather than public
+  API;
+- explain the fixed per-atom cutoff;
+- compare `boundary` and `minimum` definitions;
+- reproduce representative cases and practical timings;
+- summarize the archived exact all-minima failure modes;
+- explain why exhaustive all-minima enumeration is not the production default;
+- state that neither mode is an exact QTAIM surface;
+- be linked from a compact page at `docs/dev/ias_method_selection.md`.
+
+Saved plots are encouraged. Matplotlib may be an optional
+notebook/documentation dependency and MUST NOT become a runtime dependency.
+
+### 12.3 `0.2.0` feature notebook is mandatory
 
 Add:
 
 ```text
-notebooks/04-proatomic-density-and-ias.ipynb
+notebooks/05-proatomic-density-and-ias.ipynb
 ```
 
-The committed notebook MUST:
+The committed feature notebook MUST:
 
 - be executed;
 - contain saved execution counts;
@@ -1466,21 +1710,19 @@ Required content:
 2. profile retrieval and scalar evaluation with independent radius/density
    units;
 3. one or two radial-density plots, preferably with a logarithmic density axis;
-4. one ordinary heteronuclear IAS example;
-5. a plot of `rho_A(x)`, `rho_B(R-x)`, and their sum;
-6. markers for local minima, globally tied minima, and the weighted position;
-7. interpretation of minimum width and weighted spread;
-8. at least one example that demonstrates why multiple minima are exposed;
-9. a concise limitations section.
+4. one ordinary heteronuclear `boundary` example;
+5. the same pair in `minimum` mode;
+6. a plot of `rho_A(x)`, `rho_B(R-x)`, and their sum;
+7. a homonuclear midpoint example;
+8. a low-density-gap example;
+9. one no-resolved-minimum or one-atom-dominance example;
+10. a concise limitations and mode-selection section.
 
-Matplotlib may be an optional notebook/documentation dependency. It must not
-become a runtime dependency.
+For `0.2.0`, the notebooks may be linked from the docs/GitHub even if the
+current Markdown exporter cannot faithfully embed rich plot output. The saved
+`.ipynb` files remain the source artifacts.
 
-For `0.2.0`, the notebook may be linked from the docs/GitHub even if the current
-Markdown exporter cannot faithfully embed plots. The saved `.ipynb` itself is
-the source artifact.
-
-### 12.3 Current notebook behavior to replace in `0.2.1`
+### 12.4 Current notebook behavior to replace in `0.2.1`
 
 The current repository tools:
 
@@ -1513,7 +1755,7 @@ Preferred compact workflow:
 Avoid adding separate “execute,” “export,” and “check” tools when one tool with
 two modes is sufficient.
 
-### 12.4 Direct notebook rendering in `0.2.1`
+### 12.5 Direct notebook rendering in `0.2.1`
 
 Preferred documentation approach:
 
@@ -1532,7 +1774,7 @@ naturally.
 A different direct-rendering solution may be used if it is materially better,
 but do not keep both direct rendering and generated Markdown copies.
 
-### 12.5 Explanatory notebook writing standard
+### 12.6 Explanatory notebook writing standard
 
 Every shipped notebook should contain:
 
@@ -1547,7 +1789,7 @@ Not every one-line import needs its own essay. The standard is that a reader
 should understand why each logical block exists and what to inspect in its
 output.
 
-### 12.6 Full API reference with MkDocs
+### 12.7 Full API reference with MkDocs
 
 Do not switch away from MkDocs solely to obtain Sphinx-like API pages.
 
@@ -1604,7 +1846,7 @@ Notes:
 Type annotations remain the source of type information; docstrings explain
 meaning, units, behavior, and constraints.
 
-### 12.7 README/home-page redesign in `0.2.1`
+### 12.8 README/home-page redesign in `0.2.1`
 
 `docs/index.md` remains the source of `README.md`.
 
@@ -1622,13 +1864,13 @@ The opening should communicate an identity close to:
 > electron densities through a small Python API for crystallographic,
 > quantum-chemical, and molecular-structure algorithms.
 
-Show working radii, profile, and IAS examples near the top. Move detailed policy
+Show working radii, profile, boundary-mode, and minimum-mode examples near the top. Move detailed policy
 terminology and nested-transfer mechanics lower.
 
 Avoid leading with negative positioning such as “not another periodic-table
 encyclopedia.”
 
-### 12.8 Keep the durable docs compact
+### 12.9 Keep the durable docs compact
 
 The preferred durable structure after `0.2.1` is still small:
 
@@ -1641,7 +1883,7 @@ notebooks/*.ipynb
 ```
 
 Remove the duplicated public development-plan page. Do not create separate pages
-for interpolation, IAS mathematics, provenance, licensing, and every result
+for interpolation, pairwise method semantics, provenance, licensing, and every result
 field unless one combined guide becomes genuinely difficult to use.
 
 ## 13. Staged implementation plan
@@ -1983,86 +2225,110 @@ feat: add proatomic density evaluation
 
 ---
 
-### Stage 4 — IAS minima analysis
+### Stage 4 — Pairwise proatomic boundary and practical IAS proxy
 
 #### Goal
 
-Implement pairwise promolecular line-density analysis and return raw minima plus
-a useful averaged IAS estimate.
+Implement the two-mode pairwise contract from Sections 10 and 11 without the
+superseded exhaustive all-minima machinery.
 
-#### Stage 4A — resolve the numerical design
+#### Stage 4A — finalize and preserve the numerical decision
 
-Before coding the public function:
+Before public implementation:
 
-1. review Sections 10 and 11;
-2. compare the preferred search with any owner-proposed alternative;
-3. prototype candidate algorithms on representative pairs;
-4. compare against a slower dense reference scan;
-5. select merge, tie, width, and weighting tolerances;
-6. record the chosen behavior in tests/docstrings and update this plan if
-   necessary.
+1. accept the revised Sections 10 and 11;
+2. retain the archived exact-event Stage 4A reports as development evidence,
+   not as the production contract;
+3. add and execute `notebooks/04-ias-method-selection-study.ipynb`;
+4. add `docs/dev/ias_method_selection.md` and link the notebook;
+5. verify all H–Lr cutoff radii and the monotonicity assumptions;
+6. record representative agreement and timing for the practical minimum search;
+7. resolve final public function/result names without changing the two-mode
+   semantics.
+
+Stage 4A MUST NOT modify production pairwise code beyond documentation/test
+fixtures needed to preserve the decision record.
 
 Representative development pairs should include:
 
 ```text
 H-H
-C-C
+Li-Li
 C-O
 Fe-O
-La-O
-U-O
+H-U
 H-heavy-element
-a pair with multiple shallow candidates
-a pair with globally tied or symmetry-related candidates
-a short-distance boundary-dominated case
+one low-density-gap pair
+one one-atom-dominance pair
+one boundary-dominated minimum case
+one pair with competing resolved minima
+one archived sub-resolution exact-event case
 ```
 
-#### Stage 4B — implement result types and search
+#### Stage 4B — implement shared result, direct functions, and dispatcher
 
-Implement immutable results exposing all binding information from Section 10.
+Implement:
 
-The API MUST not hide:
+- the fixed cached cutoff radius;
+- the shared immutable result type;
+- `estimate_proatomic_boundary()`;
+- `estimate_promolecular_density_minimum()`;
+- `estimate_ias_position(..., mode="boundary" | "minimum")`;
+- exact homonuclear midpoint handling;
+- equal-contribution bisection;
+- cutoff-gap midpoint behavior;
+- the resolution-limited minimum search;
+- explicit statuses and provenance;
+- canonical reversal handling and unit conversion.
 
-- multiple minima;
-- ties;
-- boundary domination;
-- weighting definition;
-- width definition;
-- dataset and unit provenance.
+Do not implement:
+
+- exhaustive local-minimum enumeration;
+- exact global-tie machinery;
+- widths or watershed clipping;
+- weighted centers or spreads;
+- Decimal event topology;
+- a universal minimum-distance ban;
+- hidden fallback between modes.
 
 #### Stage 4C — validation
 
 Required tests cover:
 
-- independent dense-reference agreement;
-- pair reversal;
-- homonuclear symmetry;
-- narrow and broad minima;
-- width clipping;
-- dimensionless weighting;
-- density-unit invariance;
-- boundary-dominated and no-interior-minimum cases;
-- invalid distance and units;
+- all H–Lr cutoff radii are unique, finite, and reproduce the cutoff;
+- exact homonuclear `R/2` in both modes;
+- equal component densities in ordinary boundary-overlap cases;
+- cutoff-gap midpoint geometry;
+- continuous agreement of the two boundary branches at cutoff contact;
+- explicit one-atom dominance;
+- minimum search limited to the significant-overlap interval;
+- practical-reference agreement at the declared `0.01 bohr` resolution;
+- no-resolved-minimum, boundary-dominated, competing-minimum, and unstable-search
+  statuses;
+- pair reversal for both primary and alternative coordinates;
+- distance-unit and density-unit invariance;
+- invalid mode, distance, and units;
 - missing elements;
-- representative element classes;
-- practical cached performance.
+- representative light, transition, lanthanide, and actinide pairs;
+- practical cached performance for both modes;
+- regression cases from the Stage 4A supporting study.
 
 #### Completion criteria
 
-- all relevant local minima are inspectable;
-- global ties are retained;
-- width and weighted center/spread are defined and tested;
-- reversal and symmetry hold;
-- invalid/boundary situations are explicit;
-- no exact molecular-topology claim is made.
+- the default returns a stable, interpretable proatomic divider;
+- the optional mode returns one cutoff-bounded, practically resolved
+  promolecular minimum or an explicit non-result/diagnostic status;
+- identical atoms always return `R/2`;
+- no arbitrary short-distance ban is present;
+- pair reversal, units, cutoff, provenance, and failures are tested;
+- no exact molecular-QTAIM claim is made;
+- no all-minima production machinery remains in scope.
 
 #### Suggested commit
 
 ```text
-feat: add approximate IAS position analysis
+feat: add two-mode proatomic IAS position estimates
 ```
-
----
 
 ### Stage 5 — Executed feature notebook and `0.2.0` release
 
@@ -2076,10 +2342,10 @@ release `0.2.0` without performing the full documentation overhaul.
 Add and execute:
 
 ```text
-notebooks/04-proatomic-density-and-ias.ipynb
+notebooks/05-proatomic-density-and-ias.ipynb
 ```
 
-It MUST satisfy Section 12.2.
+It MUST satisfy Section 12.3.
 
 For `0.2.0`, extend existing notebook validation minimally so CI verifies:
 
@@ -2095,7 +2361,7 @@ Do not build a second large notebook pipeline during this stage.
 
 - add the new notebook to the notebook overview;
 - link the saved notebook from docs;
-- add accurate density/IAS guide material;
+- add accurate density, cutoff, mode-selection, and IAS-proxy guide material;
 - add the new module API page;
 - mention the feature on the home page without the full marketing rewrite;
 - document exact provenance, units, 20-bohr domain, and limitations;
@@ -2129,8 +2395,14 @@ rho = ar.get_proatomic_density(
 )
 assert rho is not None and rho > 0
 
-result = ar.estimate_ias_position("C", "O", 1.43)
-assert result is not None
+boundary = ar.estimate_proatomic_boundary("C", "O", 1.43)
+assert boundary is not None and boundary.position_from_a is not None
+
+minimum = ar.estimate_promolecular_density_minimum("C", "O", 1.43)
+assert minimum is not None
+
+result = ar.estimate_ias_position("C", "O", 1.43, mode="boundary")
+assert result == boundary
 ```
 
 #### Final commands
@@ -2164,7 +2436,7 @@ Stage 6 rather than implementing a plot-specific Markdown exporter.
 #### Suggested commits
 
 ```text
-docs: add proatomic density and IAS notebook
+docs: add IAS method study and proatomic density feature notebook
 chore: prepare atomref 0.2.0
 ```
 
@@ -2342,41 +2614,56 @@ chore: prepare atomref 0.2.1
 - [ ] Loading is lazy/cached through generic dataset machinery.
 - [ ] Shared package data cannot be mutated through public objects.
 
-### 14.4 `0.2.0` IAS API
+### 14.4 `0.2.0` pairwise boundary and IAS-proxy API
 
 - [ ] Distance is measured from A toward B and documented.
 - [ ] Distance must be `0 < R <= 20 bohr`.
 - [ ] Distance and density units are independent.
-- [ ] All distinct interior local minima are exposed.
-- [ ] Each minimum includes position and density decomposition.
-- [ ] Global ties are retained.
-- [ ] Minimum width is defined, dimensioned, and tested.
-- [ ] Weighted center uses dimensionless weights.
-- [ ] Weighted spread or equivalent ambiguity measure is exposed.
-- [ ] Density-unit conversion does not change IAS geometry.
-- [ ] Pair reversal transforms positions correctly.
-- [ ] Homonuclear weighted centers equal `R/2`.
-- [ ] Boundary-dominated cases are explicit.
+- [ ] The fixed per-atom cutoff is `1e-4 electron/bohr^3` and is reported.
+- [ ] Every packaged H–Lr profile has one validated cutoff radius.
+- [ ] `estimate_proatomic_boundary()` is available.
+- [ ] `estimate_promolecular_density_minimum()` is available.
+- [ ] `estimate_ias_position()` dispatches explicitly by mode.
+- [ ] The default mode is `boundary`.
+- [ ] `minimum` mode never silently falls back to `boundary`.
+- [ ] Identical atoms return exactly `R/2` in both modes.
+- [ ] Overlapping unlike atoms can return the equal-proatom-density divider.
+- [ ] Separated cutoff contours return their geometric midpoint in boundary mode.
+- [ ] Cutoff contact is continuous.
+- [ ] One-atom dominance is explicit.
+- [ ] Minimum search is confined to the significant-overlap interval.
+- [ ] Minimum search uses the declared `0.01 bohr` practical resolution.
+- [ ] At most one selected minimum and one competitive alternative are exposed.
+- [ ] Low-density-gap, no-resolved-minimum, boundary-dominated, competing, and
+      unstable cases are explicit.
+- [ ] Density-unit conversion does not change geometry, method, or status.
+- [ ] Pair reversal transforms primary and alternative positions correctly.
 - [ ] Missing profiles return `None`.
-- [ ] Invalid distances and units raise.
-- [ ] Dataset/interpolation provenance is present.
-- [ ] Representative results agree with an independent reference search.
-- [ ] The algorithm does not assume global unimodality.
+- [ ] Invalid distances, modes, and units raise.
+- [ ] Dataset, interpolation, cutoff, and pairwise-contract provenance is present.
+- [ ] Practical minimum results agree with an independent slower search at the
+      declared resolution.
+- [ ] The API does not claim an exact QTAIM surface or critical point.
+- [ ] Exhaustive local-minimum, tie, width, and weighted-center machinery is not
+      part of the production API.
 
 ### 14.5 `0.2.0` notebook and packaging
 
-- [ ] Proatomic density/IAS notebook exists.
-- [ ] It is executed and saved with outputs.
-- [ ] It contains explanatory Markdown before logical code sections.
-- [ ] It contains at least two informative plots.
-- [ ] It demonstrates local/global/weighted minima.
-- [ ] It executes cleanly in CI.
-- [ ] Minimal public docs describe source, units, range, and limitations.
+- [ ] Stage 4 method-selection supporting notebook exists.
+- [ ] Supporting notebook is executed and saved with outputs.
+- [ ] Supporting notebook is linked from `docs/dev/ias_method_selection.md`.
+- [ ] Proatomic density/pairwise feature notebook exists.
+- [ ] Feature notebook is executed and saved with outputs.
+- [ ] Both notebooks contain explanatory Markdown before logical code sections.
+- [ ] The notebooks contain informative plots where appropriate.
+- [ ] The feature notebook demonstrates both modes, homonuclear symmetry, a
+      low-density gap, and an explicit non-ordinary case.
+- [ ] Notebook execution is deterministic and validated.
+- [ ] Minimal public docs describe source, units, range, cutoff, mode selection,
+      and limitations.
 - [ ] README is regenerated and mentions the feature accurately.
-- [ ] Strict docs build passes.
-- [ ] Full release check passes.
-- [ ] Installed wheel loads the radial set, evaluates density, and performs IAS
-      analysis.
+- [ ] Installed wheel loads the radial set, evaluates density, and performs both
+      pairwise modes.
 
 ### 14.6 `0.2.1` notebook documentation
 
@@ -2396,7 +2683,7 @@ chore: prepare atomref 0.2.1
 - [ ] Public docstrings use one structured style.
 - [ ] API cross-references work.
 - [ ] README/home page explains value immediately.
-- [ ] Working radii, density, and IAS examples appear near the top.
+- [ ] Working radii, density, boundary-mode, and minimum-mode examples appear near the top.
 - [ ] Detailed policy terminology is moved below first-use content.
 - [ ] Duplicate development-plan docs are removed.
 - [ ] Strict docs and full release checks pass.
@@ -2413,7 +2700,7 @@ Possible small follow-up work only when justified by evidence:
   from the element table;
 - improve storage-kind validation if Stage 1 reveals weak points;
 - add a static type-checking CI job;
-- optimize repeated IAS evaluation if profiling shows a bottleneck;
+- optimize repeated pairwise boundary/minimum evaluation if profiling shows a bottleneck;
 - add scalar batch evaluation if downstream use proves it necessary;
 - improve mixed-license artifact checks.
 
@@ -2517,7 +2804,7 @@ Important design questions:
 
 Recommended direction:
 
-- stabilize and validate scalar radial evaluation and IAS first;
+- stabilize and validate scalar radial evaluation and the two pairwise modes first;
 - gather requirements from actual crystallographic grid formats;
 - design nonperiodic and periodic behavior together;
 - use an optional NumPy-based extra rather than making NumPy a core runtime
@@ -2552,8 +2839,8 @@ Preferred linear history for `0.2.0`:
 refactor: generalize built-in dataset loading
 feat(data): add neutral proatomic density snapshot
 feat: add proatomic density evaluation
-feat: add approximate IAS position analysis
-docs: add proatomic density and IAS notebook
+feat: add two-mode proatomic IAS position estimates
+docs: add IAS method study and proatomic density feature notebook
 chore: prepare atomref 0.2.0
 ```
 
@@ -2623,24 +2910,25 @@ Review before the corresponding implementation stage:
    - or `ProatomicDensitySet`.
 3. Exact generic `get_builtin_set()` return annotation and scalar narrowing
    helper names.
-4. Final public module and density/IAS function names.
-5. Canonical density unit strings and accepted aliases.
-6. Exact IAS candidate-search algorithm.
-7. Candidate merge and global-tie tolerances.
-8. Whether the 5%-rise width is the preferred width definition.
-9. Final dimensionless weighting function and default power.
-10. Exact result dataclass fields and status vocabulary.
-11. Whether weighted position or global-minimum position is the primary
-    convenience coordinate.
-12. Whether the `0.2.0` feature notebook is linked only as `.ipynb` or given a
-    temporary static docs representation before `0.2.1`.
-13. Final `0.2.1` notebook renderer and normalization details.
-14. Final MkDocs/mkdocstrings visual settings after a local rendered preview.
-15. The future grid-density requirements once actual target formats are
+4. Final public spelling of the three pairwise functions and result type.
+5. Final status and method vocabulary, without changing their required
+   distinctions.
+6. Whether `IAS_MINIMUM_RESOLUTION_BOHR` and the practical competitive-depth
+   threshold should be public constants or provenance-only fields.
+7. Whether the minimum result should expose one explicit runner-up object or
+   flattened optional fields.
+8. Whether the supporting notebook remains a permanent documentation artifact
+   after `0.2.1` adopts direct notebook rendering.
+9. Final `0.2.1` notebook renderer and normalization details.
+10. Final MkDocs/mkdocstrings visual settings after a local rendered preview.
+11. The future grid-density requirements once actual target formats are
     collected.
+12. A future curated molecular-QTAIM benchmark for comparing midpoint,
+    equal-contribution, and promolecular-minimum coordinates.
 
-These are review points, not permission to weaken the binding scientific,
-provenance, range, dataset-unification, unit, or compatibility contracts.
+These are review points, not permission to change the fixed cutoff, default
+mode, homonuclear midpoint, explicit mode separation, provenance, range,
+dataset-unification, unit, or compatibility contracts.
 
 ## 20. Plan closeout and replanning record
 
