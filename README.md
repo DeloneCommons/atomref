@@ -8,186 +8,199 @@
 
 Documentation: https://delonecommons.github.io/atomref
 
-`atomref` is a small pure-Python package for **curated atomic reference data**,
-**provenance-aware lookup policies**, and neutral-proatom reference workflows
-used by geometry and structure-analysis algorithms.
+`atomref` provides cited atomic values and frozen spherical free-atom electron
+densities through a small Python API for crystallographic, quantum-chemical,
+and molecular-structure algorithms.
 
-It is not meant to be yet another periodic-table encyclopedia. The package is
-for code that needs stable atomic reference values with explicit provenance,
-clear fallback behavior, and honest handling of incomplete preferred datasets.
+Use it when your software needs dependable atomic radii, X–H reference lengths,
+neutral proatomic densities, or pairwise reference-atom boundaries without
+embedding another project-local table and its fallback rules. The core runtime
+is pure Python and has **no required third-party dependencies**.
 
-What you get in the current release line:
+## Install and get a useful result
 
-- stable element metadata,
-- curated named radii sets,
-- provisional X–H bond-length support for hydrogen-normalisation workflows,
-- dataset provenance and coverage metadata,
-- deterministic lookup policies,
-- substitution and linear transfer from support datasets or policies into target datasets,
-- guarded nested policy-backed transfers with explicit transfer depth,
-  conservative fit/prediction controls, and cycle detection,
-- user-defined custom element-indexed scalar sets,
-- frozen neutral H–Lr spherical proatomic-density profiles with scalar,
-  unit-aware evaluation,
-- a stable pairwise neutral-proatom boundary and an optional cutoff-bounded,
-  resolution-limited promolecular-minimum proxy.
+```bash
+pip install atomref
+```
 
-## Core terms
+```python
+import atomref as ar
 
-`atomref` uses a small vocabulary on purpose.
+covalent_c = ar.get_covalent_radius("C")
+xh_n = ar.get_xh_bond_length("N")
+rho_o = ar.get_proatomic_density("O", 0.75)
+boundary = ar.estimate_proatomic_boundary("C", "O", 1.43)
+minimum = ar.estimate_promolecular_density_minimum("C", "O", 1.43)
+```
 
-- **quantity** — the operational property family being requested, such as
-  `covalent_radius`, `van_der_waals_radius`, `atomic_radius`, or
-  `xh_bond_length`, or `proatomic_density`.
-- **domain** — the key space used to index that quantity. In the current
-  runtime, the supported domain is `element`, meaning lookups are keyed by an
-  element symbol.
-- **dataset** — one curated named scalar table or radial-profile payload inside
-  a quantity, such as `cordero2008`, `alvarez2013`, or the neutral H–Lr
-  proatomic set.
-- **policy** — the ordered rule set that decides what scalar value to return
-  when the preferred dataset is incomplete.
+The scalar results above are in documented units: radii and X–H lengths use
+angstrom, while the density call returns electron/bohr³ by default. Pairwise
+coordinates are measured from the first atom toward the second. For this C–O
+example, `boundary` is the stable equal-proatom divider and `minimum` is the
+optional, resolution-limited minimum of the summed promolecular line density.
 
-The metadata layer records `domain` and storage kind explicitly. The current
-runtime supports the `element` domain with packaged scalar tables and one
-shared-grid radial-profile family. Lookup policies, substitution, and linear
-transfer intentionally remain scalar-only; radial profiles are never completed
-by correlation or neighboring-element substitution.
+[Start with the quickstart](https://delonecommons.github.io/atomref/guide/quickstart/)
+or open the [complete API reference](https://delonecommons.github.io/atomref/api/).
 
-## Why this exists
+## What it solves
 
-Scientific software often wants a complete lookup table, but the best dataset
-for the job is rarely complete. `atomref` makes that situation explicit.
-Instead of hiding ad hoc defaults inside algorithm code, you choose a target
-set, describe how missing values may be restored, and keep provenance on what
-was actually returned.
+- **Bond and contact geometry:** select named covalent and van der Waals radii
+  instead of scattering constants through structure code.
+- **Hydrogen normalization:** obtain provisional, provenance-aware X–H target
+  lengths keyed by the parent element.
+- **Incomplete reference tables:** use explicit substitution or fitted transfer
+  policies and inspect how a value was obtained.
+- **Free-atom density sampling:** evaluate immutable neutral H–Lr spherical
+  profiles with explicit coordinate and density units over a strict 0–20 bohr
+  domain.
+- **Pairwise reference-atom models:** choose a stable proatomic boundary or an
+  explicitly cutoff-bounded promolecular-minimum proxy without presenting
+  either as an exact molecular QTAIM surface.
 
-The built-in default behavior is intentionally simple and practical:
-
-- **Cordero covalent radii** (`cordero2008`) are the preferred covalent target
-  set, with missing values substituted from the **legacy CSD covalent radii**
-  (`csd_legacy_cov`).
-- **Alvarez van der Waals radii** (`alvarez2013`) are the preferred vdW target
-  set, with missing values restored from the **Rahm isodensity atomic radii**
-  (`rahm2016`) through a fitted linear transfer.
-- **CSD/ConQuest hydrogen-normalisation defaults** (`csd_legacy_xh_cno`) are a
-  provisional sparse X–H target set for `C`, `N`, and `O`, with other parent
-  elements inferred from **Cordero covalent radii** through a fitted linear
-  transfer.
-
-Nested policy predictors are supported too. `LinearTransfer` separates
-**fit-time** use of nested predictor values from **prediction-time** use. By default, the fit may use only direct nested
-values, while the final requested element may still use one additional
-nested completion step. That is a useful compromise for workflows such as
-provisional X–H inference from a chosen covalent-radii policy.
-
-## Quick example
+Most convenience functions come in two forms:
 
 ```pycon
 >>> import atomref as ar
->>> ar.get_covalent_radius("C")
-0.76
->>> ar.get_vdw_radius("O")
-1.5
->>> ar.get_xh_bond_length("N")
-1.015
->>> lookup = ar.lookup_vdw_radius("Pm")
->>> lookup.value
+>>> ar.get_vdw_radius("Pm")
 2.8972265395148358
->>> lookup.source
-'transfer_linear'
->>> lookup.transfer_depth
-1
->>> lookup.resolved_from
+>>> result = ar.lookup_vdw_radius("Pm")
+>>> result.source, result.transfer_depth
+('transfer_linear', 1)
+>>> result.resolved_from
 (DatasetRef(quantity='atomic_radius', set_id='rahm2016'),)
->>> ar.get_proatomic_density("O", 0.75)
-0.1141799693379811
->>> boundary = ar.estimate_proatomic_boundary("C", "O", 1.5, distance_unit="bohr")
->>> boundary.method, boundary.status
-('equal_proatom_density', 'ok')
 ```
 
-`get_*` returns only the number. `lookup_*` returns a `LookupResult` that also
-records where the value came from, whether a transfer model or policy source was
-involved, and how many transfer steps were needed (`transfer_depth`).
+`get_*` returns the selected number. `lookup_*` returns a typed `LookupResult`
+with the source, supporting datasets, placeholder state, fit information, and
+transfer depth.
 
-You can inspect the packaged quantity and dataset catalog directly:
+## Why adopt `atomref`?
 
-```pycon
->>> import atomref as ar
->>> ar.list_quantities()
-('covalent_radius', 'van_der_waals_radius', 'atomic_radius', 'xh_bond_length', 'proatomic_density')
->>> ar.get_quantity_info("xh_bond_length")
-QuantityInfo(quantity='xh_bond_length', domain='element', units='angstrom', description='Element-indexed reference X-H bond lengths keyed by parent element X and intended for hydrogen-position normalisation or related geometry workflows.')
->>> [info.ref.set_id for info in ar.list_dataset_infos("van_der_waals_radius", usage_role="target")]
-['bondi1964', 'rowland_taylor1996', 'alvarez2013', 'chernyshov2020']
+A local constants file is easy to start and difficult to maintain. It usually
+accumulates uncited values, silent replacements for missing elements, ambiguous
+units, and behavior that cannot be reviewed independently of the consuming
+algorithm. `atomref` keeps those concerns in one versioned layer:
+
+- every packaged dataset has a stable identifier, coverage metadata, and
+  bibliographic provenance;
+- lookup rules are explicit and deterministic rather than hidden in callers;
+- direct, substituted, fitted, fallback, placeholder, and missing results stay
+  distinguishable;
+- public types, units, valid ranges, and failure behavior are documented;
+- packaged data and attribution are checked in both wheel and source
+  distributions;
+- the dependency-free runtime can be embedded in lightweight scientific tools.
+
+The package does not claim that one table or policy is universally correct. It
+makes the selected reference and the assumptions around it visible.
+
+## Installation choices
+
+The base install is sufficient for every runtime API:
+
+```bash
+pip install atomref
 ```
 
-You can also load a packaged set directly:
+Install the notebook extra to run the shipped Jupyter examples and their plots:
 
-```pycon
->>> import atomref as ar
->>> vdw = ar.get_radii_set("van_der_waals", "alvarez2013")
->>> vdw.get("O")
-1.5
->>> xh = ar.get_xh_set("csd_legacy_xh_cno")
->>> xh.get("C")
-1.089
->>> info = ar.get_proatomic_density_set_info()
->>> radial = ar.get_builtin_set(info.ref)
->>> type(radial).__name__
-'ElementRadialSet'
+```bash
+pip install "atomref[notebook]"
 ```
 
-The proatomic profiles are isolated neutral spherical references, not molecular
-electron densities. Pairwise `boundary` mode is the stable default. Optional
-`minimum` mode searches only above the fixed `1e-4 electron/bohr^3` per-atom
-tail cutoff and has a practical resolution of `0.01 bohr`; it may return an
-explicit diagnostic status without a coordinate. See the
-[proatomic-density guide](https://delonecommons.github.io/atomref/guide/proatomic_density/)
-for the 20-bohr domain, units, provenance, mode selection, and physical
-limitations.
+Install all current user-facing optional features with:
 
-## Notebook walkthroughs
+```bash
+pip install "atomref[all]"
+```
 
-The repository ships example notebooks for the main workflows. The first three
-are also available as rendered Markdown pages. The `0.2.0` proatomic notebooks
-are saved, executed source artifacts with outputs and plots.
+Contributor test, lint, build, upload, and release tools are intentionally not
+part of `all`. See the [installation guide](https://delonecommons.github.io/atomref/guide/install/)
+for development setup.
+
+## Data, provenance, and scientific scope
+
+The scalar catalog includes named covalent, van der Waals, atomic-isodensity,
+and provisional X–H datasets. Registry metadata separates the requested
+quantity from scientific classification and from whether a dataset is a direct
+target or transfer support.
+
+The neutral proatomic profiles are a deterministic consumer snapshot of
+`atomref-proatoms` 2.0.0 dataset
+`pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`. They cover H–Lr and record the PBE0,
+self-consistent spherical fractional-occupation UKS, spin-free one-electron
+X2C, and dyall-v4z definition, source hashes, CC BY 4.0 data license, and both
+concept and version-specific DOIs.
+
+These profiles are isolated, neutral, spherical reference atoms—not molecular
+electron densities. Density evaluation is scalar, and the public radius domain
+is exactly 0–20 bohr. Pairwise `boundary` mode is the stable default. Optional
+`minimum` mode searches only where both proatoms remain above
+`1e-4 electron/bohr^3`, has a declared `0.01 bohr` resolution, and may return a
+typed diagnostic without a coordinate.
+
+- [Dataset catalog and provenance](https://delonecommons.github.io/atomref/datasets/)
+- [Proatomic-density and pairwise scientific guide](https://delonecommons.github.io/atomref/guide/proatomic_density/)
+- [Policy guide](https://delonecommons.github.io/atomref/guide/policies/)
+- [Explicit non-goals](https://delonecommons.github.io/atomref/guide/non_goals/)
+
+## Executable notebook documentation
+
+The documentation renders the actual committed `.ipynb` files directly,
+including Markdown, code, mathematics, saved text, and saved PNG plots. Site
+builds do not execute or rewrite them; a separate temporary Jupyter smoke check
+verifies that their code still runs.
 
 - [Notebook overview](https://delonecommons.github.io/atomref/guide/notebooks/)
 - [Quickstart notebook](https://delonecommons.github.io/atomref/notebooks/01-quickstart/)
 - [Policies and assessment notebook](https://delonecommons.github.io/atomref/notebooks/02-policies-and-assessment/)
 - [Custom sets and discovery notebook](https://delonecommons.github.io/atomref/notebooks/03-custom-sets-and-discovery/)
-- [IAS method-selection study](https://delonecommons.github.io/atomref/dev/ias_method_selection/)
-- [Executed proatomic density and IAS feature notebook](https://github.com/DeloneCommons/atomref/blob/main/notebooks/05-proatomic-density-and-ias.ipynb)
+- [IAS method-selection study](https://delonecommons.github.io/atomref/notebooks/04-ias-method-selection-study/)
+- [Proatomic density and IAS workflows](https://delonecommons.github.io/atomref/notebooks/05-proatomic-density-and-ias/)
+
+## Dataset and policy discovery
+
+The lower-level registry is available when an application needs to choose or
+report an exact source:
+
+```pycon
+>>> import atomref as ar
+>>> ar.list_quantities()
+('covalent_radius', 'van_der_waals_radius', 'atomic_radius', 'xh_bond_length', 'proatomic_density')
+>>> [info.ref.set_id for info in ar.list_dataset_infos(
+...     "van_der_waals_radius", usage_role="target"
+... )]
+['bondi1964', 'rowland_taylor1996', 'alvarez2013', 'chernyshov2020']
+>>> profile_info = ar.get_proatomic_density_set_info()
+>>> profile_info.ref.set_id
+'pbe0_sfx2c_dyallv4z_h-lr_neutral_v2'
+```
+
+Custom element-indexed scalar sets can participate in the same policy layer.
+Radial profiles deliberately do not: no scalar `ValuePolicy`, neighboring-
+element substitution, or fitted correlation is applied to density data.
 
 ## Relationship to Delone Commons
 
-`atomref` is designed as a standalone package, but within Delone Commons it is
-primarily intended to support chemistry-aware packages such as:
+`atomref` is a standalone package. Within Delone Commons it is intended for
+chemistry-aware consumers such as `molcryst` and future `chemvoro` workflows.
+General mathematical packages such as `pyvoro2` and `pbcgraph` remain
+independent of atomic-reference policy.
 
-- `molcryst`, for covalent-bond detection, contact analysis, and hydrogen workflows,
-- future `chemvoro`, for chemistry-aware contact and hydrogen workflows.
+## Maintainer checks
 
-By contrast, `pyvoro2` and `pbcgraph` are intentionally general mathematical
-packages and are not direct consumers of `atomref`.
+The repository keeps a small set of release tools:
 
-## Data curation and developer tools
-
-The repository also ships small maintenance tools. The most important ones are:
-
-- `python tools/check_registry.py` — validate curated registry metadata against
-  every packaged scalar and radial payload,
-- `python tools/check_notebooks.py` — validate saved release-notebook state and
-  execute notebook code cells,
-- `python tools/export_notebooks.py` — turn notebooks into Markdown pages for
-  the docs,
-- `python tools/gen_readme.py` — regenerate `README.md` from this page,
-- `python tools/release_check.py` — run the full release-preparation checklist,
-  including linting, tests, docs, builds, and artifact validation.
+- `python tools/check_registry.py` validates registry metadata against every
+  packaged scalar and radial payload;
+- `python tools/check_notebooks.py` smoke-executes temporary notebook copies
+  through a standard Jupyter kernel and discards the results;
+- `python tools/gen_readme.py` regenerates this README from `docs/index.md`;
+- `python tools/release_check.py` runs lint, tests, strict docs, distribution
+  checks, and clean artifact-installation checks.
 
 See the [tools README](https://github.com/DeloneCommons/atomref/blob/main/tools/README.md)
-for a short description of each script.
+for the maintainer-only data snapshot workflow and command details.
 
 ---
 

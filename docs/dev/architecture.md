@@ -119,3 +119,17 @@ The package deliberately avoids a large object graph or a chemistry-specific DSL
 A quantity wrapper is usually only a thin adapter over the generic policy core.
 That keeps the internals easy to test and lets other scientific packages reuse
 `atomref` without bringing in the rest of the Delone Commons stack.
+
+## Documentation and distribution boundary
+
+The five files under `docs/notebooks/` are both the maintained Jupyter sources
+and their documentation pages. `mkdocs-jupyter` renders their committed state
+with execution disabled; `tools/check_notebooks.py` exercises temporary copies
+through `nbclient` and discards the results. There is no exporter, generated
+notebook Markdown, source-copy step, or output-freshness contract.
+
+The wheel remains a focused runtime artifact containing package code, typing
+metadata, legal notices, and curated data. The source distribution additionally
+contains tests, tools, durable documentation, and the single notebook sources.
+Base, `notebook`, and `all` installations are validated from the built wheel in
+separate temporary environments during release preparation.

@@ -13,9 +13,14 @@ It is **not** trying to be:
 - an environment-specific chemistry model,
 - a machine-learning framework for extrapolating unseen chemistry.
 
-The package is about **curated reference data and explicit lookup policies**.
-That includes provenance, transfer from broader support datasets, and stable API
-surfaces that higher-level scientific code can rely on.
+The package is about **curated atomic references and explicit selection or
+model semantics**. That includes provenance-aware scalar lookup, transfer from
+broader support datasets, frozen neutral spherical proatomic profiles, and the
+two documented pairwise reference-atom modes.
+
+The pairwise helpers are not molecular electron-density calculations or exact
+QTAIM surfaces. Radial data are not completed through scalar policy,
+correlation, or neighboring-element substitution.
 
 Future versions may widen the range of supported *reference-data families*, but
 the package should still remain a small reference-data layer rather than a full

@@ -65,7 +65,6 @@ nav:
       - Architecture: dev/architecture.md
       - Data curation: dev/data_curation.md
       - IAS method selection: dev/ias_method_selection.md
-      - Development plan: dev/dev_plan.md
   - API:
       - Overview: api/index.md
       - atomref: api/atomref.md

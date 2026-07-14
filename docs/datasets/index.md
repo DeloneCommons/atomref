@@ -56,4 +56,4 @@ separately from the `atomref` code license. Cite both the
 - [van der Waals radius](van_der_waals_radius.md)
 - [Atomic radius](atomic_radius.md)
 - [X–H bond length](xh_bond_length.md)
-- Proatomic density
+- [Proatomic density](../guide/proatomic_density.md)

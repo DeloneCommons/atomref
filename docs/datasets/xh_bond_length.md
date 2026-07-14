@@ -34,6 +34,7 @@ That means the package draws a sharp line between:
 
 ## Scope note
 
-This is intentionally a small addendum rather than full X–H support.
-Broader X–H datasets, richer policies, and more complete literature treatment
-are planned for `0.2.x`.
+This is intentionally a small feature rather than a complete literature model
+of X–H bonding. `0.2.1` retains the accepted sparse target and explicit fitted
+policy; it does not add broader X–H datasets or claim environment-specific bond
+lengths.
