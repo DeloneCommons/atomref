@@ -2446,77 +2446,163 @@ chore: prepare atomref 0.2.0
 
 Do not start these stages until `0.2.0` is accepted.
 
-### Stage 6 — Notebook infrastructure and content overhaul
+### Stage 6 — Complete API docs, adoption-oriented README, notebook documentation, packaging, and `0.2.1` release
 
 #### Goal
 
-Make notebooks true executable documentation with saved, verifiable rich
-outputs while reducing duplicate files and tools.
+Make the package immediately understandable and attractive to both new users and
+developers while preserving accurate scientific claims and the lightweight
+runtime.
+
+This stage is a documentation, packaging, and release-hardening stage. It MUST
+NOT change density values, cutoff radii, pairwise mode semantics, selected
+coordinates, or other accepted scientific behavior except to fix a confirmed
+defect with an explicit changelog entry and regression test.
+
+#### Documentation and adoption principle
+
+The README and documentation home page are the main adoption surface for a
+developer deciding whether to implement the required atomic-reference logic
+independently or use `atomref`.
+
+They must be technically accurate, but accuracy alone is not sufficient. A new
+visitor should be able to determine quickly:
+
+- what practical problems `atomref` solves;
+- which capabilities are available now;
+- why the package is preferable to embedding ad hoc constants, datasets, and
+  fallback logic in another project;
+- that the core runtime remains small and dependency-free;
+- how to install it;
+- how to perform one useful operation immediately;
+- where to find detailed provenance, scientific assumptions, limitations, and
+  API documentation.
+
+Use an adoption-oriented or marketability-aware presentation without hype,
+unsupported comparison, or concealment of limitations. Lead with user problems,
+working examples, and concrete benefits. Move internal terminology, complete
+dataset inventories, nested-policy mechanics, and detailed caveats below the
+first-use path or into dedicated documentation.
+
+#### Notebook policy and direct rendering
+
+Notebooks are narrative examples, how-to material, and occasionally
+supporting-information-style analyses. They are not the canonical
+implementation or a release-defining exact-reproducibility layer.
+
+Replace the current generated-Markdown notebook path with direct rendering of
+the actual `.ipynb` files through `mkdocs-jupyter`.
+
+The direct-rendering design MUST:
+
+- render committed notebook Markdown, code, saved text output, and saved plots
+  inside the MkDocs site;
+- render ordinary Jupyter inline and display mathematics, including `$...$` and
+  `$$...$$`, under the current Material theme;
+- use the committed outputs during documentation builds rather than executing
+  notebooks as part of `mkdocs build`;
+- keep only one copy of each notebook and one documentation representation;
+- add no staging, cache, generated-output, or parallel notebook directory to the
+  repository;
+- remove generated `docs/notebooks/*.md` copies and the custom Markdown exporter;
+- preserve direct links to the source notebook where useful;
+- avoid an output-freshness, normalized-output, or byte-for-byte reproducibility
+  contract.
+
+Because MkDocs pages normally belong under the configured documentation source,
+the preferred file layout is to move the actual notebooks from the root
+`notebooks/` directory into the existing `docs/notebooks/` directory, replacing
+the generated Markdown files there. Do not retain duplicate root-level notebook
+copies, symlinks, or a copy step. If a simpler supported configuration renders
+the existing root-level notebooks directly without duplication or staging, that
+configuration MAY be used instead.
+
+Configure `mkdocs-jupyter` with notebook execution disabled for ordinary and
+strict documentation builds. The built site must therefore reflect the outputs
+committed in the notebook files and must not silently rewrite them.
+
+Notebook code should still receive one separate smoke-execution check using
+standard Jupyter tooling such as `nbclient` or `nbconvert`, not the current
+custom JSON-plus-`exec()` approximation. Execute temporary copies or write the
+results only to a temporary output directory, fail on notebook exceptions, and
+discard the produced notebooks after the check. Do not compare generated
+outputs with committed outputs and do not modify the committed notebooks.
+
+The smoke check should run once on the primary CI Python version, not through
+every Python version in the ordinary test matrix. A small wrapper in `tools/`
+MAY remain when it makes the command portable and keeps `release_check.py`
+simple, but it should delegate execution to standard Jupyter tooling rather
+than implement notebook semantics itself.
+
+All direct notebook dependencies MUST be declared in the existing `notebook`
+optional-dependency group, including `mkdocs-jupyter`, the execution tool used by
+the smoke check, `matplotlib`, and any kernel package explicitly required by the
+repository. The same dependency entries MUST be duplicated in `all`. They MUST
+NOT become core runtime dependencies. The documentation workflow should install
+both `docs` and `notebook` extras.
+
+If a focused local prototype demonstrates that `mkdocs-jupyter` cannot render
+inline and display mathematics correctly with the current Material theme, stop
+that implementation and use standard `nbconvert` output as the fallback. Do not
+maintain both rendering systems. The fallback must still remove the bespoke
+exporter, use one standard conversion path, and avoid exact output-freshness
+requirements.
+
+Notebook prose or stored outputs should be changed only when needed to fix a
+broken, stale, or misleading user-facing example discovered during the
+transition or documentation audit.
 
 #### Required changes
 
-1. Add notebook/documentation optional dependencies:
-   - `nbformat`;
-   - `nbclient` or `nbconvert`;
-   - `ipykernel`;
-   - `matplotlib`;
-   - `mkdocs-jupyter`.
-2. Rewrite one existing notebook tool to support execution/update/check modes.
-3. Execute and save all notebooks.
-4. Add explanatory Markdown before every logical code section.
-5. Render actual `.ipynb` files directly in MkDocs.
-6. Remove generated `docs/notebooks/*.md`.
-7. Remove `tools/export_notebooks.py`.
-8. Remove export-sync tests and CI steps.
-9. Add normalized execution-freshness checks.
-10. Ensure plots render on the documentation site.
-
-#### Preferred command model
-
-```bash
-python tools/check_notebooks.py --write
-python tools/check_notebooks.py --check
-```
-
-The exact name may remain `check_notebooks.py` even though write mode is
-supported, to avoid another file.
-
-#### Completion criteria
-
-- every notebook is executed and saved;
-- re-execution reproduces committed normalized outputs;
-- plots are visible in MkDocs;
-- no generated Markdown notebook copies remain;
-- notebook prose is suitable for learning, not only smoke testing;
-- the number of notebook tools/files is reduced.
-
-#### Suggested commit
-
-```text
-docs: make notebooks executable documentation
-```
-
----
-
-### Stage 7 — Complete API docs, README, and `0.2.1` release
-
-#### Goal
-
-Make the documentation immediately useful to both new users and developers.
-
-#### Required changes
-
-1. Configure `mkdocstrings` for full typed signatures and structured sections.
+1. Configure `mkdocstrings` for complete typed signatures and structured
+   documentation sections.
 2. Rewrite all intended public docstrings in one consistent style.
-3. Verify every public parameter, return value, raised error, unit, and
-   important attribute appears in rendered API docs.
-4. Review API page member selection.
-5. Rewrite `docs/index.md` for product positioning and regenerate `README.md`.
-6. Improve quickstart flow.
-7. Remove `docs/dev/dev_plan.md` and its navigation item.
-8. Ensure architecture and data-curation docs match the final code.
-9. Update changelog and version to `0.2.1`.
-10. Simplify CI commands after removing notebook Markdown export.
+3. Verify every public parameter, return value, raised error, unit, valid range,
+   and important attribute appears correctly in rendered API documentation.
+4. Review API-page member selection so every intended public function, class,
+   method, and dataclass is documented without exposing irrelevant internals.
+5. Rewrite `docs/index.md` as a clear product introduction and regenerate
+   `README.md` from it.
+6. Improve the quickstart path so installation and a useful first result appear
+   before detailed architecture or policy terminology.
+7. Replace generated notebook Markdown with direct `.ipynb` rendering through
+   `mkdocs-jupyter`, following the notebook policy above.
+8. Move the actual notebooks into the existing MkDocs source tree when required
+   for direct rendering, while retaining only one copy of each notebook.
+9. Remove `tools/export_notebooks.py`, generated notebook Markdown files,
+   export-sync tests, and the corresponding CI/release-check commands.
+10. Replace the custom `exec()`-based notebook check with one temporary
+    Jupyter-based smoke-execution path, or reduce the existing wrapper to a thin
+    delegation layer.
+11. Verify that inline mathematics, display mathematics, saved text output, and
+    saved PNG plots render correctly in the strict MkDocs build.
+12. Keep notebook execution disabled in `mkdocs-jupyter`; documentation builds
+    render committed outputs and do not rewrite source notebooks.
+13. Add an `all` optional-dependency group containing the union of all
+    user-facing optional feature dependencies. Do not include test, lint,
+    packaging, upload, or release-only tooling in `all`.
+14. Keep every notebook-related dependency in `notebook` and duplicate the same
+    dependency entries in `all`. Keep ordinary documentation dependencies in
+    `docs`, and install `.[docs,notebook]` for documentation builds.
+15. Document at least the lightweight base installation, notebook-capable
+    installation, and complete user-facing installation:
+
+    ```bash
+    pip install atomref
+    pip install "atomref[notebook]"
+    pip install "atomref[all]"
+    ```
+
+16. Remove `docs/dev/dev_plan.md` and its navigation item so the root
+    `DEV_PLAN.md` remains the only development plan.
+17. Ensure architecture, data-curation, notebook-overview, and scientific guide
+    pages match the final code, public names, dataset identity, units, cutoff,
+    mode semantics, and limitations.
+18. Review package description, keywords, project links, and other public
+    metadata for consistency with the complete `0.2.x` feature set.
+19. Update the changelog and version to `0.2.1`.
+20. Validate the base installation, `atomref[notebook]`, and `atomref[all]` from
+    built artifacts in clean environments.
 
 #### API documentation acceptance
 
@@ -2534,20 +2620,60 @@ For every public function/class added or retained:
 
 #### README acceptance
 
-A new visitor should discover within the initial screen:
+A new visitor should discover within the initial screen or immediately following
+it:
 
-- the package purpose;
-- radii, profile, and IAS capabilities;
-- the dependency-free runtime;
-- a compact working example;
-- provenance as a central value;
-- links to installation, notebooks, datasets, and API.
+- a concise statement of what `atomref` does;
+- the concrete developer problems it solves;
+- radii, X–H, proatomic-density, boundary, and IAS-proxy capabilities;
+- the dependency-free core runtime;
+- installation and a compact working example;
+- explicit provenance as a central value;
+- a concise explanation of why using `atomref` is preferable to maintaining
+  project-local constants and fallback rules;
+- links to the quickstart, datasets/provenance, notebooks, scientific guidance,
+  and API reference.
+
+The opening MUST NOT require a newcomer to understand the internal registry,
+policy, transfer, or dataset taxonomy before seeing the package's value and a
+working example. Limitations must remain honest and visible, but should be
+placed near the affected feature rather than overwhelming the first-use path.
+
+#### Notebook documentation acceptance
+
+- each notebook has exactly one maintained `.ipynb` source file;
+- the actual notebooks appear directly in MkDocs navigation;
+- inline and display mathematics render correctly;
+- saved text outputs and PNG plots render correctly;
+- documentation builds do not execute or modify notebooks;
+- a separate temporary Jupyter smoke check fails on execution errors;
+- the smoke check does not compare outputs or enforce freshness;
+- no generated notebook Markdown, custom Markdown exporter, duplicate notebook
+  tree, or committed conversion cache remains;
+- notebook links, source links, packaging checks, and the notebook overview use
+  the final notebook paths.
+
+#### Packaging acceptance
+
+- required runtime dependencies remain empty;
+- existing individual user-facing extras remain usable;
+- every direct notebook dependency is present in `notebook` and duplicated in
+  `all`;
+- `all` is the union of user-facing optional feature dependencies;
+- `all` excludes contributor-only test, lint, build, upload, and release tools;
+- base, `notebook`, and `all` installations succeed from built artifacts in clean
+  environments;
+- installed-package examples use only documented dependencies;
+- wheel and sdist retain all required datasets, attribution, documentation, and
+  notebook artifacts.
 
 #### Final checks
 
+Run the updated project checks, including:
+
 ```bash
 python tools/check_registry.py
-python tools/check_notebooks.py --check
+# Run the final temporary Jupyter notebook smoke-execution command or thin wrapper.
 python tools/gen_readme.py --check
 flake8 src tests tools
 python -m pytest -q
@@ -2555,11 +2681,42 @@ mkdocs build --strict
 python tools/release_check.py
 ```
 
+The obsolete custom Markdown-export command MUST NOT remain. Inspect the strict
+site build and verify at least one inline formula, one display formula, one saved
+text output, and one saved PNG plot from the notebooks.
+
+Also verify the base package, `atomref[notebook]`, and `atomref[all]` by
+installing the built artifacts in clean environments and running the documented
+minimal examples outside the repository checkout.
+
+#### Completion criteria
+
+- complete typed API documentation renders correctly;
+- the README/home page communicates value and first use immediately without
+  overstating the package;
+- a developer considering a local reimplementation can understand the concrete
+  advantages of adopting `atomref`;
+- the actual `.ipynb` notebooks render directly in MkDocs with formulas and
+  saved rich output;
+- notebook smoke execution uses standard Jupyter tooling without introducing an
+  output-freshness contract;
+- generated notebook Markdown, the bespoke exporter, and duplicate notebook
+  representations are removed;
+- base, `notebook`, and `all` optional-dependency installations are coherent,
+  documented, and validated from built artifacts;
+- duplicate development-plan documentation is removed;
+- architecture, scientific guides, package metadata, and changelog match the
+  accepted implementation;
+- strict documentation and full release checks pass;
+- version `0.2.1` is ready for external review and release.
+
 #### Suggested commits
 
 ```text
+docs: render notebooks directly
 docs: complete typed API reference
 docs: reposition atomref documentation
+chore: add complete user extras
 chore: prepare atomref 0.2.1
 ```
 
@@ -2665,27 +2822,55 @@ chore: prepare atomref 0.2.1
 - [ ] Installed wheel loads the radial set, evaluates density, and performs both
       pairwise modes.
 
-### 14.6 `0.2.1` notebook documentation
-
-- [ ] All shipped notebooks are executed and saved.
-- [ ] Re-execution freshness is checked through a Jupyter kernel.
-- [ ] Notebook plots and rich outputs render directly in MkDocs.
-- [ ] Logical code sections have explanatory Markdown.
-- [ ] Generated notebook Markdown copies are removed.
-- [ ] The separate notebook exporter is removed.
-- [ ] One maintained notebook tool handles update and check modes.
-- [ ] CI and docs workflows use the simplified process.
-
-### 14.7 `0.2.1` API and README documentation
+### 14.6 `0.2.1` documentation, notebooks, packaging, and release
 
 - [ ] Full typed signatures render.
-- [ ] All public parameters, defaults, returns, raises, and attributes render.
+- [ ] All public parameters, defaults, returns, raises, units, ranges, and
+      attributes render correctly.
 - [ ] Public docstrings use one structured style.
+- [ ] API-page member selection is complete and excludes irrelevant internals.
 - [ ] API cross-references work.
-- [ ] README/home page explains value immediately.
-- [ ] Working radii, density, boundary-mode, and minimum-mode examples appear near the top.
-- [ ] Detailed policy terminology is moved below first-use content.
+- [ ] README/home page explains the package value immediately.
+- [ ] Installation and a compact working example appear before detailed internal
+      terminology.
+- [ ] Working radii, X–H, density, boundary-mode, and minimum-mode capabilities
+      are discoverable from the opening documentation path.
+- [ ] The README explains honestly why a developer should use `atomref` rather
+      than maintain project-local constants, datasets, and fallback rules.
+- [ ] Detailed policy and registry terminology is moved below first-use content.
+- [ ] Provenance and limitations remain explicit without obscuring the initial
+      adoption path.
+- [ ] `mkdocs-jupyter` renders the actual `.ipynb` files directly in the MkDocs
+      site.
+- [ ] Each notebook has exactly one maintained source file and no parallel
+      Markdown representation.
+- [ ] Inline `$...$` and display `$$...$$` mathematics render correctly with the
+      current Material theme.
+- [ ] Saved text output and saved PNG plots render correctly.
+- [ ] Ordinary and strict documentation builds do not execute or rewrite
+      notebooks.
+- [ ] Notebook code is smoke-executed once through standard Jupyter tooling in a
+      temporary location and execution errors fail the check.
+- [ ] Notebook smoke execution does not compare outputs or enforce freshness,
+      normalization, or byte-for-byte reproducibility.
+- [ ] Generated notebook Markdown files, `tools/export_notebooks.py`, export-sync
+      tests, and obsolete CI/release commands are removed.
+- [ ] No duplicate notebook tree, symlink, staging directory, or committed
+      notebook-conversion cache remains.
+- [ ] Notebook navigation, links, source links, packaging checks, and sdist paths
+      use the final notebook locations.
+- [ ] Every direct notebook dependency is declared in `notebook` and duplicated
+      in `all`.
+- [ ] Documentation CI installs both `docs` and `notebook` extras.
+- [ ] An `all` extra contains every user-facing optional feature dependency.
+- [ ] `all` excludes test, lint, packaging, upload, and release-only dependencies.
+- [ ] Base, `atomref[notebook]`, and `atomref[all]` installations succeed from
+      built artifacts in clean environments.
+- [ ] Documented minimal examples run outside the repository checkout.
 - [ ] Duplicate development-plan docs are removed.
+- [ ] Architecture, data-curation, scientific guides, package metadata, and
+      changelog match the accepted implementation.
+- [ ] Version is `0.2.1`.
 - [ ] Strict docs and full release checks pass.
 
 ## 15. Optional architecture review after `0.2.0`
