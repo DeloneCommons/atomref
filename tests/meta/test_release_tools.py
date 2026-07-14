@@ -43,6 +43,25 @@ def test_dist_check_accepts_pinned_proatomic_snapshot() -> None:
     )
 
 
+def test_dist_check_requires_release_tools_and_legacy_data() -> None:
+    assert "atomref/data/xh_bond_length.csv" in check_dist.REQUIRED_WHEEL_MEMBERS
+    assert "src/atomref/data/xh_bond_length.csv" in (
+        check_dist.REQUIRED_SDIST_SUFFIXES
+    )
+    assert ".flake8" in check_dist.REQUIRED_SDIST_SUFFIXES
+    assert "tools/check_registry.py" in check_dist.REQUIRED_SDIST_SUFFIXES
+    assert "tools/check_dist.py" in check_dist.REQUIRED_SDIST_SUFFIXES
+
+
+def test_sdist_root_readme_cannot_be_satisfied_by_tools_readme() -> None:
+    with pytest.raises(check_dist.DistCheckError, match="root-level 'README.md'"):
+        check_dist._sdist_root_member(
+            {"atomref-0.2.0/tools/README.md"},
+            "README.md",
+            label="test sdist",
+        )
+
+
 def test_dist_check_rejects_changed_snapshot_archive() -> None:
     payload = SNAPSHOT_PATH.read_bytes() + b"altered"
 

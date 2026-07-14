@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.2.0 - 2026-07-14
+
+### Added
+
+- A packaged, immutable neutral H–Lr spherical proatomic-density dataset derived
+  reproducibly from `atomref-proatoms` 2.0.0 dataset
+  `pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`, with exact source, basis, license,
+  hash, and DOI metadata.
+- Cached profile retrieval and dependency-free scalar density evaluation with
+  independent radius and density units, positive-region log–log interpolation,
+  and a strict 0–20 bohr public radius domain.
+- `estimate_proatomic_boundary()` for the stable neutral-proatom divider and
+  `estimate_promolecular_density_minimum()` for the optional cutoff-bounded,
+  resolution-limited promolecular line-density minimum proxy.
+- `estimate_ias_position()` with explicit `boundary` and `minimum` modes;
+  `boundary` is the default and minimum mode never silently falls back to it.
+- Immutable `IASPositionResult` values with coordinates, explicit diagnostic
+  statuses, component densities, cutoff/search information, units, and
+  numerical/data provenance.
+- Executed method-selection and feature notebooks with saved outputs and plots.
+
+### Changed
+
+- `get_builtin_set()` now dispatches both scalar CSV and shared-grid radial ZIP
+  datasets through the same registry machinery. Existing scalar policies,
+  radii values, X–H behavior, and `0.1.x` APIs remain unchanged.
+- The package now identifies itself as version `0.2.0` and includes proatomic
+  density, electron density, interatomic-surface, and IAS discovery keywords.
+
+### Documentation
+
+- Added the neutral proatomic-density and pairwise guide, complete
+  `atomref.proatoms` API reference, exact cutoff/range/unit/status guidance, and
+  links to the saved release notebooks.
+- Updated the home page and architecture description for radial datasets and
+  the accepted two-mode pairwise API without performing the broader planned
+  documentation redesign.
+
+### Packaging
+
+- Included the deterministic proatomic-density ZIP in wheels and source
+  distributions and added independent content validation.
+- Added an optional `notebook` extra for Matplotlib; runtime dependencies remain
+  empty.
+- Extended CI, notebook checks, distribution-content checks, release checks,
+  and clean-wheel smoke tests for density evaluation, both pairwise modes, and
+  dispatcher equivalence.
+
 ## 0.1.4 - 2026-03-15
 
 ### Added

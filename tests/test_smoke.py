@@ -3,9 +3,8 @@ from __future__ import annotations
 import atomref as ar
 
 
-def test_version_is_present() -> None:
-    assert isinstance(ar.__version__, str)
-    assert ar.__version__
+def test_release_version() -> None:
+    assert ar.__version__ == '0.2.0'
 
 
 def test_basic_smoke_import_and_lookup() -> None:

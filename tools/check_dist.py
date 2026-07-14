@@ -15,6 +15,7 @@ REQUIRED_WHEEL_MEMBERS = {
     "atomref/data/covalent.csv",
     "atomref/data/proatomic_density_neutral.zip",
     "atomref/data/van_der_waals.csv",
+    "atomref/data/xh_bond_length.csv",
     "atomref/data/registry.json",
     "atomref/py.typed",
     "dist-info/licenses/NOTICE.md",
@@ -25,6 +26,7 @@ REQUIRED_SDIST_SUFFIXES = {
     "src/atomref/data/covalent.csv",
     "src/atomref/data/proatomic_density_neutral.zip",
     "src/atomref/data/van_der_waals.csv",
+    "src/atomref/data/xh_bond_length.csv",
     "src/atomref/data/registry.json",
     "src/atomref/py.typed",
     "README.md",
@@ -33,14 +35,23 @@ REQUIRED_SDIST_SUFFIXES = {
     "LICENSE",
     "NOTICE.md",
     "pyproject.toml",
+    ".flake8",
     "notebooks/01-quickstart.ipynb",
     "notebooks/02-policies-and-assessment.ipynb",
     "notebooks/03-custom-sets-and-discovery.ipynb",
+    "notebooks/04-ias-method-selection-study.ipynb",
+    "notebooks/05-proatomic-density-and-ias.ipynb",
     "docs/notebooks/01-quickstart.md",
     "docs/notebooks/02-policies-and-assessment.md",
     "docs/notebooks/03-custom-sets-and-discovery.md",
+    "docs/guide/notebooks.md",
+    "docs/guide/proatomic_density.md",
+    "docs/dev/ias_method_selection.md",
+    "docs/api/proatoms.md",
     "tools/build_proatomic_density_snapshot.py",
     "tools/check_notebooks.py",
+    "tools/check_registry.py",
+    "tools/check_dist.py",
     "tools/export_notebooks.py",
     "tools/gen_readme.py",
     "tools/release_check.py",
@@ -61,6 +72,7 @@ EXPECTED_PROATOMIC_SNAPSHOT_SHA256 = (
 EXPECTED_PROATOMIC_CSV_SHA256 = (
     "8478da862233c8874e36d65bb5eb762cdb9cbcb0e0278733c0f425ae00c2dcfe"
 )
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class DistCheckError(RuntimeError):
@@ -103,6 +115,21 @@ def _member_matching_suffix(
     if len(matches) != 1:
         raise DistCheckError(
             f"{label} must contain exactly one member ending in {suffix!r}"
+        )
+    return matches[0]
+
+
+def _sdist_root_member(actual: set[str], filename: str, *, label: str) -> str:
+    """Return one file directly below the sdist's generated root directory."""
+
+    matches = sorted(
+        name
+        for name in actual
+        if name.count("/") == 1 and name.rsplit("/", 1)[-1] == filename
+    )
+    if len(matches) != 1:
+        raise DistCheckError(
+            f"{label} must contain exactly one root-level {filename!r}"
         )
     return matches[0]
 
@@ -195,6 +222,18 @@ def check_sdist(path: Path) -> None:
         names = {member.name for member in tf.getmembers()}
         matched = _members_matching_suffixes(names, REQUIRED_SDIST_SUFFIXES)
         _assert_members_present(matched, REQUIRED_SDIST_SUFFIXES, label=path.name)
+
+        readme_member = _sdist_root_member(names, "README.md", label=path.name)
+        readme_file = tf.extractfile(readme_member)
+        if readme_file is None:
+            raise DistCheckError(
+                f"{path.name} member {readme_member!r} is not a regular file"
+            )
+        if readme_file.read() != (REPO_ROOT / "README.md").read_bytes():
+            raise DistCheckError(
+                f"{path.name} member {readme_member!r} does not exactly match "
+                "the source README.md"
+            )
 
         snapshot_member = _member_matching_suffix(
             names,
