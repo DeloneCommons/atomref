@@ -1,4 +1,4 @@
-"""Public package exports for :mod:`atomref`."""
+"""Public package exports for `atomref`."""
 
 from .__about__ import __version__
 from .elements import (

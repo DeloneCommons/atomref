@@ -26,6 +26,7 @@ from .registry import (
 from .transfer import LinearTransfer, TransferModel
 
 XHSet = ElementScalarSet
+"""Typing alias for an immutable parent-element X-H bond-length dataset."""
 
 _QUANTITY = "xh_bond_length"
 
@@ -34,9 +35,25 @@ _QUANTITY = "xh_bond_length"
 class XHPolicy:
     """Policy wrapper specialized for parent-element X-H bond lengths.
 
-    The quantity key is fixed to ``"xh_bond_length"`` and uses the parent
-    element ``X`` as the lookup key. ``H`` itself is not considered a valid
-    parent element for this quantity.
+    Attributes:
+        base_set: Packaged X-H set ID or custom
+            [ElementScalarSet][atomref.registry.ElementScalarSet].
+        transfers: Ordered substitution or linear-transfer rules. Defaults to
+            no transfers.
+        overrides: Explicit finite, nonnegative parent-element values checked
+            before the base set. Defaults to an empty mapping.
+        fallback: Final finite, nonnegative value, or `None`. Defaults to `None`.
+
+    Examples:
+        >>> policy = XHPolicy(base_set="csd_legacy_xh_cno")
+        >>> get_xh_bond_length("C", policy=policy)
+        1.089
+
+    Notes:
+        The quantity key is fixed to ``"xh_bond_length"`` and uses parent
+        element X as its lookup key. H, D, and T are not valid parent elements.
+        Packaged values are in angstrom. Custom sources and policy values must
+        use compatible units because policies perform no unit conversion.
     """
 
     base_set: str | XHSet
@@ -45,7 +62,17 @@ class XHPolicy:
     fallback: float | None = None
 
     def as_value_policy(self) -> ValuePolicy[str]:
-        """Convert the X-H policy into the generic scalar-value policy."""
+        """Convert this wrapper into the generic scalar policy.
+
+        Returns:
+            An element-domain [ValuePolicy][atomref.policy.ValuePolicy] with
+            hydrogen blocked as a parent.
+
+        Raises:
+            DatasetError: If a packaged set is unknown or non-scalar.
+            PolicyError: If the base quantity, override, or fallback is invalid,
+                or if H/D/T is used as an override parent.
+        """
 
         if isinstance(self.base_set, ElementScalarSet):
             if self.base_set.ref.quantity != _QUANTITY:
@@ -109,25 +136,67 @@ def _normalize_xh_symbol(symbol: str | None) -> str | None:
 
 
 def list_xh_sets(*, usage_role: str | None = None) -> tuple[str, ...]:
-    """List packaged X-H set ids."""
+    """List packaged X-H set IDs.
+
+    Args:
+        usage_role: Optional case-insensitive metadata-role filter.
+
+    Returns:
+        Canonical set IDs in curated registry order.
+
+    Raises:
+        DatasetError: If registry metadata is malformed.
+    """
 
     return list_dataset_ids(_QUANTITY, usage_role=usage_role)
 
 
 def list_xh_set_infos(*, usage_role: str | None = None) -> tuple[DatasetInfo, ...]:
-    """Return packaged metadata objects for X-H sets."""
+    """Return packaged metadata objects for X-H sets.
+
+    Args:
+        usage_role: Optional case-insensitive metadata-role filter.
+
+    Returns:
+        Immutable [DatasetInfo][atomref.registry.DatasetInfo] objects in curated
+        registry order.
+
+    Raises:
+        DatasetError: If registry metadata is malformed.
+    """
 
     return list_dataset_infos(_QUANTITY, usage_role=usage_role)
 
 
 def get_xh_set_info(set_id: str) -> DatasetInfo:
-    """Return metadata for one packaged X-H set."""
+    """Return metadata for one packaged X-H set.
+
+    Args:
+        set_id: Canonical packaged set ID or accepted alias.
+
+    Returns:
+        Curated metadata, including angstrom units and provenance.
+
+    Raises:
+        DatasetError: If the set is unknown or metadata is malformed.
+    """
 
     return get_dataset_info(DatasetRef(_QUANTITY, set_id))
 
 
 def get_xh_set(set_id: str) -> XHSet:
-    """Load one packaged X-H set as an :class:`ElementScalarSet`."""
+    """Load one packaged X-H set as an
+    [ElementScalarSet][atomref.registry.ElementScalarSet].
+
+    Args:
+        set_id: Canonical packaged set ID or accepted alias.
+
+    Returns:
+        A cached immutable parent-element set in angstrom.
+
+    Raises:
+        DatasetError: If the set is unknown, malformed, or non-scalar.
+    """
 
     return resolve_scalar_dataset_like(DatasetRef(_QUANTITY, set_id))
 
@@ -137,7 +206,26 @@ def lookup_xh_bond_length(
     *,
     policy: XHPolicy | None = None,
 ) -> LookupResult:
-    """Resolve a parent-element X-H bond length with provenance."""
+    """Resolve a parent-element X-H bond length with provenance.
+
+    Args:
+        symbol: Parent-element token, or `None`. H/D/T are explicitly blocked.
+        policy: X-H policy; `None` selects
+            [DEFAULT_XH_POLICY][atomref.DEFAULT_XH_POLICY].
+
+    Returns:
+        Lookup result whose value is in angstrom, or an explicit missing result.
+        A blocked hydrogen parent includes an explanatory note.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If policy or transfer configuration is invalid.
+
+    Examples:
+        >>> result = lookup_xh_bond_length("C")
+        >>> result.value, result.source
+        (1.089, 'base')
+    """
 
     active = DEFAULT_XH_POLICY if policy is None else policy
     lookup = _lookup_value_from_policy_source(symbol, source=active)
@@ -156,7 +244,20 @@ def get_xh_bond_length(
     *,
     policy: XHPolicy | None = None,
 ) -> float | None:
-    """Return only the selected X-H bond-length value, without provenance."""
+    """Return only the selected parent-element X-H bond length.
+
+    Args:
+        symbol: Parent-element token, or `None`. H/D/T are explicitly blocked.
+        policy: X-H policy; `None` selects
+            [DEFAULT_XH_POLICY][atomref.DEFAULT_XH_POLICY].
+
+    Returns:
+        Selected bond length in angstrom, or `None` when resolution is missing.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If policy or transfer configuration is invalid.
+    """
 
     active = DEFAULT_XH_POLICY if policy is None else policy
     return _get_value_from_policy_source(symbol, source=active)

@@ -19,8 +19,25 @@ plugins:
         python:
           paths: [src]
           options:
+            docstring_style: google
             show_root_heading: true
             show_source: false
+            show_signature: true
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            annotations_path: brief
+            show_docstring_parameters: true
+            show_docstring_returns: true
+            show_docstring_raises: true
+            show_docstring_attributes: true
+            show_docstring_examples: true
+            docstring_options:
+              returns_multiple_items: false
+            filters:
+              - "!^_[^_]"
+              - "!^__post_init__$"
 
 nav:
   - Home: index.md
@@ -53,6 +70,7 @@ nav:
       - Overview: api/index.md
       - atomref: api/atomref.md
       - atomref.elements: api/elements.md
+      - atomref.errors: api/errors.md
       - atomref.registry: api/registry.md
       - atomref.transfer: api/transfer.md
       - atomref.policy: api/policy.md

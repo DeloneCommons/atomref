@@ -8,26 +8,32 @@ documented because they expose the actual data model behind the package.
 
 ## Common tasks
 
-- get a single value: use `get_covalent_radius(...)`, `get_vdw_radius(...)`, or
-  `get_xh_bond_length(...)`
-- evaluate a neutral proatomic profile or pairwise estimate: use
-  `get_proatomic_density(...)`, `estimate_proatomic_boundary(...)`, or
-  `estimate_promolecular_density_minimum(...)`
-- inspect provenance: use `lookup_covalent_radius(...)`,
-  `lookup_vdw_radius(...)`, `lookup_xh_bond_length(...)`, or the generic
-  `lookup_value(...)`
-- browse packaged datasets: use `list_quantities()`, `get_quantity_info(...)`,
-  `list_dataset_infos(...)`, `list_radii_set_infos(...)`, or
-  `list_xh_set_infos(...)`
-- load a packaged set directly: use `get_builtin_set(...)`, `get_radii_set(...)`,
-  or `get_xh_set(...)`
-- define a custom set: use `ElementScalarSet.from_mapping(...)`
-- define transfer-backed lookup behavior: use `ValuePolicy`, `RadiiPolicy`,
-  `XHPolicy`, `SubstitutionTransfer`, and `LinearTransfer`
+- get a single value: use
+  [`get_covalent_radius()`][atomref.get_covalent_radius],
+  [`get_vdw_radius()`][atomref.get_vdw_radius], or
+  [`get_xh_bond_length()`][atomref.get_xh_bond_length]
+- evaluate a neutral profile or pairwise estimate: use
+  [`get_proatomic_density()`][atomref.get_proatomic_density],
+  [`estimate_proatomic_boundary()`][atomref.estimate_proatomic_boundary], or
+  [`estimate_promolecular_density_minimum()`][atomref.estimate_promolecular_density_minimum]
+- inspect provenance with the corresponding `lookup_*` function or the generic
+  [`lookup_value()`][atomref.lookup_value]
+- browse packaged datasets with [`list_quantities()`][atomref.list_quantities],
+  [`get_quantity_info()`][atomref.get_quantity_info], or a quantity-specific
+  metadata-listing helper
+- load a packaged set directly with
+  [`get_builtin_set()`][atomref.get_builtin_set]
+- define a custom set with
+  [`ElementScalarSet.from_mapping()`][atomref.ElementScalarSet.from_mapping]
+- configure transfer-backed lookup with [ValuePolicy][atomref.ValuePolicy],
+  [RadiiPolicy][atomref.RadiiPolicy], [XHPolicy][atomref.XHPolicy],
+  [SubstitutionTransfer][atomref.SubstitutionTransfer], and
+  [LinearTransfer][atomref.LinearTransfer]
 
 ## Module reference
 
 - [Top-level package](atomref.md)
+- [Exceptions](errors.md)
 - [Elements](elements.md)
 - [Registry and packaged datasets](registry.md)
 - [Transfer models](transfer.md)

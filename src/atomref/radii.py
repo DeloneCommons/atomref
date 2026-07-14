@@ -28,7 +28,10 @@ from .registry import (
 from .transfer import LinearFit, LinearTransfer, SubstitutionTransfer, TransferModel
 
 RadiiKind = Literal["covalent", "van_der_waals"]
+"""Supported radii quantity selector."""
+
 RadiiSet = ElementScalarSet
+"""Typing alias for an immutable element-indexed radii dataset."""
 
 
 _KIND_TO_QUANTITY = {
@@ -41,8 +44,26 @@ _KIND_TO_QUANTITY = {
 class RadiiPolicy:
     """Policy wrapper specialized for radii lookup.
 
-    ``kind`` determines the target quantity, while the remaining fields mirror
-    the generic :class:`atomref.policy.ValuePolicy` interface.
+    Attributes:
+        kind: Target radii quantity, ``"covalent"`` or ``"van_der_waals"``.
+        base_set: Packaged set ID or custom
+            [ElementScalarSet][atomref.registry.ElementScalarSet].
+        transfers: Ordered substitution or linear-transfer rules. Defaults to
+            no transfers.
+        overrides: Explicit finite, nonnegative element values checked before
+            the base set. Defaults to an empty mapping.
+        fallback: Final finite, nonnegative value, or `None`. Defaults to `None`.
+
+    Examples:
+        >>> import atomref as ar
+        >>> policy = ar.RadiiPolicy(kind="covalent", base_set="cordero2008")
+        >>> ar.get_covalent_radius("C", policy=policy)
+        0.76
+
+    Notes:
+        Packaged radii use angstrom. Custom sets, overrides, fallbacks, and
+        transfer sources must use compatible units because policies do not
+        perform unit conversion.
     """
 
     kind: RadiiKind
@@ -52,7 +73,17 @@ class RadiiPolicy:
     fallback: float | None = None
 
     def as_value_policy(self) -> ValuePolicy[str]:
-        """Convert the radii policy into the generic scalar-value policy."""
+        """Convert this wrapper into the generic scalar policy.
+
+        Returns:
+            An element-domain [ValuePolicy][atomref.policy.ValuePolicy]
+            preserving the configured rule order.
+
+        Raises:
+            DatasetError: If a packaged set is unknown or non-scalar.
+            PolicyError: If `kind`, base quantity, override, or fallback is
+                invalid.
+        """
 
         quantity = _quantity_for_kind(self.kind)
         if isinstance(self.base_set, ElementScalarSet):
@@ -92,7 +123,12 @@ class RadiiPolicy:
 
 @dataclass(frozen=True, slots=True)
 class RadiiElementAssessment:
-    """Per-element row in a radii policy assessment report."""
+    """Per-element row in a radii policy assessment report.
+
+    Attributes:
+        symbol: Canonical element symbol.
+        lookup: Full lookup result for that element.
+    """
 
     symbol: str
     lookup: LookupResult
@@ -100,7 +136,27 @@ class RadiiElementAssessment:
 
 @dataclass(frozen=True, slots=True)
 class RadiiPolicyAssessment:
-    """Summary of how a radii policy behaved over a set of elements."""
+    """Summary of how a radii policy behaved over a set of elements.
+
+    Attributes:
+        kind: Assessed radii quantity.
+        policy: Policy that was assessed.
+        elements: Canonical, deduplicated symbols in atomic-number order.
+        n_elements: Number of assessed elements.
+        n_override: Results supplied by explicit overrides.
+        n_base: Results supplied directly by the base set.
+        n_transfer_substitution: Results supplied by substitution transfers.
+        n_transfer_linear: Results supplied by linear transfers.
+        n_fallback: Results supplied by the fallback.
+        n_missing: Elements without a resolved value.
+        n_placeholders: Returned values equal to a declared placeholder.
+        missing_symbols: Symbols counted by `n_missing`.
+        placeholder_symbols: Symbols counted by `n_placeholders`.
+        fits: Successful linear-fit diagnostics for configured transfers.
+        warnings: Fit-assessment errors retained as report warnings.
+        per_element: Detailed rows when assessment used `detail=True`; otherwise
+            an empty tuple.
+    """
 
     kind: RadiiKind
     policy: RadiiPolicy
@@ -126,7 +182,7 @@ class RadiiPolicyAssessment:
 def _coerce_non_negative_radii_value(value: object, *, what: str) -> float:
     """Validate a radii-like policy number.
 
-    The generic :class:`atomref.policy.ValuePolicy` accepts any finite scalar.
+    The generic [ValuePolicy][atomref.ValuePolicy] accepts any finite scalar.
     Radii-specific convenience helpers are stricter and reject negative values.
     """
 
@@ -180,7 +236,19 @@ def list_radii_sets(
     *,
     usage_role: str | None = None,
 ) -> tuple[str, ...]:
-    """List packaged radii-set ids for one radii kind."""
+    """List packaged radii-set IDs for one radii kind.
+
+    Args:
+        kind: ``"covalent"`` or ``"van_der_waals"``.
+        usage_role: Optional case-insensitive metadata-role filter.
+
+    Returns:
+        Canonical set IDs in curated registry order.
+
+    Raises:
+        PolicyError: If `kind` is unsupported.
+        DatasetError: If registry metadata is malformed.
+    """
 
     return list_dataset_ids(_quantity_for_kind(kind), usage_role=usage_role)
 
@@ -190,19 +258,57 @@ def list_radii_set_infos(
     *,
     usage_role: str | None = None,
 ) -> tuple[DatasetInfo, ...]:
-    """Return packaged metadata objects for radii sets of one kind."""
+    """Return packaged metadata objects for radii sets of one kind.
+
+    Args:
+        kind: ``"covalent"`` or ``"van_der_waals"``.
+        usage_role: Optional case-insensitive metadata-role filter.
+
+    Returns:
+        Immutable [DatasetInfo][atomref.registry.DatasetInfo] objects in curated
+        registry order.
+
+    Raises:
+        PolicyError: If `kind` is unsupported.
+        DatasetError: If registry metadata is malformed.
+    """
 
     return list_dataset_infos(_quantity_for_kind(kind), usage_role=usage_role)
 
 
 def get_radii_set_info(kind: RadiiKind, set_id: str) -> DatasetInfo:
-    """Return metadata for one packaged radii set."""
+    """Return metadata for one packaged radii set.
+
+    Args:
+        kind: ``"covalent"`` or ``"van_der_waals"``.
+        set_id: Canonical packaged set ID or accepted alias.
+
+    Returns:
+        Curated metadata, including angstrom units and provenance.
+
+    Raises:
+        PolicyError: If `kind` is unsupported.
+        DatasetError: If `set_id` is unknown or metadata is malformed.
+    """
 
     return get_dataset_info(DatasetRef(_quantity_for_kind(kind), set_id))
 
 
 def get_radii_set(kind: RadiiKind, set_id: str) -> RadiiSet:
-    """Load one packaged radii set as an :class:`ElementScalarSet`."""
+    """Load one packaged radii set as an
+    [ElementScalarSet][atomref.registry.ElementScalarSet].
+
+    Args:
+        kind: ``"covalent"`` or ``"van_der_waals"``.
+        set_id: Canonical packaged set ID or accepted alias.
+
+    Returns:
+        A cached immutable scalar set whose values are in angstrom.
+
+    Raises:
+        PolicyError: If `kind` is unsupported.
+        DatasetError: If the set is unknown, malformed, or non-scalar.
+    """
 
     return resolve_scalar_dataset_like(DatasetRef(_quantity_for_kind(kind), set_id))
 
@@ -225,7 +331,24 @@ def lookup_covalent_radius(
     *,
     policy: RadiiPolicy | None = None,
 ) -> LookupResult:
-    """Resolve a covalent radius together with provenance information."""
+    """Resolve a covalent radius together with provenance.
+
+    Args:
+        symbol: Symbol-like element token, or `None`. D/T map to H.
+        policy: Covalent [RadiiPolicy][atomref.radii.RadiiPolicy]; `None` selects
+            [DEFAULT_COVALENT_POLICY][atomref.DEFAULT_COVALENT_POLICY].
+
+    Returns:
+        Lookup result whose value is in angstrom, or an explicit missing result.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If the policy has the wrong kind or invalid configuration.
+
+    Examples:
+        >>> lookup_covalent_radius("C").value
+        0.76
+    """
 
     active = DEFAULT_COVALENT_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="covalent")
@@ -237,7 +360,20 @@ def get_covalent_radius(
     *,
     policy: RadiiPolicy | None = None,
 ) -> float | None:
-    """Return only the selected covalent-radius value, without provenance."""
+    """Return only the selected covalent radius.
+
+    Args:
+        symbol: Symbol-like element token, or `None`. D/T map to H.
+        policy: Covalent [RadiiPolicy][atomref.radii.RadiiPolicy]; `None` selects
+            [DEFAULT_COVALENT_POLICY][atomref.DEFAULT_COVALENT_POLICY].
+
+    Returns:
+        Selected radius in angstrom, or `None` when resolution is missing.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If the policy has the wrong kind or invalid configuration.
+    """
 
     active = DEFAULT_COVALENT_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="covalent")
@@ -249,7 +385,20 @@ def lookup_vdw_radius(
     *,
     policy: RadiiPolicy | None = None,
 ) -> LookupResult:
-    """Resolve a van der Waals radius together with provenance information."""
+    """Resolve a van der Waals radius together with provenance.
+
+    Args:
+        symbol: Symbol-like element token, or `None`. D/T map to H.
+        policy: van der Waals [RadiiPolicy][atomref.radii.RadiiPolicy]; `None`
+            selects [DEFAULT_VDW_POLICY][atomref.DEFAULT_VDW_POLICY].
+
+    Returns:
+        Lookup result whose value is in angstrom, or an explicit missing result.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If the policy has the wrong kind or invalid configuration.
+    """
 
     active = DEFAULT_VDW_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="van_der_waals")
@@ -261,7 +410,20 @@ def get_vdw_radius(
     *,
     policy: RadiiPolicy | None = None,
 ) -> float | None:
-    """Return only the selected van der Waals-radius value, without provenance."""
+    """Return only the selected van der Waals radius.
+
+    Args:
+        symbol: Symbol-like element token, or `None`. D/T map to H.
+        policy: van der Waals [RadiiPolicy][atomref.radii.RadiiPolicy]; `None`
+            selects [DEFAULT_VDW_POLICY][atomref.DEFAULT_VDW_POLICY].
+
+    Returns:
+        Selected radius in angstrom, or `None` when resolution is missing.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If the policy has the wrong kind or invalid configuration.
+    """
 
     active = DEFAULT_VDW_POLICY if policy is None else policy
     _validate_policy_kind(active, expected="van_der_waals")
@@ -274,7 +436,33 @@ def assess_radii_policy(
     policy: RadiiPolicy,
     detail: bool = False,
 ) -> RadiiPolicyAssessment:
-    """Assess how a radii policy resolves values over a set of elements."""
+    """Assess how a radii policy resolves values over a set of elements.
+
+    Args:
+        elements: Element tokens to normalize, deduplicate, and sort by atomic
+            number.
+        policy: Radii policy to evaluate.
+        detail: Include a
+            [RadiiElementAssessment][atomref.radii.RadiiElementAssessment] for
+            each element when `True`. Defaults to `False`.
+
+    Returns:
+        Counts, missing/placeholder symbols, fit summaries, warnings, and
+        optional per-element detail in a
+        [RadiiPolicyAssessment][atomref.radii.RadiiPolicyAssessment].
+
+    Raises:
+        ValueError: If an element token is missing or invalid.
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If policy or transfer configuration is invalid.
+
+    Examples:
+        >>> report = assess_radii_policy(
+        ...     ["C", "O"], policy=DEFAULT_COVALENT_POLICY, detail=True
+        ... )
+        >>> report.n_elements, len(report.per_element)
+        (2, 2)
+    """
 
     elems = _normalize_assessment_elements(elements)
     value_policy = policy.as_value_policy()

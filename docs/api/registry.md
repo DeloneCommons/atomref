@@ -16,9 +16,31 @@ In the current runtime, the implemented lookup domain is `element`.
 The registry still stores `domain` explicitly because the metadata design is
 meant to stay reusable as the package grows.
 
-`get_builtin_set()` dispatches `element_scalar_csv` and
+[`get_builtin_set()`][atomref.get_builtin_set] dispatches `element_scalar_csv` and
 `element_radial_csv_zip` storage and returns the `BuiltinSet` union. Policy
 consumers explicitly narrow that result to `ElementScalarSet`; radial profiles
 do not participate in scalar policy or transfer behavior.
 
 ::: atomref.registry
+    options:
+      members:
+        - QuantityId
+        - DomainId
+        - DatasetRef
+        - Reference
+        - CoverageInfo
+        - QuantityInfo
+        - DatasetInfo
+        - ElementScalarSet
+        - ElementRadialSet
+        - BuiltinSet
+        - ScalarDatasetLike
+        - list_quantities
+        - get_quantity_info
+        - list_dataset_ids
+        - list_dataset_infos
+        - get_dataset_info
+        - get_builtin_set
+      filters:
+        - "!^_[^_]"
+        - "!^__post_init__$"

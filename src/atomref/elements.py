@@ -15,7 +15,17 @@ _LEADING_ALPHA_RE = re.compile(r"([A-Za-z]{1,3})")
 
 @dataclass(frozen=True, slots=True)
 class Element:
-    """Chemical element identity keyed by atomic number and symbol."""
+    """Chemical element identity keyed by atomic number and symbol.
+
+    Attributes:
+        z: Atomic number. Packaged elements span 1 (H) through 118 (Og).
+        symbol: Conventional case-sensitive element symbol.
+        name: English element name.
+
+    Examples:
+        >>> get_element("cl")
+        Element(z=17, symbol='Cl', name='Chlorine')
+    """
 
     z: int
     symbol: str
@@ -49,7 +59,28 @@ def canonicalize_element_symbol(token: str | None) -> str | None:
 
     The function accepts strings such as ``"cl"``, ``" Cl "`` or
     ``"Cl12"`` and returns ``"Cl"`` when a leading element-like token can be
-    identified. Missing-value markers and non-element strings return ``None``.
+    identified. It normalizes spelling but does not validate that the result is
+    a known element.
+
+    Args:
+        token: Free-form token, or `None`. Empty strings and the missing-value
+            markers ``"?"`` and ``"."`` are treated as missing.
+
+    Returns:
+        A conventionally capitalized leading element-like token, or `None` if
+        no such token is present.
+
+    Examples:
+        >>> canonicalize_element_symbol(" Cl12 ")
+        'Cl'
+        >>> canonicalize_element_symbol("?") is None
+        True
+
+    Notes:
+        Call
+        [is_valid_element_symbol][atomref.elements.is_valid_element_symbol] or
+        [get_element][atomref.elements.get_element] when membership in the
+        packaged periodic table must also be checked.
     """
 
     raw = _normalize_element_token(token)
@@ -88,7 +119,21 @@ def _elements_in_z_order() -> tuple[Element, ...]:
 
 
 def is_valid_element_symbol(symbol: str | None) -> bool:
-    """Return ``True`` if ``symbol`` is a known packaged element symbol."""
+    """Check whether a canonical symbol is present in the periodic table.
+
+    Args:
+        symbol: Case-sensitive canonical symbol, or `None`.
+
+    Returns:
+        `True` only for an exact packaged symbol. This function does not trim or
+        canonicalize its argument.
+
+    Examples:
+        >>> is_valid_element_symbol("Cl")
+        True
+        >>> is_valid_element_symbol("cl")
+        False
+    """
 
     if symbol is None:
         return False
@@ -96,7 +141,23 @@ def is_valid_element_symbol(symbol: str | None) -> bool:
 
 
 def get_element(symbol: str | None) -> Element | None:
-    """Look up packaged element identity from a symbol-like token."""
+    """Look up packaged element identity from a symbol-like token.
+
+    Args:
+        symbol: Free-form symbol token accepted by
+            [canonicalize_element_symbol][atomref.elements.canonicalize_element_symbol],
+            or `None`.
+
+    Returns:
+        The matching immutable [Element][atomref.elements.Element], or `None` if
+        the token is missing or does not identify a packaged element.
+
+    Examples:
+        >>> get_element(" Cl12 ").z
+        17
+        >>> get_element("not-an-element") is None
+        True
+    """
 
     sym = canonicalize_element_symbol(symbol)
     if sym is None:
@@ -105,6 +166,15 @@ def get_element(symbol: str | None) -> Element | None:
 
 
 def iter_elements() -> tuple[Element, ...]:
-    """Return all packaged elements in increasing atomic-number order."""
+    """Return all packaged elements in increasing atomic-number order.
+
+    Returns:
+        An immutable tuple containing H through Og, ordered by atomic number.
+
+    Examples:
+        >>> elements = iter_elements()
+        >>> elements[0].symbol, elements[-1].symbol
+        ('H', 'Og')
+    """
 
     return _elements_in_z_order()

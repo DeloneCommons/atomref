@@ -41,6 +41,7 @@ LookupSource = Literal[
     "fallback",
     "missing",
 ]
+"""Provenance labels emitted by the scalar policy resolver."""
 
 PolicyToken = tuple[str, int]
 _ACTIVE_POLICY_TOKENS: contextvars.ContextVar[tuple[PolicyToken, ...]] = (
@@ -52,10 +53,29 @@ _ACTIVE_POLICY_TOKENS: contextvars.ContextVar[tuple[PolicyToken, ...]] = (
 class LookupResult:
     """Result of resolving one value through a policy.
 
-    ``value`` carries the final scalar value when one could be produced, while
-    ``source`` and the remaining metadata explain how that value was obtained.
-    ``transfer_depth`` counts how many transfer steps were involved in producing
-    the returned value. Direct base and override values therefore have depth 0.
+    Attributes:
+        value: Resolved scalar in the target policy's units, or `None` when no
+            rule supplied a value.
+        source: Rule that supplied `value`, or ``"missing"``.
+        target: Dataset identity the policy is resolving.
+        resolved_from: Ordered source datasets contributing to a transferred
+            value.
+        is_placeholder: Whether the returned scalar equals its source dataset's
+            declared placeholder value.
+        fit: Linear-fit diagnostics when `source` is ``"transfer_linear"``.
+        notes: Human-readable resolution and rejection diagnostics.
+        transfer_depth: Number of transfer steps involved. Base, override,
+            fallback, and missing results have depth 0.
+
+    Examples:
+        >>> import atomref as ar
+        >>> result = ar.lookup_covalent_radius("C")
+        >>> result.value, result.source
+        (0.76, 'base')
+
+    Notes:
+        `is_placeholder` describes the returned numeric value, not whether a
+        transfer occurred.
     """
 
     value: float | None
@@ -68,7 +88,14 @@ class LookupResult:
     transfer_depth: int = 0
 
     def __float__(self) -> float:
-        """Coerce the resolved value to ``float`` or raise if it is missing."""
+        """Coerce a present resolved value to `float`.
+
+        Returns:
+            The resolved scalar value.
+
+        Raises:
+            TypeError: If this result represents a missing value.
+        """
 
         if self.value is None:
             raise TypeError("reference value is missing")
@@ -79,10 +106,37 @@ class LookupResult:
 class ValuePolicy(Generic[K]):
     """Ordered rule set for resolving element-domain scalar values.
 
-    The current runtime resolves only element-domain policies even though the
-    metadata layer already records a more general ``domain`` concept. During
-    construction, element-domain override keys are normalized to canonical
-    element symbols and validated as finite floats.
+    Attributes:
+        base: Packaged [DatasetRef][atomref.registry.DatasetRef] or custom
+            [ElementScalarSet][atomref.registry.ElementScalarSet] that owns the
+            target quantity and units.
+        transfers: Ordered substitution or linear-transfer rules. Defaults to
+            no transfers.
+        overrides: Explicit key-to-value replacements checked before the base
+            set. Element keys are canonicalized and values must be finite.
+        fallback: Final finite scalar used after all transfers fail, or `None`.
+            Defaults to `None`.
+        blocked: Element symbols that must resolve as missing. Blocked keys take
+            precedence over overrides and all other rules.
+
+    Raises:
+        DatasetError: If the base reference is unknown or has a radial payload.
+        PolicyError: If fallback, override, or blocked configuration is invalid.
+
+    Examples:
+        >>> import atomref as ar
+        >>> policy = ar.ValuePolicy(
+        ...     base=ar.DatasetRef("covalent_radius", "cordero2008"),
+        ...     overrides={"C": 0.77},
+        ... )
+        >>> ar.get_value("C", policy=policy)
+        0.77
+
+    Notes:
+        Resolution order is blocked, override, base, transfers, fallback, then
+        missing. The current resolver supports element-domain scalar data only.
+        Values are not converted between units; every source in one policy must
+        be dimensionally compatible with the base set.
     """
 
     base: ScalarDatasetLike
@@ -219,9 +273,10 @@ def _policy_resolution_tokens(
 ) -> tuple[PolicyToken, ...]:
     """Return all tokens that should be considered active for one resolution.
 
-    We always track the concrete :class:`ValuePolicy` object identity. When a
-    wrapper object such as :class:`atomref.radii.RadiiPolicy` or
-    :class:`atomref.xh.XHPolicy` is the logical source, we also track the
+    We always track the concrete [ValuePolicy][atomref.policy.ValuePolicy]
+    object identity. When a
+    wrapper object such as [RadiiPolicy][atomref.RadiiPolicy] or
+    [XHPolicy][atomref.XHPolicy] is the logical source, we also track the
     wrapper identity so recursion through freshly materialized generic policies
     is still detected.
     """
@@ -782,14 +837,50 @@ def _get_value_from_policy_source(
 def lookup_value(symbol: str | None, *, policy: ValuePolicy[str]) -> LookupResult:
     """Public entry point for generic element-domain scalar lookup.
 
-    This is the same resolver used internally by the radii convenience layer.
-    In the current implementation the runtime supports only element-domain policies.
+    Args:
+        symbol: Symbol-like element token, or `None`. D/T map to H.
+        policy: Element-domain scalar policy to apply.
+
+    Returns:
+        A [LookupResult][atomref.policy.LookupResult] containing the value or an
+        explicit missing result, together with provenance and transfer
+        diagnostics.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If transfer configuration is invalid, fitting cannot meet
+            its contract, or nested policies form a cycle.
+
+    Examples:
+        >>> import atomref as ar
+        >>> policy = ar.DEFAULT_COVALENT_POLICY.as_value_policy()
+        >>> result = ar.lookup_value("O", policy=policy)
+        >>> result.value
+        0.66
+
+    Notes:
+        Invalid or uncovered elements normally produce `source="missing"`
+        rather than raising. This is the same resolver used by the radii and
+        X-H convenience layers.
     """
 
     return _lookup_value_with_owner(symbol, policy=policy, owner=None)
 
 
 def get_value(symbol: str | None, *, policy: ValuePolicy[str]) -> float | None:
-    """Return only the resolved scalar value for an element-domain policy."""
+    """Return only the scalar selected by an element-domain policy.
+
+    Args:
+        symbol: Symbol-like element token, or `None`. D/T map to H.
+        policy: Element-domain scalar policy to apply.
+
+    Returns:
+        The selected finite scalar in the policy's target units, or `None` when
+        resolution is missing.
+
+    Raises:
+        DatasetError: If a referenced dataset is unknown or non-scalar.
+        PolicyError: If transfer configuration or nested resolution is invalid.
+    """
 
     return lookup_value(symbol, policy=policy).value

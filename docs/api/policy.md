@@ -5,10 +5,10 @@ X–H-specific convenience APIs.
 
 Use it when you want to work directly with the shared value-selection engine:
 
-- `ValuePolicy` — generic element-domain policy configuration,
-- `lookup_value(...)` — resolve one value together with provenance,
-- `get_value(...)` — resolve only the numeric value,
-- `LookupResult` — the structured result object returned by the resolver.
+- [ValuePolicy][atomref.ValuePolicy] — generic element-domain configuration,
+- [`lookup_value()`][atomref.lookup_value] — one value with provenance,
+- [`get_value()`][atomref.get_value] — only the numeric value,
+- [LookupResult][atomref.LookupResult] — the structured resolver result.
 
 A few practical notes:
 
@@ -24,3 +24,13 @@ A few practical notes:
   wrapper policies such as `RadiiPolicy` and `XHPolicy`.
 
 ::: atomref.policy
+    options:
+      members:
+        - LookupSource
+        - LookupResult
+        - ValuePolicy
+        - lookup_value
+        - get_value
+      filters:
+        - "!^_[^_]"
+        - "!^__post_init__$"

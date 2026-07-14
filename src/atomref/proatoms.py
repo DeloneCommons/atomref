@@ -55,25 +55,76 @@ _FLOAT_COMPARISON_REL_TOL = 64.0 * 2.220446049250313e-16
 class IASPositionResult:
     """Immutable result of one pairwise neutral-proatom estimate.
 
-    Coordinates are measured from ``atom_a`` toward ``atom_b`` and are
-    reported in ``distance_unit``. Density-valued fields are reported in
-    ``density_unit``. A valid but scientifically non-applicable request uses
-    ``method="none"`` and leaves its coordinate fields as :data:`None`.
+    Attributes:
+        atom_a: Canonical symbol of the first requested atom.
+        atom_b: Canonical symbol of the second requested atom.
+        distance: Requested positive pair distance, no greater than 20 bohr
+            after conversion.
+        distance_unit: Unit used by `distance`, coordinates, cutoff radii,
+            contour separation, and search resolution: ``"angstrom"`` or
+            ``"bohr"``.
+        density_unit: Unit used by all density-valued fields:
+            ``"electron/bohr^3"`` or ``"electron/angstrom^3"``.
+        requested_mode: Requested ``"boundary"`` or ``"minimum"`` policy.
+        method: Actual construction: symmetry midpoint, equal-proatom divider,
+            cutoff-gap midpoint, promolecular minimum, or ``"none"``.
+        status: Scientific and numerical outcome. Callers should inspect this
+            together with `method` and `position_from_a`.
+        position_from_a: Primary coordinate measured from atom A toward atom B
+            in `distance_unit`, or `None` for a typed non-result.
+        position_from_b: Complementary coordinate measured from atom B in
+            `distance_unit`, or `None`.
+        fraction_from_a: `position_from_a / distance`, normally in [0, 1], or
+            `None` when no coordinate is returned.
+        rho_a: Atom A component density at the primary coordinate, or `None`.
+        rho_b: Atom B component density at the primary coordinate, or `None`.
+        rho_sum: Sum of the two components at the primary coordinate, or `None`.
+        cutoff_density: Fixed per-atom tail cutoff converted to `density_unit`.
+        cutoff_radius_a: Atom A radius at the fixed cutoff in `distance_unit`.
+        cutoff_radius_b: Atom B radius at the fixed cutoff in `distance_unit`.
+        contour_separation: Signed `distance - cutoff_radius_a -
+            cutoff_radius_b` in `distance_unit`; positive values indicate a gap.
+        cutoff_regime: ``"overlap"``, ``"contact"``, or ``"gap"`` according to
+            the signed contour separation.
+        dominant_atom: Canonical symbol of the atom that dominates an unlike
+            interval, or `None`.
+        dominant_atom_role: Whether `dominant_atom` is ``"atom_a"`` or
+            ``"atom_b"``, or `None`.
+        alternative_position_from_a: Competitive alternative-minimum coordinate
+            from atom A in `distance_unit`, or `None`.
+        alternative_position_from_b: Complementary alternative coordinate from
+            atom B in `distance_unit`, or `None`.
+        alternative_rho_sum: Summed density at the alternative, or `None`.
+        relative_depth_gap: Nonnegative dimensionless relative density gap
+            between alternative and selected minima, or `None`.
+        ambiguous: Whether a competitive resolved alternative meets the fixed
+            relative-depth criterion.
+        search_resolution: Finest minimum-search spacing in `distance_unit`, or
+            `None` when minimum search is not applicable.
+        search_converged: Whether required minimum-search passes agreed, or
+            `None` outside applicable minimum searches.
+        search_passes: Number of practical minimum-search passes, or `None` when
+            not applicable.
+        dataset_id: Canonical packaged proatomic-density dataset ID.
+        interpolation_contract: Stable radial interpolation identifier.
+        pairwise_contract: Stable cutoff and numerical-search identifier.
+        coordinate_orientation: Explicit orientation label. The default and
+            current value is ``"from_atom_a_toward_atom_b"``.
 
-    Reversing the atoms maps primary and alternative coordinates ``x`` to
-    ``R - x``, swaps A/B component fields, and relabels dominance. Method,
-    status, summed density, cutoff regime, and orientation-independent search
-    diagnostics remain equivalent under that relabeling.
+    Notes:
+        A valid but scientifically non-applicable request uses ``method="none"``
+        and leaves coordinate fields as `None`. Reversing the atoms maps each
+        coordinate `x` to `R - x`, swaps A/B fields, and relabels dominance.
 
-    ``boundary_dominated`` takes status precedence over ``search_unstable``,
-    which takes precedence over ``ambiguous_competing_minima``. The separate
-    ``search_converged`` and ``ambiguous`` fields preserve all diagnostics.
+        ``"boundary_dominated"`` takes status precedence over
+        ``"search_unstable"``, which takes precedence over
+        ``"ambiguous_competing_minima"``. Separate boolean diagnostics preserve
+        the underlying conditions. Neither mode is an exact molecular QTAIM
+        surface or critical-point calculation.
 
-    At an odd subnormal homonuclear distance, the mathematical midpoint is not
-    representable in binary64. In that case the coordinate is the ordinary
-    floating-point result of ``R / 2``, the complementary coordinate preserves
-    the requested distance, and the fraction is derived from the exposed
-    coordinate rather than claiming an unrepresentable ``0.5`` position.
+        At an odd subnormal homonuclear distance, the mathematical midpoint may
+        not be representable in binary64. The exposed coordinate then uses the
+        ordinary `R / 2` result and preserves the complementary distance.
     """
 
     atom_a: str
@@ -164,12 +215,36 @@ def _coerce_public_max_radius(storage: Mapping[str, object], ref: DatasetRef) ->
 class ProatomicDensityProfile:
     """Immutable view of one neutral spherical proatomic-density profile.
 
-    Radii and stored densities use the dataset's native units, bohr and
-    electron/bohr^3. Calling the profile evaluates one scalar coordinate using
-    positive-region log-log interpolation. The public domain ends at the
-    dataset-declared maximum (20 bohr for the packaged neutral H-Lr set). At the
-    origin and below the first finite grid point, the first stored value is
-    returned as a finite-grid convention rather than an exact nuclear value.
+    Attributes:
+        dataset: Immutable radial dataset owning the shared grid and profiles.
+        atomic_number: Selected integer atomic number. The packaged neutral set
+            supports 1 (H) through 103 (Lr).
+        symbol: Canonical element symbol initialized from `atomic_number`.
+        ref: Canonical registry reference for `dataset`.
+        info: Curated metadata and provenance for `dataset`.
+        radii: Shared immutable source grid in bohr, including the endpoint
+            bracket above the public domain.
+        densities: Immutable sampled values in electron/bohr^3.
+        interpolation_contract: Stable identifier for evaluation behavior.
+        public_max_radius_bohr: Inclusive public radius limit in bohr; 20 for
+            the packaged neutral H-Lr set.
+
+    Raises:
+        DatasetError: If the atomic number is invalid, the profile is absent,
+            or radial data or metadata violate the interpolation contract.
+
+    Examples:
+        >>> profile = get_proatomic_density_profile("O")
+        >>> profile is not None
+        True
+        >>> profile(1.5, radius_unit="bohr") > 0.0
+        True
+
+    Notes:
+        Evaluation is scalar and uses positive-region log-log interpolation.
+        At the origin and below the first finite grid point, the first stored
+        value is returned as a finite-grid convention, not an exact nuclear
+        density.
     """
 
     dataset: ElementRadialSet = field(repr=False)
@@ -240,37 +315,63 @@ class ProatomicDensityProfile:
 
     @property
     def ref(self) -> DatasetRef:
-        """Canonical registry reference for the source dataset."""
+        """Return the canonical registry reference.
+
+        Returns:
+            Source [DatasetRef][atomref.registry.DatasetRef].
+        """
 
         return self.dataset.ref
 
     @property
     def info(self) -> DatasetInfo:
-        """Curated metadata and provenance for the source dataset."""
+        """Return curated source metadata and provenance.
+
+        Returns:
+            Source [DatasetInfo][atomref.registry.DatasetInfo].
+        """
 
         return self.dataset.info
 
     @property
     def radii(self) -> tuple[float, ...]:
-        """Shared immutable source grid in bohr, including the endpoint bracket."""
+        """Return the shared immutable source grid.
+
+        Returns:
+            Positive radii in bohr, including the endpoint bracket above the
+            20-bohr public domain.
+        """
 
         return self.dataset.radii
 
     @property
     def densities(self) -> tuple[float, ...]:
-        """Immutable stored density values in electron/bohr^3."""
+        """Return immutable stored density values.
+
+        Returns:
+            Positive sampled values in electron/bohr^3, aligned with `radii`.
+        """
 
         return self._densities
 
     @property
     def interpolation_contract(self) -> str:
-        """Stable identifier for this profile's interpolation behavior."""
+        """Return the interpolation-contract identifier.
+
+        Returns:
+            ``"loglog_positive_bracketed_v1"``.
+        """
 
         return _INTERPOLATION_CONTRACT
 
     @property
     def public_max_radius_bohr(self) -> float:
-        """Largest supported public radius coordinate, in bohr."""
+        """Return the inclusive public radius limit.
+
+        Returns:
+            Largest supported coordinate in bohr; 20 for the packaged neutral
+            dataset.
+        """
 
         return self._public_max_radius_bohr
 
@@ -285,11 +386,28 @@ class ProatomicDensityProfile:
     ) -> float:
         """Evaluate the density at one radius.
 
-        ``radius_unit`` accepts ``"angstrom"`` or ``"bohr"`` independently
-        of ``density_unit``, which accepts ``"electron/bohr^3"`` or
-        ``"electron/angstrom^3"``. Invalid units, negative or non-finite
-        radii, and coordinates above the dataset-declared public maximum raise
-        :class:`ValueError`. The packaged neutral H-Lr set uses 20 bohr.
+        Args:
+            radius: Finite scalar coordinate in `radius_unit`. It must map to
+                the inclusive interval 0 through 20 bohr for the packaged set.
+            radius_unit: ``"angstrom"`` (default) or ``"bohr"``.
+            density_unit: ``"electron/bohr^3"`` (default) or
+                ``"electron/angstrom^3"``. This choice is independent of the
+                coordinate unit.
+
+        Returns:
+            Finite positive interpolated density in `density_unit`.
+
+        Raises:
+            ValueError: If a unit is unknown or `radius` is negative,
+                non-finite, nonscalar, or above the public limit.
+            DatasetError: If the stored radial grid cannot bracket evaluation.
+
+        Examples:
+            >>> profile = get_proatomic_density_profile("O")
+            >>> profile is not None
+            True
+            >>> profile.evaluate(0.75) > 0.0
+            True
         """
 
         radius_bohr = _radius_to_bohr(
@@ -309,7 +427,22 @@ class ProatomicDensityProfile:
             "electron/bohr^3", "electron/angstrom^3"
         ] = "electron/bohr^3",
     ) -> float:
-        """Evaluate the density; equivalent to :meth:`evaluate`."""
+        """Evaluate the density; equivalent to
+        [evaluate][atomref.proatoms.ProatomicDensityProfile.evaluate].
+
+        Args:
+            radius: Finite coordinate from 0 through the public 20-bohr limit.
+            radius_unit: ``"angstrom"`` (default) or ``"bohr"``.
+            density_unit: ``"electron/bohr^3"`` (default) or
+                ``"electron/angstrom^3"``.
+
+        Returns:
+            Finite positive interpolated density in `density_unit`.
+
+        Raises:
+            ValueError: If a unit or radius is outside the public contract.
+            DatasetError: If the stored radial data cannot support evaluation.
+        """
 
         return self.evaluate(
             radius,
@@ -399,13 +532,28 @@ def _density_from_native(
 
 
 def list_proatomic_density_sets() -> tuple[str, ...]:
-    """List packaged proatomic-density dataset identifiers."""
+    """List packaged proatomic-density dataset identifiers.
+
+    Returns:
+        Canonical set IDs in curated registry order.
+
+    Raises:
+        DatasetError: If registry metadata is unavailable or malformed.
+    """
 
     return list_dataset_ids(_QUANTITY)
 
 
 def list_proatomic_density_set_infos() -> tuple[DatasetInfo, ...]:
-    """Return metadata for all packaged proatomic-density datasets."""
+    """Return metadata for all packaged proatomic-density datasets.
+
+    Returns:
+        Immutable [DatasetInfo][atomref.registry.DatasetInfo] objects in curated
+        registry order.
+
+    Raises:
+        DatasetError: If registry metadata is unavailable or malformed.
+    """
 
     return list_dataset_infos(_QUANTITY)
 
@@ -413,7 +561,18 @@ def list_proatomic_density_set_infos() -> tuple[DatasetInfo, ...]:
 def get_proatomic_density_set_info(
     set_id: str = DEFAULT_PROATOMIC_DENSITY_SET,
 ) -> DatasetInfo:
-    """Return metadata for one packaged proatomic-density dataset or alias."""
+    """Return metadata for one packaged proatomic-density dataset.
+
+    Args:
+        set_id: Canonical set ID or accepted alias. Defaults to
+            [DEFAULT_PROATOMIC_DENSITY_SET][atomref.proatoms.DEFAULT_PROATOMIC_DENSITY_SET].
+
+    Returns:
+        Curated method, units, provenance, coverage, and storage metadata.
+
+    Raises:
+        DatasetError: If the set is unknown or metadata is malformed.
+    """
 
     return get_dataset_info(DatasetRef(_QUANTITY, set_id))
 
@@ -421,7 +580,19 @@ def get_proatomic_density_set_info(
 def get_proatomic_density_set(
     set_id: str = DEFAULT_PROATOMIC_DENSITY_SET,
 ) -> ProatomicDensitySet:
-    """Return one cached immutable packaged proatomic-density dataset."""
+    """Return one cached immutable packaged proatomic-density dataset.
+
+    Args:
+        set_id: Canonical set ID or accepted alias. Defaults to
+            [DEFAULT_PROATOMIC_DENSITY_SET][atomref.proatoms.DEFAULT_PROATOMIC_DENSITY_SET].
+
+    Returns:
+        Element-indexed neutral profiles sharing one radial grid.
+
+    Raises:
+        DatasetError: If the set is unknown, malformed, or has a scalar rather
+            than radial payload.
+    """
 
     loaded = get_builtin_set(DatasetRef(_QUANTITY, set_id))
     if not isinstance(loaded, ElementRadialSet):
@@ -487,11 +658,31 @@ def get_proatomic_density_profile(
 ) -> ProatomicDensityProfile | None:
     """Return a cached neutral profile, or ``None`` for unsupported elements.
 
-    Element symbols are canonicalized using the package's normal element rules,
-    and integer atomic numbers are accepted. Deuterium (``D``) and tritium
-    (``T``) return hydrogen's electronic profile. Invalid values, including
-    booleans, return ``None``. No substitution, correlation, or ionic selection
-    is performed.
+    Args:
+        element: Element symbol, integer atomic number, or `None`. D/T map to
+            hydrogen's electronic profile; booleans are rejected.
+        set_id: Canonical set ID or accepted alias. Defaults to
+            [DEFAULT_PROATOMIC_DENSITY_SET][atomref.proatoms.DEFAULT_PROATOMIC_DENSITY_SET].
+
+    Returns:
+        A cached
+        [ProatomicDensityProfile][atomref.proatoms.ProatomicDensityProfile], or
+        `None` for an invalid, unsupported, or uncovered element. The packaged
+        set covers H through Lr.
+
+    Raises:
+        DatasetError: If the selected dataset is unknown, malformed, or
+            non-radial.
+
+    Examples:
+        >>> get_proatomic_density_profile(8).symbol
+        'O'
+        >>> get_proatomic_density_profile("Og") is None
+        True
+
+    Notes:
+        No neighboring-element substitution, correlation, ionic selection, or
+        scalar [ValuePolicy][atomref.ValuePolicy] is applied.
     """
 
     resolved = _resolve_density_element(element)
@@ -516,10 +707,33 @@ def get_proatomic_density(
 ) -> float | None:
     """Evaluate one neutral proatomic density, or return ``None`` if absent.
 
-    The default coordinate unit is angstrom and the default output unit is
-    electron/bohr^3. The supported interval ends at the dataset-declared public
-    maximum (20 bohr for the packaged neutral H-Lr set). Evaluation is scalar
-    and dependency-free.
+    Args:
+        element: Element symbol, integer atomic number, or `None`. D/T map to H.
+        radius: Finite nonnegative scalar coordinate in `radius_unit`, no greater
+            than 20 bohr after conversion.
+        set_id: Canonical set ID or alias. Defaults to the packaged neutral set.
+        radius_unit: ``"angstrom"`` (default) or ``"bohr"``.
+        density_unit: ``"electron/bohr^3"`` (default) or
+            ``"electron/angstrom^3"``.
+
+    Returns:
+        Finite positive scalar density in `density_unit`, or `None` for an
+        invalid, unsupported, or uncovered element.
+
+    Raises:
+        ValueError: If a unit is unknown or the radius is negative, non-finite,
+            nonscalar, or above 20 bohr after conversion.
+        DatasetError: If the selected dataset is unknown, malformed, or
+            non-radial.
+
+    Examples:
+        >>> rho = get_proatomic_density("O", 0.75)
+        >>> rho is not None and rho > 0.0
+        True
+
+    Notes:
+        Radius and density units are independent. Evaluation is scalar and
+        dependency-free, with no extrapolation beyond 20 bohr.
     """
 
     profile = get_proatomic_density_profile(element, set_id=set_id)
@@ -1600,10 +1814,41 @@ def estimate_proatomic_boundary(
 ) -> IASPositionResult | None:
     """Estimate a stable pairwise neutral-proatom boundary.
 
-    The coordinate is measured from ``atom_a`` toward ``atom_b``. Overlapping
-    unlike profiles use equal neutral-proatom density; separated fixed-cutoff
-    contours use the midpoint of their gap. This is not a molecular QTAIM
-    zero-flux surface.
+    Args:
+        atom_a: First element symbol or atomic number. D/T map to H.
+        atom_b: Second element symbol or atomic number. D/T map to H.
+        distance: Finite positive pair distance in `distance_unit`, no greater
+            than 20 bohr after conversion.
+        distance_unit: ``"angstrom"`` (default) or ``"bohr"``. Returned
+            coordinates and cutoff radii use the same unit.
+        density_unit: ``"electron/bohr^3"`` (default) or
+            ``"electron/angstrom^3"`` for reported density fields.
+        set_id: Canonical proatomic-density set ID or alias. Defaults to
+            [DEFAULT_PROATOMIC_DENSITY_SET][atomref.proatoms.DEFAULT_PROATOMIC_DENSITY_SET].
+
+    Returns:
+        An [IASPositionResult][atomref.proatoms.IASPositionResult] oriented from
+        atom A toward atom B, or `None` when either profile is invalid or
+        unavailable. A valid one-atom-dominance case returns a typed result with
+        no coordinate.
+
+    Raises:
+        ValueError: If distance or a unit is outside the public contract.
+        DatasetError: If the selected dataset is unknown, malformed, or
+            non-radial.
+
+    Examples:
+        >>> result = estimate_proatomic_boundary("C", "O", 1.5)
+        >>> result is not None
+        True
+        >>> result.requested_mode
+        'boundary'
+
+    Notes:
+        Homonuclear pairs use the exact midpoint. Overlapping unlike profiles
+        use equal neutral-proatom density; separated fixed-cutoff contours use
+        the midpoint of their gap. This stable divider is not a molecular QTAIM
+        zero-flux surface.
     """
 
     return _estimate_pairwise(
@@ -1630,10 +1875,45 @@ def estimate_promolecular_density_minimum(
 ) -> IASPositionResult | None:
     """Estimate one practically resolved promolecular line-density minimum.
 
-    The search is confined to the interval where both neutral proatomic
-    components meet the fixed tail cutoff. It has a declared resolution of
-    :data:`IAS_MINIMUM_RESOLUTION_BOHR`, exposes only strict-interior unlike-atom
-    candidates, and never falls back to boundary mode.
+    Args:
+        atom_a: First element symbol or atomic number. D/T map to H.
+        atom_b: Second element symbol or atomic number. D/T map to H.
+        distance: Finite positive pair distance in `distance_unit`, no greater
+            than 20 bohr after conversion.
+        distance_unit: ``"angstrom"`` (default) or ``"bohr"``. Returned
+            coordinates and search resolution use the same unit.
+        density_unit: ``"electron/bohr^3"`` (default) or
+            ``"electron/angstrom^3"`` for reported density fields.
+        set_id: Canonical proatomic-density set ID or alias. Defaults to
+            [DEFAULT_PROATOMIC_DENSITY_SET][atomref.proatoms.DEFAULT_PROATOMIC_DENSITY_SET].
+
+    Returns:
+        An [IASPositionResult][atomref.proatoms.IASPositionResult] oriented from
+        atom A toward atom B, or `None` when either profile is invalid or
+        unavailable. A valid pair with no resolved strict-interior minimum
+        returns a typed result with no coordinate.
+
+    Raises:
+        ValueError: If distance or a unit is outside the public contract.
+        DatasetError: If the selected dataset is unknown, malformed, or
+            non-radial.
+
+    Examples:
+        >>> result = estimate_promolecular_density_minimum("C", "O", 1.5)
+        >>> result is not None
+        True
+        >>> result.requested_mode
+        'minimum'
+
+    Notes:
+        Search is confined to the interval where both neutral components meet
+        [PROATOMIC_TAIL_CUTOFF][atomref.proatoms.PROATOMIC_TAIL_CUTOFF]. It has
+        declared resolution
+        [IAS_MINIMUM_RESOLUTION_BOHR][atomref.proatoms.IAS_MINIMUM_RESOLUTION_BOHR],
+        exposes only strict-interior unlike-atom candidates, and never falls
+        back to boundary mode. It is a practical
+        neutral-promolecular proxy, not an exact molecular-density critical
+        point.
     """
 
     return _estimate_pairwise(
@@ -1659,7 +1939,41 @@ def estimate_ias_position(
     ] = "electron/bohr^3",
     set_id: str = DEFAULT_PROATOMIC_DENSITY_SET,
 ) -> IASPositionResult | None:
-    """Dispatch explicitly to one of the two pairwise neutral-proatom modes."""
+    """Dispatch explicitly to one pairwise neutral-proatom mode.
+
+    Args:
+        atom_a: First element symbol or atomic number. D/T map to H.
+        atom_b: Second element symbol or atomic number. D/T map to H.
+        distance: Finite positive pair distance in `distance_unit`, no greater
+            than 20 bohr after conversion.
+        mode: ``"boundary"`` (default) or ``"minimum"``.
+        distance_unit: ``"angstrom"`` (default) or ``"bohr"``.
+        density_unit: ``"electron/bohr^3"`` (default) or
+            ``"electron/angstrom^3"``.
+        set_id: Canonical proatomic-density set ID or alias. Defaults to
+            [DEFAULT_PROATOMIC_DENSITY_SET][atomref.proatoms.DEFAULT_PROATOMIC_DENSITY_SET].
+
+    Returns:
+        The same [IASPositionResult][atomref.proatoms.IASPositionResult] or
+        missing-profile `None` produced by the corresponding direct estimator.
+
+    Raises:
+        ValueError: If `mode`, distance, or a unit is outside the public
+            contract.
+        DatasetError: If the selected dataset is unknown, malformed, or
+            non-radial.
+
+    Examples:
+        >>> direct = estimate_proatomic_boundary("C", "O", 1.5)
+        >>> selected = estimate_ias_position("C", "O", 1.5)
+        >>> selected == direct
+        True
+
+    Notes:
+        The minimum mode never silently falls back to boundary mode. The two
+        modes are related scientific approximations, not interchangeable names
+        for one calculation.
+    """
 
     if mode not in ("boundary", "minimum"):
         raise ValueError(f"unknown IAS position mode: {mode!r}")
