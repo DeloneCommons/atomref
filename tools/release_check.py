@@ -107,7 +107,6 @@ def main() -> int:
     _run("flake8", "src", "tests", "tools")
     _run(sys.executable, "tools/check_registry.py")
     _run(sys.executable, "tools/check_notebooks.py")
-    _run(sys.executable, "tools/export_notebooks.py", "--check")
     _run(sys.executable, "tools/gen_readme.py", "--check")
     _run(sys.executable, "-m", "pytest", "-q")
     if not args.skip_docs:

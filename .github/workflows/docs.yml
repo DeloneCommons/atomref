@@ -24,13 +24,13 @@ jobs:
       - name: Install docs extras
         run: |
           python -m pip install --upgrade pip
-          python -m pip install .[docs]
-      - name: Check generated files
-        run: |
-          python tools/export_notebooks.py --check
-          python tools/gen_readme.py --check
+          python -m pip install ".[docs,notebook]"
+      - name: Check README sync
+        run: python tools/gen_readme.py --check
       - name: Build docs
         run: mkdocs build --strict
+      - name: Verify docs did not rewrite notebooks
+        run: git diff --exit-code -- docs/notebooks
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:

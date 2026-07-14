@@ -117,6 +117,7 @@ separate:
   [doi:10.1021/jp1093417](https://doi.org/10.1021/jp1093417).
 
 The complete calculations, representative profiles, adversarial cases, and
-local timing record are in the executed
-[`04-ias-method-selection-study.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/04-ias-method-selection-study.ipynb)
-notebook.
+local timing record are in the directly rendered
+[`04-ias-method-selection-study.ipynb`](../notebooks/04-ias-method-selection-study.ipynb)
+notebook. Its committed outputs are shown without re-execution during the
+documentation build.

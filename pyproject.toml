@@ -53,15 +53,17 @@ test = [
   "tomli>=2; python_version < '3.11'",
 ]
 notebook = [
+  "ipykernel>=6.29",
   "matplotlib>=3.8",
+  "mkdocs-jupyter>=0.26,<0.27",
+  "nbclient>=0.10,<0.12",
+  "nbformat>=5.10,<6",
 ]
 docs = [
   "mkdocs>=1.6,<2",
   "mkdocs-material>=9.5",
   "mkdocstrings[python]>=0.25",
-  "mkdocs-include-markdown-plugin>=6.2",
   "pymdown-extensions>=10.0",
-  "tomli>=2; python_version < '3.11'",
 ]
 dev = [
   "build>=1.2",
@@ -86,7 +88,6 @@ include = [
   "/tests",
   "/docs",
   "/tools",
-  "/notebooks",
   "/.flake8",
   "/mkdocs.yml",
   "/README.md",

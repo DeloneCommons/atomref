@@ -9,14 +9,12 @@ release preparation.
   `atomref-proatoms` 2.0.0 source and write or check the deterministic neutral
   H–Lr consumer ZIP. This is a maintainer-only tool and performs no network
   access.
-- `check_dist.py` — verify that wheel and source-distribution artifacts contain
-  the key files expected by the project.
-- `check_notebooks.py` — validate notebook JSON, release-notebook saved state,
-  required Markdown and outputs, then execute notebook code cells headlessly.
+- `check_dist.py` — verify wheel and source-distribution contents and optionally
+  test clean base, `notebook`, and `all` installations from the built wheel.
+- `check_notebooks.py` — smoke-execute temporary notebook copies through a
+  standard Jupyter kernel and discard the resulting outputs.
 - `check_registry.py` — validate curated registry metadata against every
   packaged scalar and radial payload.
-- `export_notebooks.py` — render the bundled notebooks into Markdown pages under
-  `docs/notebooks/`.
 - `gen_readme.py` — regenerate `README.md` from `docs/index.md`.
 - `release_check.py` — run the full release-preparation checklist,
   including linting, tests, docs, builds, and artifact validation.
@@ -26,7 +24,6 @@ release preparation.
 ```bash
 python tools/check_registry.py
 python tools/check_notebooks.py
-python tools/export_notebooks.py
 python tools/gen_readme.py
 python tools/release_check.py
 ```

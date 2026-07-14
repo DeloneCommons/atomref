@@ -1,31 +1,57 @@
 # Notebook gallery
 
-`atomref` ships example and supporting-information Jupyter notebooks. The first
-three user-workflow notebooks have generated Markdown copies in these docs.
-The two `0.2.0` proatomic notebooks are saved, executed `.ipynb` artifacts: the
-method-selection study also has a compact documentation page, while the feature
-notebook is linked directly so its embedded plots and outputs remain visible on
-GitHub. Direct notebook rendering is planned for a later documentation release.
+`atomref` ships five explanatory Jupyter notebooks. These are the actual
+committed `.ipynb` sources rendered directly by MkDocs—there is no generated
+Markdown copy or parallel notebook tree.
 
-## Available notebooks
+Documentation builds show the committed Markdown, code, mathematics, saved
+text, and saved PNG plots. They do not execute or rewrite the notebooks. A
+separate release check runs temporary copies through a standard Jupyter kernel,
+fails on execution exceptions, and discards the temporary outputs without
+comparing them with the committed files.
 
-- [Quickstart notebook](../notebooks/01-quickstart.md) — basic imports,
-  `get_*` vs `lookup_*`, quantity discovery, and packaged-set access.
-- [Policies and assessment notebook](../notebooks/02-policies-and-assessment.md)
-  — overrides, transfer-backed policies, and policy summaries.
-- [Custom sets and discovery notebook](../notebooks/03-custom-sets-and-discovery.md)
-  — user-defined sets, catalog inspection, and metadata exploration.
-- [IAS method-selection study](../dev/ias_method_selection.md) — supporting
-  numerical evidence for the two-mode pairwise design and the decision not to
-  expose every interpolation-scale local minimum.
-- [Proatomic density and IAS feature notebook](https://github.com/DeloneCommons/atomref/blob/main/notebooks/05-proatomic-density-and-ias.ipynb)
-  — executed public-API examples for profile discovery, unit-aware density
-  evaluation, both pairwise modes, diagnostic cases, and saved plots.
+## User workflows
 
-The original notebook files are also in the repository:
+- [Quickstart](../notebooks/01-quickstart.ipynb) introduces direct scalar
+  values, provenance-carrying lookup, and dataset discovery.
+- [Policies and assessment](../notebooks/02-policies-and-assessment.ipynb)
+  explains ordered restoration, fitted transfers, provenance, and policy
+  summaries.
+- [Custom sets and discovery](../notebooks/03-custom-sets-and-discovery.ipynb)
+  builds a user-provided scalar set and inspects the packaged catalog.
+- [Proatomic density and IAS workflows](../notebooks/05-proatomic-density-and-ias.ipynb)
+  covers profile provenance, unit-aware evaluation, both pairwise modes,
+  diagnostic cases, formulas, and saved plots.
 
-- [`01-quickstart.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/01-quickstart.ipynb)
-- [`02-policies-and-assessment.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/02-policies-and-assessment.ipynb)
-- [`03-custom-sets-and-discovery.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/03-custom-sets-and-discovery.ipynb)
-- [`04-ias-method-selection-study.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/04-ias-method-selection-study.ipynb)
-- [`05-proatomic-density-and-ias.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/notebooks/05-proatomic-density-and-ias.ipynb)
+## Supporting numerical study
+
+- [IAS method-selection study](../notebooks/04-ias-method-selection-study.ipynb)
+  records the numerical evidence behind the stable boundary and practical
+  minimum contracts. It is supporting information, not an alternative runtime
+  implementation.
+
+The durable scientific summary is also available in
+[Pairwise boundary and IAS-proxy method selection](../dev/ias_method_selection.md).
+
+## Notebook sources
+
+The canonical file for every rendered page is available here for viewing or
+download:
+
+- [`01-quickstart.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/docs/notebooks/01-quickstart.ipynb)
+- [`02-policies-and-assessment.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/docs/notebooks/02-policies-and-assessment.ipynb)
+- [`03-custom-sets-and-discovery.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/docs/notebooks/03-custom-sets-and-discovery.ipynb)
+- [`04-ias-method-selection-study.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/docs/notebooks/04-ias-method-selection-study.ipynb)
+- [`05-proatomic-density-and-ias.ipynb`](https://github.com/DeloneCommons/atomref/blob/main/docs/notebooks/05-proatomic-density-and-ias.ipynb)
+
+## Run notebooks locally
+
+Install all direct notebook dependencies with:
+
+```bash
+pip install "atomref[notebook]"
+```
+
+The notebooks are designed for a standard Python Jupyter kernel. Saved outputs
+are examples, not a byte-for-byte reproducibility promise: timing, rendering
+metadata, and PNG bytes may vary when a notebook is deliberately rerun.

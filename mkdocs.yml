@@ -8,6 +8,12 @@ theme:
 
 plugins:
   - search
+  - mkdocs-jupyter:
+      execute: false
+      allow_errors: false
+      include_source: true
+      cache: false
+      custom_mathjax_url: https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS_CHTML-full,Safe
   - mkdocstrings:
       handlers:
         python:
@@ -33,9 +39,11 @@ nav:
       - X–H bond length: datasets/xh_bond_length.md
   - Notebooks:
       - Overview: guide/notebooks.md
-      - Quickstart notebook: notebooks/01-quickstart.md
-      - Policies and assessment notebook: notebooks/02-policies-and-assessment.md
-      - Custom sets and discovery notebook: notebooks/03-custom-sets-and-discovery.md
+      - Quickstart notebook: notebooks/01-quickstart.ipynb
+      - Policies and assessment notebook: notebooks/02-policies-and-assessment.ipynb
+      - Custom sets and discovery notebook: notebooks/03-custom-sets-and-discovery.ipynb
+      - IAS method-selection study: notebooks/04-ias-method-selection-study.ipynb
+      - Proatomic density and IAS: notebooks/05-proatomic-density-and-ias.ipynb
   - Development:
       - Architecture: dev/architecture.md
       - Data curation: dev/data_curation.md

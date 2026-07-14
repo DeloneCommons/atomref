@@ -31,8 +31,8 @@ The supported public interval is exactly 0 through 20 bohr, inclusive. The
 stored snapshot retains one source point above 20 bohr only to bracket the
 endpoint. Between positive stored knots, evaluation uses the dependency-free
 `loglog_positive_bracketed_v1` contract: linear interpolation in `log(r)` and
-`log(rho)`. Exact knots return their stored values. Over `0 <= r <=` the first
-positive stored radius, the first stored density is returned; this is a
+`log(rho)`. Exact knots return their stored values. From `r = 0` through the
+first positive stored radius, the first stored density is returned; this is a
 finite-grid convention, not an exact evaluation at the nucleus. Negative,
 non-finite, and above-domain radii raise `ValueError`; there is no extrapolation
 or zero fill.
@@ -131,8 +131,10 @@ resolution-limited non-result is acceptable.
 These are neutral-proatom estimates. Neither mode locates a molecular QTAIM
 zero-flux surface or an exact molecular-density critical point. They do not add
 ionic, environment-dependent, vectorized, molecular-density, or grid-density
-behavior. See the executed
-[feature notebook on GitHub](https://github.com/DeloneCommons/atomref/blob/main/notebooks/05-proatomic-density-and-ias.ipynb)
-for the public workflows and the [IAS method-selection
-study](../dev/ias_method_selection.md) for the numerical decision and archived
-all-minima limitations.
+behavior. See the directly rendered
+[proatomic density and IAS notebook](../notebooks/05-proatomic-density-and-ias.ipynb)
+for the public workflows, the
+[IAS method-selection notebook](../notebooks/04-ias-method-selection-study.ipynb)
+for the executed supporting analysis, and the
+[durable method summary](../dev/ias_method_selection.md) for the numerical
+decision and archived all-minima limitations.
