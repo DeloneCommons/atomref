@@ -67,5 +67,7 @@ Run the full local release-candidate validation with:
 python tools/release_check.py
 ```
 
-That command builds fresh artifacts and validates clean base, `notebook`, and
-`all` installations in temporary virtual environments.
+That command requires a clean worktree, builds fresh artifacts from a temporary
+extraction of the committed `HEAD` with conventional file modes, and validates
+clean base, `notebook`, and `all` installations in temporary virtual
+environments.

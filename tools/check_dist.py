@@ -3,10 +3,19 @@
 from __future__ import annotations
 
 import argparse
+from email import policy
+from email.parser import BytesParser
 import hashlib
 import io
+import os
 from pathlib import Path
+import re
+import stat
+import subprocess
+import sys
 import tarfile
+import tempfile
+import venv
 import zipfile
 
 
@@ -18,7 +27,18 @@ REQUIRED_WHEEL_MEMBERS = {
     "atomref/data/xh_bond_length.csv",
     "atomref/data/registry.json",
     "atomref/py.typed",
+    "dist-info/METADATA",
+    "dist-info/licenses/COPYING",
+    "dist-info/licenses/LICENSE",
     "dist-info/licenses/NOTICE.md",
+}
+
+EXPECTED_SDIST_NOTEBOOKS = {
+    "docs/notebooks/01-quickstart.ipynb",
+    "docs/notebooks/02-policies-and-assessment.ipynb",
+    "docs/notebooks/03-custom-sets-and-discovery.ipynb",
+    "docs/notebooks/04-ias-method-selection-study.ipynb",
+    "docs/notebooks/05-proatomic-density-and-ias.ipynb",
 }
 
 REQUIRED_SDIST_SUFFIXES = {
@@ -32,31 +52,81 @@ REQUIRED_SDIST_SUFFIXES = {
     "README.md",
     "CHANGELOG.md",
     "DEV_PLAN.md",
+    "COPYING",
     "LICENSE",
     "NOTICE.md",
     "pyproject.toml",
     ".flake8",
-    "notebooks/01-quickstart.ipynb",
-    "notebooks/02-policies-and-assessment.ipynb",
-    "notebooks/03-custom-sets-and-discovery.ipynb",
-    "notebooks/04-ias-method-selection-study.ipynb",
-    "notebooks/05-proatomic-density-and-ias.ipynb",
-    "docs/notebooks/01-quickstart.md",
-    "docs/notebooks/02-policies-and-assessment.md",
-    "docs/notebooks/03-custom-sets-and-discovery.md",
+    "docs/index.md",
+    *EXPECTED_SDIST_NOTEBOOKS,
     "docs/guide/notebooks.md",
     "docs/guide/proatomic_density.md",
+    "docs/dev/architecture.md",
+    "docs/dev/data_curation.md",
     "docs/dev/ias_method_selection.md",
+    "docs/api/index.md",
     "docs/api/proatoms.md",
+    "docs/assets/ias-method-study/c-o-method-comparison.png",
+    "docs/assets/ias-method-study/cutoff-radii.png",
+    "docs/assets/ias-method-study/li-li-symmetry.png",
     "tools/build_proatomic_density_snapshot.py",
     "tools/check_notebooks.py",
     "tools/check_registry.py",
     "tools/check_dist.py",
-    "tools/export_notebooks.py",
     "tools/gen_readme.py",
     "tools/release_check.py",
     "tools/README.md",
 }
+
+FORBIDDEN_SDIST_MEMBERS = {
+    "docs/dev/dev_plan.md",
+    "tools/export_notebooks.py",
+}
+
+EXPECTED_VERSION = "0.2.1"
+EXPECTED_REGULAR_FILE_MODE = 0o644
+REQUIRED_USER_EXTRAS = {"all", "notebook"}
+EXTRA_MARKER = re.compile(r"\bextra\s*==\s*(['\"])([-a-zA-Z0-9_.]+)\1")
+
+OPTIONAL_IMPORTS = """\
+import ipykernel
+import matplotlib
+import mkdocs_jupyter
+import nbclient
+import nbformat
+"""
+
+API_SMOKE = """\
+import atomref as ar
+
+assert ar.__version__ == "0.2.1"
+assert ar.get_covalent_radius("C") == 0.76
+assert ar.get_vdw_radius("C") == 1.77
+assert ar.get_xh_bond_length("N") is not None
+assert "atomic_radius" in ar.list_quantities()
+assert "rahm2016" in ar.list_dataset_ids(
+    "atomic_radius", usage_role="support"
+)
+ref = ar.DatasetRef(
+    "proatomic_density",
+    "pbe0_sfx2c_dyallv4z_h-lr_neutral_v2",
+)
+dataset = ar.get_builtin_set(ref)
+assert dataset.get("O") is not None
+rho = ar.get_proatomic_density(
+    "O",
+    0.75,
+    radius_unit="angstrom",
+    density_unit="electron/bohr^3",
+)
+assert rho is not None and rho > 0
+boundary = ar.estimate_proatomic_boundary("C", "O", 1.43)
+assert boundary.position_from_a is not None
+minimum = ar.estimate_promolecular_density_minimum("C", "O", 1.43)
+assert minimum.requested_mode == "minimum"
+selected = ar.estimate_ias_position("C", "O", 1.43, mode="boundary")
+assert selected == boundary
+"""
 
 ATTRIBUTION_MARKERS = {
     "CC BY 4.0",
@@ -76,7 +146,29 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class DistCheckError(RuntimeError):
-    """Raised when a built distribution is missing required members."""
+    """Raised when a built distribution violates the release contract."""
+
+
+def _assert_regular_file_modes(
+    members: list[tuple[str, int]],
+    *,
+    label: str,
+) -> None:
+    """Require conventional non-executable modes for regular payload files."""
+
+    unexpected = [
+        (name, stat.S_IMODE(mode))
+        for name, mode in members
+        if stat.S_IMODE(mode) != EXPECTED_REGULAR_FILE_MODE
+    ]
+    if unexpected:
+        details = ", ".join(
+            f"{name}={mode:04o}" for name, mode in unexpected
+        )
+        raise DistCheckError(
+            f"{label} regular files must use mode "
+            f"{EXPECTED_REGULAR_FILE_MODE:04o}: {details}"
+        )
 
 
 def _assert_members_present(
@@ -101,6 +193,52 @@ def _members_matching_suffixes(actual: set[str], suffixes: set[str]) -> set[str]
         if any(name.endswith(suffix) for name in actual):
             matched.add(suffix)
     return matched
+
+
+def _sdist_relative_members(actual: set[str], *, label: str) -> set[str]:
+    """Remove the generated source-distribution root from member names."""
+
+    roots = {name.split("/", 1)[0] for name in actual if name}
+    if len(roots) != 1:
+        raise DistCheckError(
+            f"{label} must contain exactly one generated root directory"
+        )
+    root = next(iter(roots))
+    prefix = f"{root}/"
+    return {name[len(prefix) :] for name in actual if name.startswith(prefix)}
+
+
+def _assert_sdist_layout(actual: set[str], *, label: str) -> None:
+    """Reject duplicate notebooks and obsolete generated documentation paths."""
+
+    relative = _sdist_relative_members(actual, label=label)
+    obsolete = {
+        name
+        for name in relative
+        if name in FORBIDDEN_SDIST_MEMBERS
+        or (
+            name.startswith("docs/notebooks/")
+            and name.endswith(".md")
+        )
+        or ".ipynb_checkpoints/" in name
+    }
+    if obsolete:
+        joined = ", ".join(sorted(obsolete))
+        raise DistCheckError(f"{label} contains obsolete members: {joined}")
+
+    notebooks = {name for name in relative if name.endswith(".ipynb")}
+    if notebooks != EXPECTED_SDIST_NOTEBOOKS:
+        missing = sorted(EXPECTED_SDIST_NOTEBOOKS - notebooks)
+        unexpected = sorted(notebooks - EXPECTED_SDIST_NOTEBOOKS)
+        details: list[str] = []
+        if missing:
+            details.append(f"missing: {', '.join(missing)}")
+        if unexpected:
+            details.append(f"unexpected: {', '.join(unexpected)}")
+        raise DistCheckError(
+            f"{label} must contain exactly one source for each notebook "
+            f"({'; '.join(details)})"
+        )
 
 
 def _member_matching_suffix(
@@ -156,6 +294,59 @@ def _decode_utf8(payload: bytes, *, member: str, label: str) -> str:
         ) from exc
 
 
+def _assert_wheel_metadata(payload: bytes, *, member: str, label: str) -> None:
+    """Validate release version, empty core requirements, and user extras."""
+
+    try:
+        metadata = BytesParser(policy=policy.default).parsebytes(payload)
+    except (TypeError, ValueError) as exc:
+        raise DistCheckError(
+            f"{label} member {member!r} is not valid package metadata"
+        ) from exc
+
+    if metadata.get("Name") != "atomref":
+        raise DistCheckError(f"{label} has unexpected project metadata name")
+    if metadata.get("Version") != EXPECTED_VERSION:
+        raise DistCheckError(
+            f"{label} has unexpected version {metadata.get('Version')!r}; "
+            f"expected {EXPECTED_VERSION!r}"
+        )
+
+    provided_extras = set(metadata.get_all("Provides-Extra", []))
+    missing_extras = REQUIRED_USER_EXTRAS - provided_extras
+    if missing_extras:
+        joined = ", ".join(sorted(missing_extras))
+        raise DistCheckError(f"{label} is missing user extras: {joined}")
+
+    requirements = metadata.get_all("Requires-Dist", [])
+    unconditional = [
+        requirement
+        for requirement in requirements
+        if not EXTRA_MARKER.findall(requirement)
+    ]
+    if unconditional:
+        joined = ", ".join(unconditional)
+        raise DistCheckError(
+            f"{label} must not declare runtime requirements: {joined}"
+        )
+
+    by_extra: dict[str, set[str]] = {
+        extra: set() for extra in REQUIRED_USER_EXTRAS
+    }
+    for requirement in requirements:
+        requirement_text = requirement.split(";", 1)[0].strip()
+        extras = {match[1] for match in EXTRA_MARKER.findall(requirement)}
+        for extra in REQUIRED_USER_EXTRAS & extras:
+            by_extra[extra].add(requirement_text)
+
+    if not by_extra["notebook"]:
+        raise DistCheckError(f"{label} notebook extra must not be empty")
+    if by_extra["all"] != by_extra["notebook"]:
+        raise DistCheckError(
+            f"{label} all and notebook extras must contain identical requirements"
+        )
+
+
 def _assert_proatomic_snapshot(payload: bytes, *, member: str, label: str) -> None:
     """Require the exact pinned consumer ZIP and scientific CSV fingerprints."""
 
@@ -191,6 +382,14 @@ def check_wheel(path: Path) -> None:
     """Validate the contents of one built wheel."""
 
     with zipfile.ZipFile(path) as zf:
+        _assert_regular_file_modes(
+            [
+                (member.filename, member.external_attr >> 16)
+                for member in zf.infolist()
+                if not member.is_dir()
+            ],
+            label=path.name,
+        )
         names = set(zf.namelist())
         matched = _members_matching_suffixes(names, REQUIRED_WHEEL_MEMBERS)
         _assert_members_present(matched, REQUIRED_WHEEL_MEMBERS, label=path.name)
@@ -203,6 +402,17 @@ def check_wheel(path: Path) -> None:
         _assert_proatomic_snapshot(
             zf.read(snapshot_member),
             member=snapshot_member,
+            label=path.name,
+        )
+
+        metadata_member = _member_matching_suffix(
+            names,
+            "dist-info/METADATA",
+            label=path.name,
+        )
+        _assert_wheel_metadata(
+            zf.read(metadata_member),
+            member=metadata_member,
             label=path.name,
         )
 
@@ -219,9 +429,19 @@ def check_sdist(path: Path) -> None:
     """Validate the contents of one built source distribution."""
 
     with tarfile.open(path, "r:gz") as tf:
-        names = {member.name for member in tf.getmembers()}
+        members = tf.getmembers()
+        _assert_regular_file_modes(
+            [
+                (member.name, member.mode)
+                for member in members
+                if member.isreg()
+            ],
+            label=path.name,
+        )
+        names = {member.name for member in members}
         matched = _members_matching_suffixes(names, REQUIRED_SDIST_SUFFIXES)
         _assert_members_present(matched, REQUIRED_SDIST_SUFFIXES, label=path.name)
+        _assert_sdist_layout(names, label=path.name)
 
         readme_member = _sdist_root_member(names, "README.md", label=path.name)
         readme_file = tf.extractfile(readme_member)
@@ -266,11 +486,110 @@ def check_sdist(path: Path) -> None:
             _assert_attribution(text, member=member, label=path.name)
 
 
+def _venv_python(env_dir: Path) -> Path:
+    """Return the Python executable created in ``env_dir``."""
+
+    bindir = "Scripts" if sys.platform.startswith("win") else "bin"
+    return env_dir / bindir / "python"
+
+
+def _run_checked(
+    args: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+    label: str,
+) -> None:
+    """Run one clean-install subprocess with a focused failure message."""
+
+    display_args = list(args)
+    if "-c" in display_args:
+        code_index = display_args.index("-c") + 1
+        if code_index < len(display_args):
+            display_args[code_index] = "<documented API smoke example>"
+    print("+", " ".join(display_args))
+    try:
+        subprocess.run(args, cwd=cwd, env=env, check=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise DistCheckError(f"{label} clean-install check failed") from exc
+
+
+def check_clean_installations(wheel: Path) -> None:
+    """Install base, notebook, and all variants in separate clean environments."""
+
+    wheel = wheel.resolve()
+    if not wheel.is_file():
+        raise DistCheckError(f"wheel does not exist: {wheel}")
+
+    clean_env = os.environ.copy()
+    clean_env.pop("PYTHONHOME", None)
+    clean_env.pop("PYTHONPATH", None)
+
+    with tempfile.TemporaryDirectory(prefix="atomref-artifact-installs-") as tmp:
+        root = Path(tmp)
+        outside_checkout = root / "outside-checkout"
+        outside_checkout.mkdir()
+
+        for extra in (None, "notebook", "all"):
+            label = "base" if extra is None else extra
+            env_dir = root / f"venv-{label}"
+            venv.EnvBuilder(with_pip=True).create(env_dir)
+            python = _venv_python(env_dir)
+
+            if extra is None:
+                install_target = str(wheel)
+            else:
+                install_target = f"atomref[{extra}] @ {wheel.as_uri()}"
+
+            install = [
+                str(python),
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+            ]
+            if extra is None:
+                install.append("--no-deps")
+            install.append(install_target)
+            _run_checked(
+                install,
+                cwd=outside_checkout,
+                env=clean_env,
+                label=label,
+            )
+            _run_checked(
+                [str(python), "-m", "pip", "check"],
+                cwd=outside_checkout,
+                env=clean_env,
+                label=label,
+            )
+
+            smoke = API_SMOKE
+            if extra is not None:
+                smoke = f"{OPTIONAL_IMPORTS}\n{smoke}"
+            _run_checked(
+                [str(python), "-c", smoke],
+                cwd=outside_checkout,
+                env=clean_env,
+                label=label,
+            )
+
+            print(f"Validated clean {label} installation from {wheel.name}.")
+
+
 def main() -> None:
     """Validate wheel and sdist artifacts found in a distribution directory."""
 
     parser = argparse.ArgumentParser()
     parser.add_argument("dist_dir", type=Path, nargs="?", default=Path("dist"))
+    parser.add_argument(
+        "--check-installs",
+        action="store_true",
+        help=(
+            "install the built wheel as base, notebook, and all variants in "
+            "separate clean virtual environments"
+        ),
+    )
     args = parser.parse_args()
 
     dist_dir = args.dist_dir
@@ -285,6 +604,13 @@ def main() -> None:
         check_wheel(wheel)
     for sdist in sdists:
         check_sdist(sdist)
+    if args.check_installs:
+        if len(wheels) != 1:
+            raise DistCheckError(
+                "clean-install checks require exactly one wheel in the "
+                "distribution directory"
+            )
+        check_clean_installations(wheels[0])
 
 
 if __name__ == "__main__":

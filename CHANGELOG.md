@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.2.1 - 2026-07-14
+
+### Added
+
+- Complete structured public API documentation with rendered typed signatures,
+  parameters, returns, raised errors, attributes, examples, and cross-references.
+- An `all` extra that exactly mirrors the complete user-facing `notebook` extra.
+- Clean built-wheel installation checks for the base package, `notebook`, and
+  `all` extras.
+
+### Changed
+
+- Repositioned the documentation home page and generated README around rapid
+  installation, first use, scientific provenance, and adoption by downstream
+  structure-analysis software.
+- Rendered the maintained `.ipynb` notebooks directly in MkDocs with committed
+  Markdown, code, mathematics, text output, and PNG plots.
+- Replaced the bespoke notebook execution/export path with one temporary
+  standard-Jupyter smoke check that discards its execution results.
+
+### Packaging
+
+- Declared the renderer, execution client, notebook format library, kernel, and
+  plotting library in both `notebook` and `all`, while keeping documentation,
+  test, lint, build, and release tools out of `all`.
+- Updated CI, source-distribution checks, and release preparation for the final
+  single-source notebook layout and isolated artifact installations.
+- Build release artifacts from a clean committed-source extraction and reject
+  nonstandard executable modes on ordinary wheel and source-distribution files.
+- Removed generated notebook Markdown, the custom exporter, export-sync tests,
+  and the duplicate documentation copy of the development plan.
+
+### Scientific behavior
+
+- No density values, cutoff radii, pairwise modes, selected coordinates,
+  statuses, packaged scientific data, or other numerical behavior changed.
+
 ## 0.2.0 - 2026-07-14
 
 ### Added

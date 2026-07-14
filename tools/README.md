@@ -17,7 +17,8 @@ release preparation.
   packaged scalar and radial payload.
 - `gen_readme.py` — regenerate `README.md` from `docs/index.md`.
 - `release_check.py` — run the full release-preparation checklist,
-  including linting, tests, docs, builds, and artifact validation.
+  including linting, tests, docs, a clean committed-source build with
+  conventional archive modes, and artifact validation.
 
 ## Typical commands
 
@@ -25,6 +26,7 @@ release preparation.
 python tools/check_registry.py
 python tools/check_notebooks.py
 python tools/gen_readme.py
+python tools/check_dist.py dist --check-installs
 python tools/release_check.py
 ```
 

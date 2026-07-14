@@ -1,9 +1,9 @@
 # atomref 0.2.x development plan
 
-> **Status:** fourth review draft — Stage 4 replanned after numerical review  
-> **Plan lifecycle state:** `ACTIVE`  
-> **Primary target:** `atomref 0.2.0` — dataset architecture, neutral proatomic density, two-mode pairwise boundary/IAS-proxy analysis, and executed notebooks  
-> **Planned follow-up:** `atomref 0.2.1` — notebook/documentation infrastructure, complete API reference, and README positioning  
+> **Status:** Stage 6 implementation complete — `0.2.1` release candidate awaiting external review
+> **Plan lifecycle state:** `COMPLETE_AWAITING_REVIEW`
+> **Accepted release:** `atomref 0.2.0` — tagged without rewriting accepted history
+> **Review candidate:** `atomref 0.2.1` — direct notebook documentation, complete API reference, adoption-oriented README, packaging, and release hardening
 > **Source data:** `atomref-proatoms 2.0.0`, dataset `pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`
 
 ## 1. Purpose and lifecycle of this file
@@ -2824,54 +2824,54 @@ chore: prepare atomref 0.2.1
 
 ### 14.6 `0.2.1` documentation, notebooks, packaging, and release
 
-- [ ] Full typed signatures render.
-- [ ] All public parameters, defaults, returns, raises, units, ranges, and
+- [x] Full typed signatures render.
+- [x] All public parameters, defaults, returns, raises, units, ranges, and
       attributes render correctly.
-- [ ] Public docstrings use one structured style.
-- [ ] API-page member selection is complete and excludes irrelevant internals.
-- [ ] API cross-references work.
-- [ ] README/home page explains the package value immediately.
-- [ ] Installation and a compact working example appear before detailed internal
+- [x] Public docstrings use one structured style.
+- [x] API-page member selection is complete and excludes irrelevant internals.
+- [x] API cross-references work.
+- [x] README/home page explains the package value immediately.
+- [x] Installation and a compact working example appear before detailed internal
       terminology.
-- [ ] Working radii, X–H, density, boundary-mode, and minimum-mode capabilities
+- [x] Working radii, X–H, density, boundary-mode, and minimum-mode capabilities
       are discoverable from the opening documentation path.
-- [ ] The README explains honestly why a developer should use `atomref` rather
+- [x] The README explains honestly why a developer should use `atomref` rather
       than maintain project-local constants, datasets, and fallback rules.
-- [ ] Detailed policy and registry terminology is moved below first-use content.
-- [ ] Provenance and limitations remain explicit without obscuring the initial
+- [x] Detailed policy and registry terminology is moved below first-use content.
+- [x] Provenance and limitations remain explicit without obscuring the initial
       adoption path.
-- [ ] `mkdocs-jupyter` renders the actual `.ipynb` files directly in the MkDocs
+- [x] `mkdocs-jupyter` renders the actual `.ipynb` files directly in the MkDocs
       site.
-- [ ] Each notebook has exactly one maintained source file and no parallel
+- [x] Each notebook has exactly one maintained source file and no parallel
       Markdown representation.
-- [ ] Inline `$...$` and display `$$...$$` mathematics render correctly with the
+- [x] Inline `$...$` and display `$$...$$` mathematics render correctly with the
       current Material theme.
-- [ ] Saved text output and saved PNG plots render correctly.
-- [ ] Ordinary and strict documentation builds do not execute or rewrite
+- [x] Saved text output and saved PNG plots render correctly.
+- [x] Ordinary and strict documentation builds do not execute or rewrite
       notebooks.
-- [ ] Notebook code is smoke-executed once through standard Jupyter tooling in a
+- [x] Notebook code is smoke-executed once through standard Jupyter tooling in a
       temporary location and execution errors fail the check.
-- [ ] Notebook smoke execution does not compare outputs or enforce freshness,
+- [x] Notebook smoke execution does not compare outputs or enforce freshness,
       normalization, or byte-for-byte reproducibility.
-- [ ] Generated notebook Markdown files, `tools/export_notebooks.py`, export-sync
+- [x] Generated notebook Markdown files, `tools/export_notebooks.py`, export-sync
       tests, and obsolete CI/release commands are removed.
-- [ ] No duplicate notebook tree, symlink, staging directory, or committed
+- [x] No duplicate notebook tree, symlink, staging directory, or committed
       notebook-conversion cache remains.
-- [ ] Notebook navigation, links, source links, packaging checks, and sdist paths
+- [x] Notebook navigation, links, source links, packaging checks, and sdist paths
       use the final notebook locations.
-- [ ] Every direct notebook dependency is declared in `notebook` and duplicated
+- [x] Every direct notebook dependency is declared in `notebook` and duplicated
       in `all`.
-- [ ] Documentation CI installs both `docs` and `notebook` extras.
-- [ ] An `all` extra contains every user-facing optional feature dependency.
-- [ ] `all` excludes test, lint, packaging, upload, and release-only dependencies.
-- [ ] Base, `atomref[notebook]`, and `atomref[all]` installations succeed from
+- [x] Documentation CI installs both `docs` and `notebook` extras.
+- [x] An `all` extra contains every user-facing optional feature dependency.
+- [x] `all` excludes test, lint, packaging, upload, and release-only dependencies.
+- [x] Base, `atomref[notebook]`, and `atomref[all]` installations succeed from
       built artifacts in clean environments.
-- [ ] Documented minimal examples run outside the repository checkout.
-- [ ] Duplicate development-plan docs are removed.
-- [ ] Architecture, data-curation, scientific guides, package metadata, and
+- [x] Documented minimal examples run outside the repository checkout.
+- [x] Duplicate development-plan docs are removed.
+- [x] Architecture, data-curation, scientific guides, package metadata, and
       changelog match the accepted implementation.
-- [ ] Version is `0.2.1`.
-- [ ] Strict docs and full release checks pass.
+- [x] Version is `0.2.1`.
+- [x] Strict docs and full release checks pass.
 
 ## 15. Optional architecture review after `0.2.0`
 
@@ -3129,32 +3129,71 @@ Lifecycle state:
   COMPLETE_AWAITING_REVIEW
 
 Completed releases/stages:
-  - ...
+  - atomref 0.2.0 was accepted and tagged before this implementation.
+  - Stage 6 completed the merged atomref 0.2.1 documentation, notebook,
+    packaging, and release-candidate contract.
 
 Final commits or pull requests:
-  - ...
+  - docs: render notebooks directly
+  - docs: complete typed API reference
+  - docs: reposition atomref documentation
+  - chore: add complete user extras
+  - chore: prepare atomref 0.2.1 (this commit)
+  - local commits only; no pull request, push, tag, or publication action
 
 Acceptance checks:
-  - <command>: <result>
+  - flake8 src tests tools: passed
+  - python tools/check_registry.py: passed
+  - python tools/check_notebooks.py: five notebooks passed in disposable
+    standard-Jupyter kernels; committed sources were unchanged
+  - temporary failing-notebook probe: failed with CellExecutionError as required;
+    the probe source hash was unchanged and the probe was discarded
+  - python tools/gen_readme.py --check: passed
+  - python -m pytest -q: 267 passed
+  - mkdocs build --strict: passed with execute=False for all five notebooks;
+    source hashes were unchanged and rendered code, inline/display mathematics,
+    saved text, and saved PNG output were inspected successfully
+  - rendered API inspection: all 65 top-level exports, typed signatures,
+    class constructor defaults, structured sections, attributes, examples, and
+    intended special methods rendered; lookup_value() has a standalone Examples
+    section and exactly two Raises rows; internal resolver and __post_init__
+    members remained excluded
+  - python tools/release_check.py: passed, including build, twine, distribution
+    content checks, conventional 0644 regular-file modes, and clean
+    base/notebook/all artifact installations from a clean committed HEAD export
+  - runtime AST comparison against Stage 6 baseline after removing docstrings:
+    unchanged across all nine documentation-edited runtime modules
+  - git diff --exit-code 3490e348b6a3824bfaa0e60c3cda88f82595106c --
+    src/atomref/data: passed
+  - history audit: the Stage 6 sequence descends from the recorded baseline
+    3490e348b6a3824bfaa0e60c3cda88f82595106c without amendment; the v0.2.0 tag
+    object remained c5b5901cc23ad2914a546c3c61a9feee53d41985 and still peeled to
+    1fba665a41d5a7b2ee97d27701347113b277cd4f
 
 Binding requirements not implemented:
   - none
-  or
-  - <requirement and explicit owner-approved reason>
 
 Plan deviations:
-  - none
-  or
-  - <deviation, reason, and protecting tests>
+  - none; the preferred mkdocs-jupyter path passed the focused mathematics
+    prototype, so the nbconvert fallback was not used
 
 Future-reference items intentionally not touched:
-  - ...
+  - ions and additional atomic properties
+  - vectorized, grid, and molecular-density APIs
+  - exact-QTAIM functionality and future molecular benchmarks
+  - optional post-0.2.0 architecture ideas in Section 15
 
 Known limitations remaining within the accepted release:
-  - ...
+  - profiles remain neutral, spherical H–Lr references with scalar evaluation
+    over the documented 0–20 bohr domain
+  - pairwise modes remain reference-atom proxies rather than exact molecular
+    QTAIM surfaces, and minimum mode may return a typed non-result
+  - X–H support remains the documented provisional parent-element dataset scope
 
 Implementation agent conclusion:
-  - <why the plan is believed complete>
+  - every binding Stage 6 and Section 14.6 item is implemented and validated;
+    atomref 0.2.1 is ready for independent diff, science, documentation, and
+    artifact review as a local commit sequence without being tagged or published
 
 External review required:
   - verify repository diff and history

@@ -16,6 +16,16 @@ CHECK_DIST_PATH = REPO_ROOT / "tools" / "check_dist.py"
 SNAPSHOT_PATH = REPO_ROOT / "src" / "atomref" / "data" / (
     "proatomic_density_neutral.zip"
 )
+VALID_WHEEL_METADATA = b"""\
+Metadata-Version: 2.4
+Name: atomref
+Version: 0.2.1
+Provides-Extra: notebook
+Provides-Extra: all
+Requires-Dist: ipykernel>=6.29; extra == 'notebook'
+Requires-Dist: ipykernel>=6.29; extra == 'all'
+
+"""
 
 spec = importlib.util.spec_from_file_location("check_dist_tool", CHECK_DIST_PATH)
 assert spec is not None and spec.loader is not None
@@ -51,14 +61,76 @@ def test_dist_check_requires_release_tools_and_legacy_data() -> None:
     assert ".flake8" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "tools/check_registry.py" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "tools/check_dist.py" in check_dist.REQUIRED_SDIST_SUFFIXES
+    assert "docs/notebooks/05-proatomic-density-and-ias.ipynb" in (
+        check_dist.REQUIRED_SDIST_SUFFIXES
+    )
+    assert "tools/export_notebooks.py" not in check_dist.REQUIRED_SDIST_SUFFIXES
+    assert "dist-info/licenses/COPYING" in check_dist.REQUIRED_WHEEL_MEMBERS
 
 
 def test_sdist_root_readme_cannot_be_satisfied_by_tools_readme() -> None:
     with pytest.raises(check_dist.DistCheckError, match="root-level 'README.md'"):
         check_dist._sdist_root_member(
-            {"atomref-0.2.0/tools/README.md"},
+            {"atomref-9.9.9/tools/README.md"},
             "README.md",
             label="test sdist",
+        )
+
+
+def test_sdist_layout_rejects_obsolete_notebook_paths() -> None:
+    members = {
+        "atomref-0.2.1/docs/notebooks/01-quickstart.ipynb",
+        "atomref-0.2.1/notebooks/01-quickstart.ipynb",
+    }
+
+    with pytest.raises(check_dist.DistCheckError, match="exactly one source"):
+        check_dist._assert_sdist_layout(members, label="test sdist")
+
+
+def test_sdist_layout_rejects_generated_notebook_markdown() -> None:
+    members = {
+        f"atomref-0.2.1/{name}" for name in check_dist.EXPECTED_SDIST_NOTEBOOKS
+    }
+    members.add("atomref-0.2.1/docs/notebooks/01-quickstart.md")
+
+    with pytest.raises(check_dist.DistCheckError, match="obsolete members"):
+        check_dist._assert_sdist_layout(members, label="test sdist")
+
+
+def test_wheel_metadata_accepts_empty_runtime_and_matching_user_extras() -> None:
+    check_dist._assert_wheel_metadata(
+        VALID_WHEEL_METADATA,
+        member="atomref.dist-info/METADATA",
+        label="test wheel",
+    )
+
+
+def test_dist_check_accepts_conventional_regular_file_modes() -> None:
+    check_dist._assert_regular_file_modes(
+        [("atomref/module.py", 0o100644), ("atomref/data/table.csv", 0o644)],
+        label="test artifact",
+    )
+
+
+def test_dist_check_rejects_executable_payload_file_modes() -> None:
+    with pytest.raises(check_dist.DistCheckError, match="module.py=0755"):
+        check_dist._assert_regular_file_modes(
+            [("atomref/module.py", 0o100755)],
+            label="test artifact",
+        )
+
+
+def test_wheel_metadata_rejects_runtime_dependencies() -> None:
+    payload = (
+        VALID_WHEEL_METADATA.rstrip()
+        + b"\nRequires-Dist: numpy>=2\n\n"
+    )
+
+    with pytest.raises(check_dist.DistCheckError, match="runtime requirements"):
+        check_dist._assert_wheel_metadata(
+            payload,
+            member="atomref.dist-info/METADATA",
+            label="test wheel",
         )
 
 
@@ -103,3 +175,4 @@ def test_release_check_help() -> None:
         text=True,
     )
     assert "release-preparation checks" in result.stdout
+    assert "--skip-install-checks" in result.stdout

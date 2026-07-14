@@ -4,7 +4,7 @@ import atomref as ar
 
 
 def test_release_version() -> None:
-    assert ar.__version__ == '0.2.0'
+    assert ar.__version__ == '0.2.1'
 
 
 def test_basic_smoke_import_and_lookup() -> None:
