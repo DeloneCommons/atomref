@@ -1,7 +1,9 @@
 # Data curation
 
-Packaged tables are stored as CSV files indexed by atomic number. Dataset
-metadata and provenance live in `src/atomref/data/registry.json`.
+Packaged scalar tables are stored as CSV files indexed by atomic number. The
+radial dataset is a shared-grid CSV payload inside a deterministic ZIP. Dataset
+metadata, storage declarations, and provenance live in
+`src/atomref/data/registry.json`.
 
 Placeholder values are modeled as dataset metadata, not as hard-coded Python
 constants.
@@ -19,7 +21,8 @@ This matters for support-only datasets such as `atomic_radius:rahm2016`, which
 is packaged as atomic support data and then used by the default van der Waals
 policy through linear transfer.
 
-To check that metadata and packaged tables stay synchronized, run:
+To check that metadata and every packaged scalar or radial payload stay
+synchronized, run:
 
 ```bash
 python tools/check_registry.py

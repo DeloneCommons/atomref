@@ -17,7 +17,6 @@ The package is about **curated reference data and explicit lookup policies**.
 That includes provenance, transfer from broader support datasets, and stable API
 surfaces that higher-level scientific code can rely on.
 
-Future versions may widen the range of supported *reference-data families* — for
-example X–H distances or radial atomic reference functions — but the package
-should still remain a small reference-data layer rather than a full chemistry
-platform.
+Future versions may widen the range of supported *reference-data families*, but
+the package should still remain a small reference-data layer rather than a full
+chemistry platform.

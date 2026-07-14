@@ -18,6 +18,7 @@ def test_notebook_files_exist() -> None:
         "02-policies-and-assessment.ipynb",
         "03-custom-sets-and-discovery.ipynb",
         "04-ias-method-selection-study.ipynb",
+        "05-proatomic-density-and-ias.ipynb",
     }
     actual = {path.name for path in NOTEBOOKS.glob("*.ipynb")}
     assert expected.issubset(actual)

@@ -1,6 +1,8 @@
 # Architecture
 
-Publicly, `atomref` is still radii-first, with a small provisional X–H helper.
+Publicly, `atomref` provides scalar radii and X–H reference workflows together
+with neutral radial proatomic-density evaluation and two explicit pairwise
+neutral-proatom modes.
 
 Internally, the package is built around four layers:
 
@@ -9,8 +11,9 @@ Internally, the package is built around four layers:
    scalar/radial data loading,
 3. **policy core** — generic value selection with overrides, transfers,
    fallbacks, blocked keys, and provenance,
-4. **quantity wrappers** — convenience APIs such as `atomref.radii` and
-   `atomref.xh`.
+4. **quantity features** — scalar convenience APIs such as `atomref.radii` and
+   `atomref.xh`, plus immutable radial profiles and pairwise analysis in
+   `atomref.proatoms`.
 
 ## Core terminology
 
@@ -18,7 +21,7 @@ A few terms are deliberately separated in the design:
 
 - **quantity** — the operational property family being requested,
 - **domain** — the key space used to index that quantity,
-- **dataset** — one curated source table inside the quantity,
+- **dataset** — one curated source payload inside the quantity,
 - **policy** — the ordered rule set used to select a final value.
 
 This separation is what allows the package to say, for example, that

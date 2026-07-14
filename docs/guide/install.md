@@ -13,12 +13,13 @@ For local development, documentation work, and tests, install the editable
 package together with the main extras:
 
 ```bash
-pip install -e ".[test,docs,dev]"
+pip install -e ".[test,notebook,docs,dev]"
 ```
 
 Those extras currently cover:
 
 - `test` — pytest and test-only compatibility helpers,
+- `notebook` — Matplotlib for executing the saved plotting notebooks,
 - `docs` — MkDocs and API documentation tooling,
 - `dev` — flake8, build, and release metadata checks.
 

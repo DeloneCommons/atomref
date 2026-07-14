@@ -79,15 +79,15 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    rendered = render_readme()
+    rendered = render_readme().encode("utf-8")
     if args.check:
-        current = args.output.read_text(encoding="utf-8")
+        current = args.output.read_bytes()
         if current != rendered:
             print(f"{args.output} is out of sync with docs/index.md", file=sys.stderr)
             return 1
         return 0
 
-    args.output.write_text(rendered, encoding="utf-8")
+    args.output.write_bytes(rendered)
     return 0
 
 

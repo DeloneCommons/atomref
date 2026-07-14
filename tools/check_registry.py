@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate packaged registry metadata against bundled data tables."""
+"""Validate packaged registry metadata against bundled data payloads."""
 
 from __future__ import annotations
 

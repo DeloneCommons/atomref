@@ -60,6 +60,11 @@ class IASPositionResult:
     ``density_unit``. A valid but scientifically non-applicable request uses
     ``method="none"`` and leaves its coordinate fields as :data:`None`.
 
+    Reversing the atoms maps primary and alternative coordinates ``x`` to
+    ``R - x``, swaps A/B component fields, and relabels dominance. Method,
+    status, summed density, cutoff regime, and orientation-independent search
+    diagnostics remain equivalent under that relabeling.
+
     ``boundary_dominated`` takes status precedence over ``search_unstable``,
     which takes precedence over ``ambiguous_competing_minima``. The separate
     ``search_converged`` and ``ambiguous`` fields preserve all diagnostics.

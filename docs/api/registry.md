@@ -10,7 +10,7 @@ The most important registry ideas are:
 
 - **quantity** — the operational property family,
 - **domain** — the key space used to index that quantity,
-- **dataset** — one curated named table inside the quantity.
+- **dataset** — one curated named source payload inside the quantity.
 
 In the current runtime, the implemented lookup domain is `element`.
 The registry still stores `domain` explicitly because the metadata design is

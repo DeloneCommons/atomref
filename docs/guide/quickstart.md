@@ -58,4 +58,5 @@ For longer, runnable examples see:
 - the [notebook overview](notebooks.md),
 - the [quickstart notebook page](../notebooks/01-quickstart.md),
 - the [policies notebook page](../notebooks/02-policies-and-assessment.md),
-- the [custom sets notebook page](../notebooks/03-custom-sets-and-discovery.md).
+- the [custom sets notebook page](../notebooks/03-custom-sets-and-discovery.md),
+- the [executed proatomic density and IAS feature notebook](https://github.com/DeloneCommons/atomref/blob/main/notebooks/05-proatomic-density-and-ias.ipynb).
