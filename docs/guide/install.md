@@ -1,31 +1,71 @@
 # Install
 
-For normal use, install the runtime package:
+## Lightweight runtime
+
+Install the dependency-free runtime for radii, X–H, density, registry, policy,
+and pairwise APIs:
 
 ```bash
 pip install atomref
 ```
 
-`atomref` is pure Python and has no required runtime dependencies outside the
-standard library.
+`atomref` supports Python 3.10 and later. Its required runtime dependency set is
+empty; every core calculation uses the Python standard library and packaged
+data.
 
-For local development, documentation work, and tests, install the editable
-package together with the main extras:
+Verify the installation with a useful result:
 
 ```bash
-pip install -e ".[test,notebook,docs,dev]"
+python -c "import atomref as ar; print(ar.get_covalent_radius('C'))"
 ```
 
-Those extras currently cover:
+## Notebook-capable installation
 
-- `test` — pytest and test-only compatibility helpers,
-- `notebook` — Matplotlib for executing the saved plotting notebooks,
-- `docs` — MkDocs and API documentation tooling,
-- `dev` — flake8, build, and release metadata checks.
+Install the direct notebook renderer, standard Jupyter execution support,
+kernel, and plotting dependency with:
 
+```bash
+pip install "atomref[notebook]"
+```
 
-For a full local pre-release validation pass after installing those extras, run:
+This extra is needed to run the shipped `.ipynb` examples locally. It is not
+needed to use any `atomref` runtime API or to read the rendered notebooks on the
+documentation site.
+
+## All user-facing optional features
+
+Install the union of current user-facing feature extras with:
+
+```bash
+pip install "atomref[all]"
+```
+
+In `0.2.1`, notebooks are the only optional user-facing feature, so `all` and
+`notebook` intentionally contain the same dependency entries. `all` is the
+stable choice for applications that want every optional user capability as new
+feature extras are added later. It does not include pytest, lint, build,
+upload, or release tools.
+
+## Contributor environment
+
+For repository development, install the editable package and the contributor
+groups required by the task:
+
+```bash
+pip install -e ".[test,dev,docs,notebook]"
+```
+
+- `test` provides the test runner.
+- `dev` provides lint, build, and distribution-metadata checks.
+- `docs` provides MkDocs, Material, and typed API-documentation tooling.
+- `notebook` provides direct notebook rendering, Jupyter execution, a Python
+  kernel, and plotting.
+
+Run the full local release-candidate validation with:
 
 ```bash
 python tools/release_check.py
 ```
+
+That command builds fresh artifacts and validates clean base, `notebook`, and
+`all` installations in temporary virtual environments.
