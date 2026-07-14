@@ -27,6 +27,8 @@
   test, lint, build, and release tools out of `all`.
 - Updated CI, source-distribution checks, and release preparation for the final
   single-source notebook layout and isolated artifact installations.
+- Kept MkDocs below version 2 across documentation and notebook extras, and
+  suppressed Material's MkDocs 2 migration banner in automated strict builds.
 - Build release artifacts from a clean committed-source extraction and reject
   nonstandard executable modes on ordinary wheel and source-distribution files.
 - Removed generated notebook Markdown, the custom exporter, export-sync tests,

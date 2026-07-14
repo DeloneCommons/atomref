@@ -13,6 +13,7 @@ PYPROJECT = REPO_ROOT / "pyproject.toml"
 EXPECTED_NOTEBOOK_DEPENDENCIES = [
     "ipykernel>=6.29",
     "matplotlib>=3.8",
+    "mkdocs>=1.6,<2",
     "mkdocs-jupyter>=0.26,<0.27",
     "nbclient>=0.10,<0.12",
     "nbformat>=5.10,<6",
@@ -51,3 +52,11 @@ def test_docs_extra_contains_only_used_documentation_tooling() -> None:
 
     assert "mkdocs-include-markdown-plugin" not in docs_requirements
     assert "tomli" not in docs_requirements
+
+
+def test_mkdocs_stays_on_the_supported_1_x_line() -> None:
+    project = _project_metadata()
+    extras = project["optional-dependencies"]
+
+    for extra in ("docs", "notebook", "all"):
+        assert extras[extra].count("mkdocs>=1.6,<2") == 1

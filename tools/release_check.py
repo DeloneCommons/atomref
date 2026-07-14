@@ -10,6 +10,7 @@ environment for each supported user installation.
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -21,13 +22,28 @@ import tempfile
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DIST_DIR = REPO_ROOT / "dist"
 BUILD_DIR = REPO_ROOT / "build"
+MKDOCS_ENV = {"NO_MKDOCS_2_WARNING": "true"}
 
 
-def _run(*args: str, cwd: Path = REPO_ROOT) -> None:
+def _run(
+    *args: str,
+    cwd: Path = REPO_ROOT,
+    extra_env: dict[str, str] | None = None,
+) -> None:
     """Run one subprocess command in the selected working directory."""
 
     print(f"+ [cwd={cwd}]", " ".join(args))
-    subprocess.run(args, cwd=cwd, check=True)
+    environment = None
+    if extra_env is not None:
+        environment = os.environ.copy()
+        environment.update(extra_env)
+    subprocess.run(args, cwd=cwd, env=environment, check=True)
+
+
+def _build_docs() -> None:
+    """Build strict docs without Material's inapplicable MkDocs 2 banner."""
+
+    _run("mkdocs", "build", "--strict", extra_env=MKDOCS_ENV)
 
 
 def _fresh_build_dirs() -> None:
@@ -120,7 +136,7 @@ def main() -> int:
     _run(sys.executable, "tools/gen_readme.py", "--check")
     _run(sys.executable, "-m", "pytest", "-q")
     if not args.skip_docs:
-        _run("mkdocs", "build", "--strict")
+        _build_docs()
 
     _fresh_build_dirs()
     _build_from_committed_head()

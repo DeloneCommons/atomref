@@ -28,6 +28,8 @@ jobs:
       - name: Check README sync
         run: python tools/gen_readme.py --check
       - name: Build docs
+        env:
+          NO_MKDOCS_2_WARNING: "true"
         run: mkdocs build --strict
       - name: Verify docs did not rewrite notebooks
         run: git diff --exit-code -- docs/notebooks

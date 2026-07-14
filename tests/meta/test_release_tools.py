@@ -13,6 +13,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECK_DIST_PATH = REPO_ROOT / "tools" / "check_dist.py"
+RELEASE_CHECK_PATH = REPO_ROOT / "tools" / "release_check.py"
 SNAPSHOT_PATH = REPO_ROOT / "src" / "atomref" / "data" / (
     "proatomic_density_neutral.zip"
 )
@@ -32,6 +33,14 @@ assert spec is not None and spec.loader is not None
 check_dist = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = check_dist
 spec.loader.exec_module(check_dist)
+
+release_spec = importlib.util.spec_from_file_location(
+    "release_check_tool", RELEASE_CHECK_PATH
+)
+assert release_spec is not None and release_spec.loader is not None
+release_check = importlib.util.module_from_spec(release_spec)
+sys.modules[release_spec.name] = release_check
+release_spec.loader.exec_module(release_check)
 
 
 def _snapshot_with_modified_csv(payload: bytes) -> bytes:
@@ -176,3 +185,55 @@ def test_release_check_help() -> None:
     )
     assert "release-preparation checks" in result.stdout
     assert "--skip-install-checks" in result.stdout
+
+
+def test_release_docs_build_suppresses_material_banner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[tuple[str, ...], dict[str, object]]] = []
+
+    def record(*args: str, **kwargs: object) -> None:
+        calls.append((args, kwargs))
+
+    monkeypatch.setattr(release_check, "_run", record)
+    release_check._build_docs()
+
+    assert calls == [
+        (
+            ("mkdocs", "build", "--strict"),
+            {"extra_env": {"NO_MKDOCS_2_WARNING": "true"}},
+        )
+    ]
+
+
+def test_release_command_merges_extra_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def record(args: tuple[str, ...], **kwargs: object) -> None:
+        captured["args"] = args
+        captured.update(kwargs)
+
+    monkeypatch.setenv("ATOMREF_PARENT_ENV", "preserved")
+    monkeypatch.setattr(release_check.subprocess, "run", record)
+    release_check._run(
+        "mkdocs",
+        "build",
+        extra_env={"NO_MKDOCS_2_WARNING": "true"},
+    )
+
+    environment = captured["env"]
+    assert isinstance(environment, dict)
+    assert environment["ATOMREF_PARENT_ENV"] == "preserved"
+    assert environment["NO_MKDOCS_2_WARNING"] == "true"
+
+
+@pytest.mark.parametrize(
+    "workflow",
+    [REPO_ROOT / ".github/workflows/ci.yml", REPO_ROOT / ".github/workflows/docs.yml"],
+)
+def test_docs_workflows_suppress_material_banner(workflow: Path) -> None:
+    text = workflow.read_text(encoding="utf-8")
+
+    assert 'NO_MKDOCS_2_WARNING: "true"' in text
