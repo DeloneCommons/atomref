@@ -10,7 +10,7 @@ release preparation.
   H–Lr consumer ZIP. This is a maintainer-only tool and performs no network
   access.
 - `check_dist.py` — verify wheel and source-distribution contents and optionally
-  test clean base, `notebook`, and `all` installations from the built wheel.
+  test clean base, `notebooks`, and `all` installations from the built wheel.
 - `check_notebooks.py` — smoke-execute temporary notebook copies through a
   standard Jupyter kernel and discard the resulting outputs.
 - `check_registry.py` — validate curated registry metadata against every

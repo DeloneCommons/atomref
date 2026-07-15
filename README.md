@@ -102,21 +102,23 @@ The base install is sufficient for every runtime API:
 pip install atomref
 ```
 
-Install the notebook extra to run the shipped Jupyter examples and their plots:
+Install the `notebooks` extra to execute or render the shipped Jupyter examples
+and their plots:
 
 ```bash
-pip install "atomref[notebook]"
+pip install "atomref[notebooks]"
 ```
 
-Install all current user-facing optional features with:
+Install every optional dependency declared by the project with:
 
 ```bash
 pip install "atomref[all]"
 ```
 
-Contributor test, lint, build, upload, and release tools are intentionally not
-part of `all`. See the [installation guide](https://delonecommons.github.io/atomref/guide/install/)
-for development setup.
+`all` is the exact union of `test`, `notebooks`, `docs`, and `dev`, so it is
+appropriate for a complete contributor or release environment. See the
+[installation guide](https://delonecommons.github.io/atomref/guide/install/)
+for the narrower groups.
 
 ## Data, provenance, and scientific scope
 
@@ -143,6 +145,19 @@ typed diagnostic without a coordinate.
 - [Proatomic-density and pairwise scientific guide](https://delonecommons.github.io/atomref/guide/proatomic_density/)
 - [Policy guide](https://delonecommons.github.io/atomref/guide/policies/)
 - [Explicit non-goals](https://delonecommons.github.io/atomref/guide/non_goals/)
+
+## Citation and licenses
+
+Cite `atomref` as software using the repository-level
+[`CITATION.cff`](https://github.com/DeloneCommons/atomref/blob/main/CITATION.cff).
+There is no preferred paper citation; the versioned software release is the
+canonical object to cite.
+
+Except for separately identified material, the software and accompanying
+repository content are licensed under LGPL-3.0-or-later. The bundled neutral
+proatomic-density snapshot is licensed separately under CC BY 4.0.
+[`NOTICE.md`](https://github.com/DeloneCommons/atomref/blob/main/NOTICE.md)
+records the exact boundary, attribution, source hashes, and source DOIs.
 
 ## Executable notebook documentation
 

@@ -9,7 +9,7 @@
 
 The `0.2.x` development cycle is complete. Its scientific implementation,
 documentation, notebooks, packaging, and release preparation have been
-independently reviewed and accepted.
+reviewed against the project's documented criteria and accepted for release.
 
 `atomref` is now a small, dependency-free-core package providing cited atomic
 reference data and frozen spherical free-atom electron densities for

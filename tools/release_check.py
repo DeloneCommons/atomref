@@ -125,7 +125,7 @@ def main() -> int:
     parser.add_argument(
         "--skip-install-checks",
         action="store_true",
-        help="skip clean base, notebook, and all wheel installation checks",
+        help="skip clean base, notebooks, and all wheel installation checks",
     )
     args = parser.parse_args()
 

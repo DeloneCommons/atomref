@@ -1,10 +1,13 @@
 # atomref
 
-atomref is a Python library for curated atomic reference data and transfer
-policies for geometry and structure-analysis algorithms.
+atomref is a Python library for curated atomic reference data, spherical
+proatomic electron-density profiles, and provenance-aware transfer policies
+for geometry and structure-analysis algorithms.
 
 Copyright (c) 2026 Ivan Chernyshov
-License: LGPL-3.0-or-later (see LICENSE and COPYING)
+Except for the separately licensed material identified below, the atomref
+software and accompanying repository content are licensed under
+LGPL-3.0-or-later (see LICENSE and COPYING).
 
 ## Third-party material
 

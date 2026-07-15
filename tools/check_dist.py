@@ -52,6 +52,8 @@ REQUIRED_SDIST_SUFFIXES = {
     "README.md",
     "CHANGELOG.md",
     "DEV_PLAN.md",
+    "CITATION.cff",
+    ".zenodo.json",
     "COPYING",
     "LICENSE",
     "NOTICE.md",
@@ -85,16 +87,39 @@ FORBIDDEN_SDIST_MEMBERS = {
 
 EXPECTED_VERSION = "0.2.1"
 EXPECTED_REGULAR_FILE_MODE = 0o644
-REQUIRED_USER_EXTRAS = {"all", "notebook"}
+COMPONENT_EXTRAS = {"test", "notebooks", "docs", "dev"}
+REQUIRED_EXTRAS = COMPONENT_EXTRAS | {"all"}
 EXTRA_MARKER = re.compile(r"\bextra\s*==\s*(['\"])([-a-zA-Z0-9_.]+)\1")
 
-OPTIONAL_IMPORTS = """\
+NOTEBOOKS_IMPORTS = """\
 import ipykernel
 import matplotlib
+import mkdocs
 import mkdocs_jupyter
 import nbclient
 import nbformat
 """
+
+ALL_IMPORTS = f"""\
+{NOTEBOOKS_IMPORTS}
+import build
+import flake8
+import material
+import mkdocstrings
+import mkdocstrings_handlers.python
+import pymdownx
+import pytest
+import twine
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli
+"""
+
+EXTRA_IMPORTS = {
+    "notebooks": NOTEBOOKS_IMPORTS,
+    "all": ALL_IMPORTS,
+}
 
 API_SMOKE = """\
 import atomref as ar
@@ -295,7 +320,7 @@ def _decode_utf8(payload: bytes, *, member: str, label: str) -> str:
 
 
 def _assert_wheel_metadata(payload: bytes, *, member: str, label: str) -> None:
-    """Validate release version, empty core requirements, and user extras."""
+    """Validate release version, empty core requirements, and extras."""
 
     try:
         metadata = BytesParser(policy=policy.default).parsebytes(payload)
@@ -313,10 +338,10 @@ def _assert_wheel_metadata(payload: bytes, *, member: str, label: str) -> None:
         )
 
     provided_extras = set(metadata.get_all("Provides-Extra", []))
-    missing_extras = REQUIRED_USER_EXTRAS - provided_extras
+    missing_extras = REQUIRED_EXTRAS - provided_extras
     if missing_extras:
         joined = ", ".join(sorted(missing_extras))
-        raise DistCheckError(f"{label} is missing user extras: {joined}")
+        raise DistCheckError(f"{label} is missing extras: {joined}")
 
     requirements = metadata.get_all("Requires-Dist", [])
     unconditional = [
@@ -331,19 +356,35 @@ def _assert_wheel_metadata(payload: bytes, *, member: str, label: str) -> None:
         )
 
     by_extra: dict[str, set[str]] = {
-        extra: set() for extra in REQUIRED_USER_EXTRAS
+        extra: set() for extra in REQUIRED_EXTRAS
     }
     for requirement in requirements:
         requirement_text = requirement.split(";", 1)[0].strip()
         extras = {match[1] for match in EXTRA_MARKER.findall(requirement)}
-        for extra in REQUIRED_USER_EXTRAS & extras:
+        for extra in REQUIRED_EXTRAS & extras:
             by_extra[extra].add(requirement_text)
 
-    if not by_extra["notebook"]:
-        raise DistCheckError(f"{label} notebook extra must not be empty")
-    if by_extra["all"] != by_extra["notebook"]:
+    empty_extras = sorted(
+        extra for extra in COMPONENT_EXTRAS if not by_extra[extra]
+    )
+    if empty_extras:
+        joined = ", ".join(empty_extras)
+        raise DistCheckError(f"{label} has empty component extras: {joined}")
+
+    expected_all = set().union(
+        *(by_extra[extra] for extra in COMPONENT_EXTRAS)
+    )
+    if by_extra["all"] != expected_all:
+        missing = sorted(expected_all - by_extra["all"])
+        unexpected = sorted(by_extra["all"] - expected_all)
+        details: list[str] = []
+        if missing:
+            details.append(f"missing: {', '.join(missing)}")
+        if unexpected:
+            details.append(f"unexpected: {', '.join(unexpected)}")
         raise DistCheckError(
-            f"{label} all and notebook extras must contain identical requirements"
+            f"{label} all extra must equal the union of test, notebooks, "
+            f"docs, and dev ({'; '.join(details)})"
         )
 
 
@@ -443,17 +484,18 @@ def check_sdist(path: Path) -> None:
         _assert_members_present(matched, REQUIRED_SDIST_SUFFIXES, label=path.name)
         _assert_sdist_layout(names, label=path.name)
 
-        readme_member = _sdist_root_member(names, "README.md", label=path.name)
-        readme_file = tf.extractfile(readme_member)
-        if readme_file is None:
-            raise DistCheckError(
-                f"{path.name} member {readme_member!r} is not a regular file"
-            )
-        if readme_file.read() != (REPO_ROOT / "README.md").read_bytes():
-            raise DistCheckError(
-                f"{path.name} member {readme_member!r} does not exactly match "
-                "the source README.md"
-            )
+        for filename in ("README.md", "CITATION.cff", ".zenodo.json"):
+            root_member = _sdist_root_member(names, filename, label=path.name)
+            root_file = tf.extractfile(root_member)
+            if root_file is None:
+                raise DistCheckError(
+                    f"{path.name} member {root_member!r} is not a regular file"
+                )
+            if root_file.read() != (REPO_ROOT / filename).read_bytes():
+                raise DistCheckError(
+                    f"{path.name} member {root_member!r} does not exactly "
+                    f"match the source {filename}"
+                )
 
         snapshot_member = _member_matching_suffix(
             names,
@@ -515,7 +557,7 @@ def _run_checked(
 
 
 def check_clean_installations(wheel: Path) -> None:
-    """Install base, notebook, and all variants in separate clean environments."""
+    """Install base, notebooks, and all variants in clean environments."""
 
     wheel = wheel.resolve()
     if not wheel.is_file():
@@ -530,7 +572,7 @@ def check_clean_installations(wheel: Path) -> None:
         outside_checkout = root / "outside-checkout"
         outside_checkout.mkdir()
 
-        for extra in (None, "notebook", "all"):
+        for extra in (None, "notebooks", "all"):
             label = "base" if extra is None else extra
             env_dir = root / f"venv-{label}"
             venv.EnvBuilder(with_pip=True).create(env_dir)
@@ -566,7 +608,7 @@ def check_clean_installations(wheel: Path) -> None:
 
             smoke = API_SMOKE
             if extra is not None:
-                smoke = f"{OPTIONAL_IMPORTS}\n{smoke}"
+                smoke = f"{EXTRA_IMPORTS[extra]}\n{smoke}"
             _run_checked(
                 [str(python), "-c", smoke],
                 cwd=outside_checkout,
@@ -586,7 +628,7 @@ def main() -> None:
         "--check-installs",
         action="store_true",
         help=(
-            "install the built wheel as base, notebook, and all variants in "
+            "install the built wheel as base, notebooks, and all variants in "
             "separate clean virtual environments"
         ),
     )

@@ -49,7 +49,7 @@ download:
 Install all direct notebook dependencies with:
 
 ```bash
-pip install "atomref[notebook]"
+pip install "atomref[notebooks]"
 ```
 
 The notebooks are designed for a standard Python Jupyter kernel. Saved outputs

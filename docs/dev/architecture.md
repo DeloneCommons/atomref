@@ -131,5 +131,7 @@ notebook Markdown, source-copy step, or output-freshness contract.
 The wheel remains a focused runtime artifact containing package code, typing
 metadata, legal notices, and curated data. The source distribution additionally
 contains tests, tools, durable documentation, and the single notebook sources.
-Base, `notebook`, and `all` installations are validated from the built wheel in
-separate temporary environments during release preparation.
+Base, `notebooks`, and `all` installations are validated from the built wheel
+in separate temporary environments during release preparation. The `all`
+variant is checked as the exact union of every declared optional dependency
+group rather than as an alias for one feature group.

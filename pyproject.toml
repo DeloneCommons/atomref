@@ -35,6 +35,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Operating System :: OS Independent",
   "Typing :: Typed",
 ]
@@ -46,21 +47,14 @@ Documentation = "https://delonecommons.github.io/atomref/"
 Repository = "https://github.com/DeloneCommons/atomref"
 Issues = "https://github.com/DeloneCommons/atomref/issues"
 Changelog = "https://github.com/DeloneCommons/atomref/blob/main/CHANGELOG.md"
+Citation = "https://github.com/DeloneCommons/atomref/blob/main/CITATION.cff"
 
 [project.optional-dependencies]
 test = [
   "pytest>=7",
   "tomli>=2; python_version < '3.11'",
 ]
-notebook = [
-  "ipykernel>=6.29",
-  "matplotlib>=3.8",
-  "mkdocs>=1.6,<2",
-  "mkdocs-jupyter>=0.26,<0.27",
-  "nbclient>=0.10,<0.12",
-  "nbformat>=5.10,<6",
-]
-all = [
+notebooks = [
   "ipykernel>=6.29",
   "matplotlib>=3.8",
   "mkdocs>=1.6,<2",
@@ -75,6 +69,22 @@ docs = [
   "pymdown-extensions>=10.0",
 ]
 dev = [
+  "build>=1.2",
+  "twine>=5",
+  "flake8>=7",
+]
+all = [
+  "pytest>=7",
+  "tomli>=2; python_version < '3.11'",
+  "ipykernel>=6.29",
+  "matplotlib>=3.8",
+  "mkdocs>=1.6,<2",
+  "mkdocs-jupyter>=0.26,<0.27",
+  "nbclient>=0.10,<0.12",
+  "nbformat>=5.10,<6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.25",
+  "pymdown-extensions>=10.0",
   "build>=1.2",
   "twine>=5",
   "flake8>=7",
@@ -102,6 +112,8 @@ include = [
   "/README.md",
   "/CHANGELOG.md",
   "/DEV_PLAN.md",
+  "/CITATION.cff",
+  "/.zenodo.json",
   "/NOTICE.md",
   "/LICENSE",
   "/COPYING",

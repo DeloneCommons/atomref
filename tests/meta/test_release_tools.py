@@ -21,10 +21,19 @@ VALID_WHEEL_METADATA = b"""\
 Metadata-Version: 2.4
 Name: atomref
 Version: 0.2.1
-Provides-Extra: notebook
 Provides-Extra: all
-Requires-Dist: ipykernel>=6.29; extra == 'notebook'
+Provides-Extra: dev
+Provides-Extra: docs
+Provides-Extra: notebooks
+Provides-Extra: test
+Requires-Dist: build>=1.2; extra == 'dev'
+Requires-Dist: mkdocs-material>=9.5; extra == 'docs'
+Requires-Dist: ipykernel>=6.29; extra == 'notebooks'
+Requires-Dist: pytest>=7; extra == 'test'
+Requires-Dist: build>=1.2; extra == 'all'
+Requires-Dist: mkdocs-material>=9.5; extra == 'all'
 Requires-Dist: ipykernel>=6.29; extra == 'all'
+Requires-Dist: pytest>=7; extra == 'all'
 
 """
 
@@ -70,6 +79,8 @@ def test_dist_check_requires_release_tools_and_legacy_data() -> None:
     assert ".flake8" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "tools/check_registry.py" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "tools/check_dist.py" in check_dist.REQUIRED_SDIST_SUFFIXES
+    assert "CITATION.cff" in check_dist.REQUIRED_SDIST_SUFFIXES
+    assert ".zenodo.json" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "docs/notebooks/05-proatomic-density-and-ias.ipynb" in (
         check_dist.REQUIRED_SDIST_SUFFIXES
     )
@@ -106,12 +117,26 @@ def test_sdist_layout_rejects_generated_notebook_markdown() -> None:
         check_dist._assert_sdist_layout(members, label="test sdist")
 
 
-def test_wheel_metadata_accepts_empty_runtime_and_matching_user_extras() -> None:
+def test_wheel_metadata_accepts_empty_runtime_and_complete_all_extra() -> None:
     check_dist._assert_wheel_metadata(
         VALID_WHEEL_METADATA,
         member="atomref.dist-info/METADATA",
         label="test wheel",
     )
+
+
+def test_wheel_metadata_rejects_incomplete_all_extra() -> None:
+    payload = VALID_WHEEL_METADATA.replace(
+        b"Requires-Dist: pytest>=7; extra == 'all'\n",
+        b"",
+    )
+
+    with pytest.raises(check_dist.DistCheckError, match="all extra must equal"):
+        check_dist._assert_wheel_metadata(
+            payload,
+            member="atomref.dist-info/METADATA",
+            label="test wheel",
+        )
 
 
 def test_dist_check_accepts_conventional_regular_file_modes() -> None:

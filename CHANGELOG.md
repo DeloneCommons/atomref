@@ -1,17 +1,27 @@
 # Changelog
 
-## 0.2.1 - 2026-07-14
+## 0.2.1 - 2026-07-15
 
 ### Added
 
 - Complete structured public API documentation with rendered typed signatures,
   parameters, returns, raised errors, attributes, examples, and cross-references.
-- An `all` extra that exactly mirrors the complete user-facing `notebook` extra.
-- Clean built-wheel installation checks for the base package, `notebook`, and
+- Repository-level `CITATION.cff` metadata for citing `atomref` directly as
+  software, without a preferred paper citation.
+- Controlled `.zenodo.json` software-deposit metadata with the project creator,
+  primary LGPL-3.0-or-later license, mixed-license notice, keywords, and the
+  exact upstream proatomic-dataset DOI relation.
+- Clean built-wheel installation checks for the base package, `notebooks`, and
   `all` extras.
 
 ### Changed
 
+- Renamed the optional `notebook` extra to `notebooks`, which describes the
+  shipped notebook collection without implying installation of the Jupyter
+  Notebook server application.
+- Made `all` the exact deduplicated union of `test`, `notebooks`, `docs`, and
+  `dev`, including every optional dependency declared by the project.
+- Added Python 3.14 to the test matrix and package classifiers.
 - Repositioned the documentation home page and generated README around rapid
   installation, first use, scientific provenance, and adoption by downstream
   structure-analysis software.
@@ -19,20 +29,27 @@
   Markdown, code, mathematics, text output, and PNG plots.
 - Replaced the bespoke notebook execution/export path with one temporary
   standard-Jupyter smoke check that discards its execution results.
+- Clarified that release readiness was reviewed against project criteria rather
+  than claiming independent external review.
 
 ### Packaging
 
 - Declared the renderer, execution client, notebook format library, kernel, and
-  plotting library in both `notebook` and `all`, while keeping documentation,
-  test, lint, build, and release tools out of `all`.
+  plotting library in `notebooks`; clean-install validation now verifies that
+  `all` exactly combines every component extra.
+- Included `CITATION.cff` and `.zenodo.json` in source distributions and require
+  exact copies during artifact validation.
 - Updated CI, source-distribution checks, and release preparation for the final
   single-source notebook layout and isolated artifact installations.
-- Kept MkDocs below version 2 across documentation and notebook extras, and
-  suppressed Material's MkDocs 2 migration banner in automated strict builds.
+- Kept MkDocs below version 2 across documentation and notebook-related extras,
+  and suppressed Material's MkDocs 2 migration banner in automated strict
+  builds.
 - Build release artifacts from a clean committed-source extraction and reject
   nonstandard executable modes on ordinary wheel and source-distribution files.
 - Removed generated notebook Markdown, the custom exporter, export-sync tests,
   and the duplicate documentation copy of the development plan.
+- Clarified the mixed LGPL-3.0-or-later software and CC BY 4.0 bundled-data
+  licensing boundary in the shipped notice and Zenodo description.
 
 ### Scientific behavior
 
