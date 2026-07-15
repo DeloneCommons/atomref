@@ -54,6 +54,12 @@ def _build_docs() -> None:
     _run("mkdocs", "build", "--strict", extra_env=MKDOCS_ENV)
 
 
+def _check_types() -> None:
+    """Run mypy with the same Python environment as this release check."""
+
+    _run(sys.executable, "-m", "mypy", "src/atomref")
+
+
 def _check_notebooks() -> None:
     """Run the internally bounded checker with a final release-gate timeout."""
 
@@ -161,7 +167,7 @@ def main() -> int:
 
     _assert_clean_worktree()
     _run("flake8", "src", "tests", "tools")
-    _run("mypy", "src/atomref")
+    _check_types()
     _run("cffconvert", "--validate")
     _run(sys.executable, "tools/check_registry.py")
     _check_notebooks()

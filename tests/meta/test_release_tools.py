@@ -275,6 +275,23 @@ def test_release_notebook_check_has_outer_timeout(
     ]
 
 
+def test_release_type_check_uses_running_python(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[tuple[str, ...], dict[str, object]]] = []
+
+    def record(*args: str, **kwargs: object) -> None:
+        calls.append((args, kwargs))
+
+    monkeypatch.setattr(release_check, "_run", record)
+
+    release_check._check_types()
+
+    assert calls == [
+        ((sys.executable, "-m", "mypy", "src/atomref"), {}),
+    ]
+
+
 def test_release_source_archive_uses_explicit_safe_filter(
     tmp_path: Path,
 ) -> None:
@@ -312,7 +329,8 @@ def test_docs_workflows_suppress_material_banner(workflow: Path) -> None:
 def test_workflows_use_current_node_action_generations(workflow: Path) -> None:
     text = workflow.read_text(encoding="utf-8")
 
-    assert "actions/checkout@v7" in text
+    assert "actions/checkout@v6" in text
     assert "actions/setup-python@v6" in text
     assert "actions/checkout@v4" not in text
+    assert "actions/checkout@v7" not in text
     assert "actions/setup-python@v5" not in text

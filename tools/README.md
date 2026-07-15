@@ -25,7 +25,7 @@ release preparation.
 ## Typical commands
 
 ```bash
-mypy src/atomref
+python -m mypy src/atomref
 cffconvert --validate
 python tools/check_registry.py
 python tools/check_notebooks.py
