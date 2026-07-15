@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 import math
-from typing import Literal
+from typing import Literal, SupportsFloat, SupportsIndex, cast
 
 from .elements import canonicalize_element_symbol, get_element, is_valid_element_symbol
 from .errors import PolicyError
@@ -32,6 +32,8 @@ RadiiKind = Literal["covalent", "van_der_waals"]
 
 RadiiSet = ElementScalarSet
 """Typing alias for an immutable element-indexed radii dataset."""
+
+_FloatLike = str | bytes | bytearray | memoryview | SupportsFloat | SupportsIndex
 
 
 _KIND_TO_QUANTITY = {
@@ -86,6 +88,7 @@ class RadiiPolicy:
         """
 
         quantity = _quantity_for_kind(self.kind)
+        base: DatasetRef | ElementScalarSet
         if isinstance(self.base_set, ElementScalarSet):
             if self.base_set.ref.quantity != quantity:
                 msg = (
@@ -187,7 +190,7 @@ def _coerce_non_negative_radii_value(value: object, *, what: str) -> float:
     """
 
     try:
-        out = float(value)
+        out = float(cast(_FloatLike, value))
     except (TypeError, ValueError) as exc:
         raise PolicyError(f"{what} must be a finite float") from exc
     if not math.isfinite(out):
@@ -226,9 +229,14 @@ def _normalize_assessment_elements(elements: Iterable[str]) -> tuple[str, ...]:
         if not is_valid_element_symbol(sym):
             raise ValueError(f"invalid element symbol: {sym!r}")
         symbols.add(sym)
-    return tuple(
-        sorted(symbols, key=lambda s: get_element(s).z if get_element(s) else 0)
-    )
+
+    def atomic_number(symbol: str) -> int:
+        element = get_element(symbol)
+        if element is None:  # pragma: no cover - validated above
+            raise ValueError(f"invalid element symbol: {symbol!r}")
+        return element.z
+
+    return tuple(sorted(symbols, key=atomic_number))
 
 
 def list_radii_sets(

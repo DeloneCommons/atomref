@@ -72,6 +72,8 @@ dev = [
   "build>=1.2",
   "twine>=5",
   "flake8>=7",
+  "mypy>=2.3,<3",
+  "cffconvert==2.0.0",
 ]
 all = [
   "pytest>=7",
@@ -88,6 +90,8 @@ all = [
   "build>=1.2",
   "twine>=5",
   "flake8>=7",
+  "mypy>=2.3,<3",
+  "cffconvert==2.0.0",
 ]
 
 [tool.hatch.version]
@@ -131,3 +135,7 @@ norecursedirs = [
   ".eggs",
   "*.egg-info",
 ]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true

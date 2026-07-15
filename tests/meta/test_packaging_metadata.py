@@ -54,8 +54,29 @@ def test_all_extra_includes_contributor_tooling() -> None:
     project = _project_metadata()
     all_requirements = "\n".join(project["optional-dependencies"]["all"]).lower()
 
-    for contributor_package in ("build", "flake8", "pytest", "twine"):
+    for contributor_package in (
+        "build",
+        "cffconvert",
+        "flake8",
+        "mypy",
+        "pytest",
+        "twine",
+    ):
         assert contributor_package in all_requirements
+
+
+def test_dev_extra_contains_release_validation_tools() -> None:
+    project = _project_metadata()
+    dev_requirements = "\n".join(project["optional-dependencies"]["dev"]).lower()
+
+    assert "mypy" in dev_requirements
+    assert "cffconvert" in dev_requirements
+
+
+def test_mypy_uses_strict_minimum_python_configuration() -> None:
+    config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["tool"]["mypy"]
+
+    assert config == {"python_version": "3.10", "strict": True}
 
 
 def test_docs_extra_contains_only_used_documentation_tooling() -> None:

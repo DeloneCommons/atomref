@@ -8,7 +8,14 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 import math
 from types import MappingProxyType
-from typing import Generic, Literal, TypeVar
+from typing import (
+    Generic,
+    Literal,
+    SupportsFloat,
+    SupportsIndex,
+    TypeVar,
+    cast,
+)
 
 from .elements import (
     canonicalize_element_symbol,
@@ -29,9 +36,12 @@ from .transfer import (
     SubstitutionTransfer,
     SupportsValuePolicy,
     TransferModel,
+    TransferValueSource,
 )
 
 K = TypeVar("K")
+
+_FloatLike = str | bytes | bytearray | memoryview | SupportsFloat | SupportsIndex
 
 LookupSource = Literal[
     "override",
@@ -176,27 +186,31 @@ class ValuePolicy(Generic[K]):
 
         normalized_overrides: dict[str, float] = {}
         seen_original_keys: dict[str, str] = {}
-        for key, value in self.overrides.items():
-            if not isinstance(key, str):
+        for override_key, value in self.overrides.items():
+            if not isinstance(override_key, str):
                 raise PolicyError(
                     "element-domain policy overrides must be keyed by element "
                     "symbols"
                 )
-            sym = _normalize_element_symbol(key)
+            sym = _normalize_element_symbol(override_key)
             if sym is None:
-                raise PolicyError(f"invalid override element symbol: {key!r}")
-            if sym in seen_blocked:
-                raise PolicyError(f"override key {key!r} is blocked in this policy")
-            previous = seen_original_keys.get(sym)
-            if previous is not None and previous != key:
                 raise PolicyError(
-                    f"override keys {previous!r} and {key!r} both normalize to "
-                    f"{sym!r}"
+                    f"invalid override element symbol: {override_key!r}"
                 )
-            seen_original_keys[sym] = key
+            if sym in seen_blocked:
+                raise PolicyError(
+                    f"override key {override_key!r} is blocked in this policy"
+                )
+            previous = seen_original_keys.get(sym)
+            if previous is not None and previous != override_key:
+                raise PolicyError(
+                    f"override keys {previous!r} and {override_key!r} both "
+                    f"normalize to {sym!r}"
+                )
+            seen_original_keys[sym] = override_key
             normalized_overrides[sym] = _coerce_policy_float(
                 value,
-                what=f"override value for {key!r}",
+                what=f"override value for {override_key!r}",
             )
 
         object.__setattr__(
@@ -236,7 +250,7 @@ def _coerce_policy_float(value: object, *, what: str) -> float:
     """Return a finite float for policy configuration values."""
 
     try:
-        out = float(value)
+        out = float(cast(_FloatLike, value))
     except (TypeError, ValueError) as exc:
         raise PolicyError(f"{what} must be a finite float") from exc
     if not math.isfinite(out):
@@ -260,14 +274,14 @@ def _normalize_element_symbol(symbol: str | None) -> str | None:
     return cand
 
 
-def _resolve_target_ref(policy: ValuePolicy[object]) -> DatasetRef:
+def _resolve_target_ref(policy: ValuePolicy[K]) -> DatasetRef:
     """Return the target dataset reference implied by a policy base."""
 
     return resolve_scalar_dataset_like(policy.base).ref
 
 
 def _policy_resolution_tokens(
-    policy: ValuePolicy[object],
+    policy: ValuePolicy[K],
     *,
     owner: object | None = None,
 ) -> tuple[PolicyToken, ...]:
@@ -320,25 +334,26 @@ def _materialize_transfer_source(
 
     nested_policy, nested_owner = _coerce_nested_policy(source)
     if nested_policy is None:
-        dataset = resolve_scalar_dataset_like(source)
-        placeholders = tuple(
+        dataset_source = cast(ScalarDatasetLike, source)
+        dataset = resolve_scalar_dataset_like(dataset_source)
+        dataset_placeholders = tuple(
             False
             if value is None
             else _is_placeholder_value(dataset.info, float(value))
             for value in dataset.values_by_z
         )
-        lookup_sources = tuple(
+        dataset_lookup_sources: tuple[LookupSource | None, ...] = tuple(
             "base" if value is not None else None for value in dataset.values_by_z
         )
-        transfer_depths = tuple(
+        dataset_transfer_depths = tuple(
             0 if value is not None else None for value in dataset.values_by_z
         )
         return _ResolvedElementSource(
             ref=dataset.ref,
             values_by_z=dataset.values_by_z,
-            placeholder_by_z=placeholders,
-            lookup_source_by_z=lookup_sources,
-            transfer_depth_by_z=transfer_depths,
+            placeholder_by_z=dataset_placeholders,
+            lookup_source_by_z=dataset_lookup_sources,
+            transfer_depth_by_z=dataset_transfer_depths,
             via_policy=False,
         )
 
@@ -377,7 +392,8 @@ def _lookup_transfer_source_value(
 
     nested_policy, nested_owner = _coerce_nested_policy(source)
     if nested_policy is None:
-        source_set = resolve_scalar_dataset_like(source)
+        dataset_source = cast(ScalarDatasetLike, source)
+        source_set = resolve_scalar_dataset_like(dataset_source)
         value = source_set.get(symbol)
         if value is None:
             return None, f"no value in {source_set.ref.set_id}"
@@ -428,7 +444,7 @@ def _transfer_source_is_allowed(
     lookup_source: LookupSource | None,
     transfer_depth: int | None,
     *,
-    allowed_sources: tuple[str, ...],
+    allowed_sources: tuple[TransferValueSource, ...],
     max_depth: int,
 ) -> bool:
     """Return whether a nested predictor value may participate downstream."""
@@ -443,7 +459,7 @@ def _explain_rejected_transfer_source(
     source_role: str,
     lookup_source: LookupSource | None,
     transfer_depth: int | None,
-    allowed_sources: tuple[str, ...],
+    allowed_sources: tuple[TransferValueSource, ...],
     max_depth: int,
 ) -> str:
     """Return a human-readable explanation for a rejected nested source."""
@@ -468,7 +484,7 @@ def _fit_linear_transfer(
     *,
     min_points: int,
     exclude_placeholders: bool,
-    fit_sources: tuple[str, ...],
+    fit_sources: tuple[TransferValueSource, ...],
     fit_max_depth: int,
 ) -> LinearFit:
     """Fit a one-predictor linear transfer model between two sources."""
@@ -541,7 +557,7 @@ def _fit_linear_transfer_cached(
     predictor_ref: DatasetRef,
     min_points: int,
     exclude_placeholders: bool,
-    fit_sources: tuple[str, ...],
+    fit_sources: tuple[TransferValueSource, ...],
     fit_max_depth: int,
 ) -> LinearFit:
     """Cache fits between two packaged datasets for repeated reuse."""
@@ -725,12 +741,14 @@ def _resolve_value(
 
         sym = _normalize_element_symbol(symbol)
         if sym is None:
-            note = "unknown element" if symbol is not None else "missing element symbol"
+            missing_note = (
+                "unknown element" if symbol is not None else "missing element symbol"
+            )
             return LookupResult(
                 value=None,
                 source="missing",
                 target=target,
-                notes=(note,),
+                notes=(missing_note,),
             )
 
         if sym in policy.blocked:
@@ -772,13 +790,13 @@ def _resolve_value(
         transfer_notes: list[str] = ["missing in base set"]
         for transfer in policy.transfers:
             if isinstance(transfer, SubstitutionTransfer):
-                result, note = _apply_substitution_transfer(
+                result, transfer_note = _apply_substitution_transfer(
                     sym,
                     target=target,
                     transfer=transfer,
                 )
             elif isinstance(transfer, LinearTransfer):
-                result, note = _apply_linear_transfer(
+                result, transfer_note = _apply_linear_transfer(
                     sym,
                     base=policy.base,
                     target=target,
@@ -789,8 +807,8 @@ def _resolve_value(
 
             if result is not None:
                 return result
-            if note:
-                transfer_notes.append(note)
+            if transfer_note:
+                transfer_notes.append(transfer_note)
 
         if policy.fallback is not None:
             return LookupResult(

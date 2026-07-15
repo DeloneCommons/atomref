@@ -13,6 +13,7 @@ import math
 import stat
 from types import MappingProxyType
 import unicodedata
+from typing import SupportsFloat, SupportsIndex, cast
 import zipfile
 import zlib
 
@@ -24,6 +25,8 @@ QuantityId = str
 
 DomainId = str
 """Typing alias for a registry lookup-domain identifier."""
+
+_FloatLike = str | bytes | bytearray | memoryview | SupportsFloat | SupportsIndex
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,6 +249,8 @@ class ElementScalarSet:
 
         for key, value in values.items():
             sym = _normalize_element_domain_symbol(key)
+            if sym is None:
+                raise DatasetError(f"invalid element symbol in custom set: {key!r}")
             elem = get_element(sym)
             if elem is None:
                 raise DatasetError(f"invalid element symbol in custom set: {key!r}")
@@ -427,7 +432,7 @@ def _coerce_finite_float(value: object, *, what: str) -> float:
     """
 
     try:
-        out = float(value)
+        out = float(cast(_FloatLike, value))
     except (TypeError, ValueError) as exc:
         raise DatasetError(f"{what} must be a finite float") from exc
     if not math.isfinite(out):
@@ -707,16 +712,14 @@ def get_dataset_info(ref: DatasetRef) -> DatasetInfo:
         if isinstance(raw_entry.get("storage"), dict)
         else None
     )
+    raw_name = raw_entry.get("name")
+    name = raw_name if isinstance(raw_name, str) else actual_ref.set_id
 
     return DatasetInfo(
         ref=actual_ref,
         domain=domain,
         units=units,
-        name=(
-            raw_entry.get("name")
-            if isinstance(raw_entry.get("name"), str)
-            else actual_ref.set_id
-        ),
+        name=name,
         description=(
             raw_entry.get("description")
             if isinstance(raw_entry.get("description"), str)
@@ -773,7 +776,9 @@ def _load_csv_columns(filename: str) -> dict[str, tuple[float | None, ...]]:
     """Load all value columns from one packaged dense-by-Z CSV table."""
 
     path = resources.files("atomref.data").joinpath(filename)
-    with path.open("r", encoding="utf-8", newline="") as handle:
+    with io.TextIOWrapper(
+        path.open("rb"), encoding="utf-8", newline=""
+    ) as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames is None or "z" not in reader.fieldnames:
             raise DatasetError(f"invalid CSV file: {filename!r}")

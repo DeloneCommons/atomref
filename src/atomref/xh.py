@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 import math
+from typing import SupportsFloat, SupportsIndex, cast
 
 from .elements import canonicalize_element_symbol, is_valid_element_symbol
 from .errors import PolicyError
@@ -29,6 +30,7 @@ XHSet = ElementScalarSet
 """Typing alias for an immutable parent-element X-H bond-length dataset."""
 
 _QUANTITY = "xh_bond_length"
+_FloatLike = str | bytes | bytearray | memoryview | SupportsFloat | SupportsIndex
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +76,7 @@ class XHPolicy:
                 or if H/D/T is used as an override parent.
         """
 
+        base: DatasetRef | ElementScalarSet
         if isinstance(self.base_set, ElementScalarSet):
             if self.base_set.ref.quantity != _QUANTITY:
                 raise PolicyError(
@@ -116,7 +119,7 @@ def _coerce_non_negative_xh_value(value: object, *, what: str) -> float:
     """Validate an X-H-like policy number."""
 
     try:
-        out = float(value)
+        out = float(cast(_FloatLike, value))
     except (TypeError, ValueError) as exc:
         raise PolicyError(f"{what} must be a finite float") from exc
     if not math.isfinite(out):

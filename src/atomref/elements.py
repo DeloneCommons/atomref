@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import io
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -100,7 +101,9 @@ def _load_elements_by_symbol() -> dict[str, Element]:
     """Load the packaged periodic table into a symbol-keyed mapping."""
 
     table_path = resources.files("atomref.data").joinpath("periodic_table.csv")
-    with table_path.open("r", encoding="utf-8", newline="") as handle:
+    with io.TextIOWrapper(
+        table_path.open("rb"), encoding="utf-8", newline=""
+    ) as handle:
         reader = csv.DictReader(handle)
         out: dict[str, Element] = {}
         for row in reader:

@@ -18,18 +18,37 @@ release preparation.
   packaged scalar and radial payload.
 - `gen_readme.py` — regenerate `README.md` from `docs/index.md`.
 - `release_check.py` — run the full release-preparation checklist,
-  including linting, tests, docs, a clean committed-source build with
-  conventional archive modes, and artifact validation.
+  including linting, strict type and citation-schema checks, tests, docs, a
+  clean committed-source build with conventional archive modes, and artifact
+  validation.
 
 ## Typical commands
 
 ```bash
+mypy src/atomref
+cffconvert --validate
 python tools/check_registry.py
 python tools/check_notebooks.py
 python tools/gen_readme.py
 python tools/check_dist.py dist --check-installs
 python tools/release_check.py
 ```
+
+## Citation metadata checks
+
+`cffconvert --validate` parses `CITATION.cff` and validates it against the CFF
+1.2 schema. It catches malformed YAML, unsupported fields, missing required
+fields, and invalid field values. The focused repository test checks facts that
+the general schema cannot know, such as atomref's version, release date,
+repository URL, license boundary, and provenance wording:
+
+```bash
+pytest tests/meta/test_release_metadata.py
+```
+
+For a new release, update `version` and `date-released` in `CITATION.cff`, then
+run both commands. `release_check.py` runs the schema validation and the complete
+test suite automatically.
 
 ## Neutral proatomic-density snapshot
 

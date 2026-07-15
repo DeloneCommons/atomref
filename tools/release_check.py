@@ -161,6 +161,8 @@ def main() -> int:
 
     _assert_clean_worktree()
     _run("flake8", "src", "tests", "tools")
+    _run("mypy", "src/atomref")
+    _run("cffconvert", "--validate")
     _run(sys.executable, "tools/check_registry.py")
     _check_notebooks()
     _run(sys.executable, "tools/gen_readme.py", "--check")

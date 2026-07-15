@@ -102,10 +102,12 @@ import nbformat
 ALL_IMPORTS = f"""\
 {NOTEBOOKS_IMPORTS}
 import build
+import cffconvert
 import flake8
 import material
 import mkdocstrings
 import mkdocstrings_handlers.python
+import mypy
 import pymdownx
 import pytest
 import twine

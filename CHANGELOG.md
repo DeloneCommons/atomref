@@ -31,6 +31,11 @@
   contained by explicit time limits.
 - Clarified that release readiness was reviewed against project criteria rather
   than claiming independent external review.
+- Corrected citation and documentation wording so `NOTICE.md` is described as
+  the license, attribution, and DOI record, while exact source and payload
+  hashes remain identified with the packaged registry metadata.
+- Kept the PEP 561 marker and corrected inline annotations so the package passes
+  strict mypy checking against its minimum supported Python 3.10 target.
 
 ### Packaging
 
@@ -50,6 +55,10 @@
 - Use an explicit safe tar extraction filter where supported when reconstructing
   the committed source tree, avoiding Python 3.14's implicit-filter warning.
 - Restrict the CI workflow to read-only repository-content permissions.
+- Added strict mypy and CFF 1.2 schema validation to CI and the local release
+  gate, with repository-specific citation checks retained for atomref metadata.
+- Updated the checkout and Python-setup GitHub Actions to their current Node 24
+  generations.
 - Removed generated notebook Markdown, the custom exporter, export-sync tests,
   and the duplicate documentation copy of the development plan.
 - Clarified the mixed LGPL-3.0-or-later software and CC BY 4.0 bundled-data

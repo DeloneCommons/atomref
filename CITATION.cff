@@ -16,8 +16,9 @@ abstract: >-
   spherical neutral proatomic electron-density profiles, provenance-aware
   lookup policies, and pairwise reference-atom boundary estimators. The
   bundled neutral proatomic-density snapshot is licensed under CC BY 4.0; see
-  NOTICE.md for the exact licensing boundary, attribution, source hashes, and
-  source DOIs.
+  NOTICE.md for the exact licensing boundary, attribution, and source DOIs.
+  The exact source commit and SHA-256 hashes are recorded in the packaged
+  registry metadata.
 keywords:
   - chemistry
   - crystallography

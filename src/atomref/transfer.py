@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Literal, Protocol, TypeGuard, runtime_checkable
 
 from .errors import PolicyError
 from .registry import ScalarDatasetLike
@@ -41,6 +41,12 @@ _DEFAULT_LINEAR_PREDICTION_SOURCES: tuple[TransferValueSource, ...] = (
     "transfer_substitution",
     "transfer_linear",
 )
+
+
+def _is_transfer_value_source(source: str) -> TypeGuard[TransferValueSource]:
+    """Return whether ``source`` is an admitted nested-result label."""
+
+    return source in _ALLOWED_TRANSFER_VALUE_SOURCES
 
 
 @runtime_checkable
@@ -214,7 +220,7 @@ def _normalize_transfer_value_sources(
     normalized: list[TransferValueSource] = []
     seen: set[str] = set()
     for source in sources:
-        if source not in _ALLOWED_TRANSFER_VALUE_SOURCES:
+        if not _is_transfer_value_source(source):
             allowed = ", ".join(sorted(_ALLOWED_TRANSFER_VALUE_SOURCES))
             raise PolicyError(
                 f"LinearTransfer {field_name} contains unsupported source "

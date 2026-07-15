@@ -155,7 +155,8 @@ Except for separately identified material, the software and accompanying
 repository content are licensed under LGPL-3.0-or-later. The bundled neutral
 proatomic-density snapshot is licensed separately under CC BY 4.0.
 [`NOTICE.md`](https://github.com/DeloneCommons/atomref/blob/main/NOTICE.md)
-records the exact boundary, attribution, source hashes, and source DOIs.
+records the exact boundary, attribution, and source DOIs. The packaged registry
+metadata records the exact source commit and SHA-256 hashes.
 
 ## Executable notebook documentation
 

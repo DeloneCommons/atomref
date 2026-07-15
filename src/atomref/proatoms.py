@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from functools import lru_cache
 import math
-from typing import Literal
+from typing import Literal, SupportsFloat, SupportsIndex, cast
 
 from .elements import Element, get_element, iter_elements
 from .errors import DatasetError
@@ -49,6 +49,8 @@ _COMPETITIVE_RELATIVE_DEPTH = 1.0e-4
 _EQUALITY_BRACKET_TOLERANCE_BOHR = 1.0e-10
 _CUTOFF_REPRODUCTION_REL_TOL = 5.0e-14
 _FLOAT_COMPARISON_REL_TOL = 64.0 * 2.220446049250313e-16
+
+_FloatLike = str | bytes | bytearray | memoryview | SupportsFloat | SupportsIndex
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,7 +205,9 @@ def _coerce_public_max_radius(storage: Mapping[str, object], ref: DatasetRef) ->
     """Return the finite positive public radius limit declared by metadata."""
 
     try:
-        public_max = float(storage["public_max_radius_bohr"])
+        public_max = float(
+            cast(_FloatLike, storage["public_max_radius_bohr"])
+        )
     except (KeyError, TypeError, ValueError) as exc:
         raise DatasetError(f"invalid public radius limit for dataset: {ref!r}") from exc
     if not math.isfinite(public_max) or public_max <= 0.0:
@@ -1110,12 +1114,12 @@ def _native_boundary_estimate(
             cutoff_regime=regime,
         )
 
-    position, dominant_side = _equal_contribution_position(
+    equal_position, dominant_side = _equal_contribution_position(
         profile_a,
         profile_b,
         distance_bohr,
     )
-    if position is None:
+    if equal_position is None:
         return _NativeIASResult(
             requested_mode="boundary",
             method="none",
@@ -1135,13 +1139,13 @@ def _native_boundary_estimate(
         profile_a,
         profile_b,
         distance_bohr,
-        position,
+        equal_position,
     )
     return _NativeIASResult(
         requested_mode="boundary",
         method="equal_proatom_density",
         status="ok",
-        position_bohr=position,
+        position_bohr=equal_position,
         rho_a=rho_a,
         rho_b=rho_b,
         rho_sum=rho_sum,
@@ -1757,6 +1761,7 @@ def _estimate_pairwise(
     contact_distance_bohr = (
         canonical_a.cutoff_radius_bohr + canonical_b.cutoff_radius_bohr
     )
+    contact_distances_requested: tuple[float, ...]
     if distance_unit == "bohr":
         contact_distances_requested = (contact_distance_bohr,)
     else:
