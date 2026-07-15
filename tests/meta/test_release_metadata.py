@@ -52,7 +52,14 @@ def test_citation_metadata_targets_the_versioned_software_repository() -> None:
     assert _top_level_scalar(text, "repository-code") == (
         "https://github.com/DeloneCommons/atomref"
     )
+    assert _top_level_scalar(text, "doi") == "10.5281/zenodo.21382984"
     assert _top_level_scalar(text, "license") == "LGPL-3.0-or-later"
+    assert "value: 10.5281/zenodo.21382985" in text
+    assert (
+        "description: Version-specific DOI for the immutable atomref 0.2.1 "
+        "archive."
+        in text
+    )
 
 
 def test_citation_abstract_describes_the_mixed_license_and_hash_locations() -> None:
