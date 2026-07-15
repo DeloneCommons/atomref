@@ -27,7 +27,7 @@ contacts.
 
 ## Alvarez van der Waals radii (`alvarez2013`)
 
-This is the main van der Waals target set in the current release line.
+This is the default built-in van der Waals target set.
 
 - **What it is:** a broad structural vdW set derived from statistical analysis
   of many interatomic distances in the Cambridge Structural Database.
@@ -53,5 +53,5 @@ A compatibility-oriented table used historically in CSD tools.
 - **What it is:** an older practical vdW table with placeholder conventions.
 - **Coverage:** broad practical coverage, but not a modern scientific target
   set.
-- **How `atomref` uses it:** support-only data for legacy compatibility and
-  future migration work.
+- **How `atomref` uses it:** support-only data for explicit compatibility with
+  legacy workflows; it is not the default scientific target set.

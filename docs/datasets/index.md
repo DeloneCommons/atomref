@@ -33,8 +33,8 @@ If you want the packaged values themselves, use `get_builtin_set(...)`,
 ## Neutral proatomic-density snapshot
 
 The `proatomic_density` quantity currently contains the dataset
-`pbe0_sfx2c_dyallv4z_h-lr_neutral_v2`: a neutral H–Lr (Z = 1–103), truncated
-consumer snapshot built from `atomref-proatoms` 2.0.0 dataset
+`pbe0_sfx2c_dyallv4z_h-lr_neutral_v2`: a truncated neutral H–Lr (Z = 1–103)
+packaged snapshot of the `atomref-proatoms` 2.0.0 dataset
 `pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`. Its public radial domain is 0–20 bohr;
 one original source point above 20 bohr is retained only to bracket that limit.
 The native density unit is electron/bohr³.

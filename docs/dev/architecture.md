@@ -118,7 +118,7 @@ placeholder status itself. Instead, its provenance is carried by
 The package deliberately avoids a large object graph or a chemistry-specific DSL.
 A quantity wrapper is usually only a thin adapter over the generic policy core.
 That keeps the internals easy to test and lets other scientific packages reuse
-`atomref` without bringing in the rest of the Delone Commons stack.
+`atomref` without requiring a larger application stack.
 
 ## Documentation and distribution boundary
 

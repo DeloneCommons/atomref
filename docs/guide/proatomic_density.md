@@ -56,7 +56,7 @@ provenance in downstream work.
 
 ## Pairwise estimates
 
-Three functions expose the Stage 4 pairwise model:
+Three functions expose the pairwise IAS estimators:
 
 ```python
 boundary = ar.estimate_proatomic_boundary("C", "O", 1.5, distance_unit="bohr")
@@ -137,4 +137,4 @@ for the public workflows, the
 [IAS method-selection notebook](../notebooks/04-ias-method-selection-study.ipynb)
 for the executed supporting analysis, and the
 [durable method summary](../dev/ias_method_selection.md) for the numerical
-decision and archived all-minima limitations.
+decision and documented limitations of exhaustive all-minima enumeration.

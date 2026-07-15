@@ -1,14 +1,13 @@
 # Pairwise boundary and IAS-proxy method selection
 
-Stage 4 originally considered a numerically exhaustive search for every local
-minimum of the neutral-promolecular line density between two atoms. The review
-work showed that this contract is possible, but it makes interpolation-scale
-features, one-ULP knot behavior, sub-ULP event ordering, and exact tie handling
-part of the public science.
+An exhaustive numerical study considered returning every local minimum of the
+neutral-promolecular line density between two atoms. Although this contract is
+possible, it makes interpolation-scale features, one-ULP knot behavior, sub-ULP
+event ordering, and exact tie handling part of the public science.
 
-That is more precision than the intended geometry workflow needs. The revised
-Stage 4 keeps two explicit methods instead of hiding one policy behind a single
-number.
+That is more precision than the intended geometry workflow needs. `atomref`
+therefore exposes two explicit methods instead of hiding one policy behind a
+single number.
 
 ## Recommended default: proatomic boundary
 
@@ -59,7 +58,7 @@ That disagreement is expected rather than a solver defect.
 
 The executed study compared the practical minimum search with a slower
 `0.001 bohr` reference over 300 deterministic H–Lr cases and seven adversarial
-cases from the Stage 4A review.
+cases selected from the exhaustive all-minima analysis.
 
 - All 298 cases where both methods returned a minimum agreed within
   `0.01 bohr`.
@@ -67,7 +66,7 @@ cases from the Stage 4A review.
 - Two extremely short-distance reference minima were intentionally reported as
   unresolved because they were narrower than the public practical resolution
   and lay immediately beside a nucleus.
-- On the recorded review machine, the research prototype took roughly
+- On the machine used for the study, the standalone implementation took roughly
   `0.05–0.06 ms` per cached boundary estimate and about `0.8 ms` per cached
   practical minimum estimate.
 
@@ -75,7 +74,7 @@ These figures are evidence, not portable performance guarantees.
 
 ## Why exhaustive all-minima search is not the default
 
-The exact Stage 4A investigation found real edge cases:
+The exhaustive investigation found real edge cases:
 
 - a minimum only 27 binary64 coordinates from a profile knot;
 - one-ULP inversions at exact knots;
@@ -85,7 +84,7 @@ The exact Stage 4A investigation found real edge cases:
 - value errors large enough to complicate exact global-tie classification.
 
 Those facts matter under an “expose every local minimum” contract. They do not
-materially improve a stable pairwise divider, and the revised minimum mode
+materially improve a stable pairwise divider, and the practical minimum mode
 coalesces or rejects structure below its declared resolution.
 
 ## Public API

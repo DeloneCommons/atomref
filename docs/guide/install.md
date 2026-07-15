@@ -61,7 +61,7 @@ pip install -e ".[test,dev,docs,notebook]"
 - `notebook` provides direct notebook rendering, Jupyter execution, a Python
   kernel, and plotting.
 
-Run the full local release-candidate validation with:
+Run the full local release validation with:
 
 ```bash
 python tools/release_check.py

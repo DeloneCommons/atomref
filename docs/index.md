@@ -6,9 +6,9 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/atomref.svg)](https://pypi.org/project/atomref/)
 [![License](https://img.shields.io/pypi/l/atomref.svg)](https://github.com/DeloneCommons/atomref/blob/main/LICENSE)
 
-`atomref` provides cited atomic values and frozen spherical free-atom electron
-densities through a small Python API for crystallographic, quantum-chemical,
-and molecular-structure algorithms.
+`atomref` provides cited atomic properties and frozen spherical free-atom
+electron densities through a small Python API for crystallographic,
+quantum-chemical, and molecular-structure algorithms.
 
 Use it when your software needs dependable atomic radii, X–H reference lengths,
 neutral proatomic densities, or pairwise reference-atom boundaries without
@@ -123,7 +123,7 @@ and provisional X–H datasets. Registry metadata separates the requested
 quantity from scientific classification and from whether a dataset is a direct
 target or transfer support.
 
-The neutral proatomic profiles are a deterministic consumer snapshot of
+The neutral proatomic profiles are a deterministic packaged snapshot of the
 `atomref-proatoms` 2.0.0 dataset
 `pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`. They cover H–Lr and record the PBE0,
 self-consistent spherical fractional-occupation UKS, spin-free one-electron
@@ -178,12 +178,12 @@ Custom element-indexed scalar sets can participate in the same policy layer.
 Radial profiles deliberately do not: no scalar `ValuePolicy`, neighboring-
 element substitution, or fitted correlation is applied to density data.
 
-## Relationship to Delone Commons
+## Use in scientific software
 
-`atomref` is a standalone package. Within Delone Commons it is intended for
-chemistry-aware consumers such as `molcryst` and future `chemvoro` workflows.
-General mathematical packages such as `pyvoro2` and `pbcgraph` remain
-independent of atomic-reference policy.
+`atomref` is a standalone package for physicochemical and structural-analysis
+software that needs curated atomic properties, proatomic densities, or explicit
+reference-data policy. Purely mathematical packages can remain independent of
+those choices until a consuming application needs atomic context.
 
 ## Maintainer checks
 

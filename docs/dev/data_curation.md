@@ -25,7 +25,7 @@ even when a radii policy uses it as support for a fitted van der Waals value.
 ## Neutral proatomic snapshot
 
 `proatomic_density:pbe0_sfx2c_dyallv4z_h-lr_neutral_v2` is a deterministic
-consumer snapshot of `atomref-proatoms` 2.0.0 dataset
+packaged snapshot of the `atomref-proatoms` 2.0.0 dataset
 `pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`. It selects the neutral H–Lr profiles,
 retains the source grid through the first point above 20 bohr so the public
 endpoint remains bracketed, and does not interpolate or alter stored density

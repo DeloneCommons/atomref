@@ -8,13 +8,13 @@ License: LGPL-3.0-or-later (see LICENSE and COPYING)
 
 ## Third-party material
 
-The initial scaffold reuses and adapts data tables and design ideas from the
-Delone Commons `molcryst` repository, also authored by Ivan Chernyshov.
+Some data tables and design ideas were adapted from earlier chemistry and
+structure-analysis software authored by Ivan Chernyshov.
 
 ### atomref-proatoms data
 
 `proatomic_density_neutral.zip` is a neutral H–Lr (Z=1–103), 20-bohr-truncated
-consumer snapshot derived from:
+packaged snapshot derived from:
 
 Ivan Yu. Chernyshov, *atomref-proatoms: spherical atomic and ionic reference
 densities*, release 2.0.0, dataset
