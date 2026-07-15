@@ -161,8 +161,8 @@ records the exact boundary, attribution, source hashes, and source DOIs.
 
 The documentation renders the actual committed `.ipynb` files directly,
 including Markdown, code, mathematics, saved text, and saved PNG plots. Site
-builds do not execute or rewrite them; a separate temporary Jupyter smoke check
-verifies that their code still runs.
+builds do not execute or rewrite them; separate bounded Jupyter workers verify
+temporary copies without retaining their results.
 
 - [Notebook overview](https://delonecommons.github.io/atomref/guide/notebooks/)
 - [Quickstart notebook](https://delonecommons.github.io/atomref/notebooks/01-quickstart/)
@@ -206,8 +206,8 @@ The repository keeps a small set of release tools:
 
 - `python tools/check_registry.py` validates registry metadata against every
   packaged scalar and radial payload;
-- `python tools/check_notebooks.py` smoke-executes temporary notebook copies
-  through a standard Jupyter kernel and discards the results;
+- `python tools/check_notebooks.py` smoke-executes each temporary notebook copy
+  in its own bounded standard Jupyter process, then discards the results;
 - `python tools/gen_readme.py` regenerates this README from `docs/index.md`;
 - `python tools/release_check.py` runs lint, tests, strict docs, distribution
   checks, and clean artifact-installation checks.

@@ -246,12 +246,34 @@ def test_release_command_merges_extra_environment(
         "mkdocs",
         "build",
         extra_env={"NO_MKDOCS_2_WARNING": "true"},
+        timeout=123,
     )
 
     environment = captured["env"]
     assert isinstance(environment, dict)
     assert environment["ATOMREF_PARENT_ENV"] == "preserved"
     assert environment["NO_MKDOCS_2_WARNING"] == "true"
+    assert captured["timeout"] == 123
+
+
+def test_release_notebook_check_has_outer_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[tuple[str, ...], dict[str, object]]] = []
+
+    def record(*args: str, **kwargs: object) -> None:
+        calls.append((args, kwargs))
+
+    monkeypatch.setattr(release_check, "_run", record)
+
+    release_check._check_notebooks()
+
+    assert calls == [
+        (
+            (sys.executable, "tools/check_notebooks.py"),
+            {"timeout": release_check.NOTEBOOK_CHECK_TIMEOUT_SECONDS},
+        )
+    ]
 
 
 @pytest.mark.parametrize(

@@ -27,8 +27,10 @@
   structure-analysis software.
 - Rendered the maintained `.ipynb` notebooks directly in MkDocs with committed
   Markdown, code, mathematics, text output, and PNG plots.
-- Replaced the bespoke notebook execution/export path with one temporary
-  standard-Jupyter smoke check that discards its execution results.
+- Replaced the bespoke notebook execution/export path with bounded, isolated
+  standard Jupyter workers that execute temporary copies and discard their
+  results. Kernel startup, cell execution, cleanup, and process exit are all
+  contained by explicit time limits.
 - Clarified that release readiness was reviewed against project criteria rather
   than claiming independent external review.
 
@@ -40,7 +42,8 @@
 - Included `CITATION.cff` and `.zenodo.json` in source distributions and require
   exact copies during artifact validation.
 - Updated CI, source-distribution checks, and release preparation for the final
-  single-source notebook layout and isolated artifact installations.
+  single-source notebook layout, bounded notebook-process lifecycle, and
+  isolated artifact installations.
 - Kept MkDocs below version 2 across documentation and notebook-related extras,
   and suppressed Material's MkDocs 2 migration banner in automated strict
   builds.

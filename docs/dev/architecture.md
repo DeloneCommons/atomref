@@ -125,8 +125,11 @@ That keeps the internals easy to test and lets other scientific packages reuse
 The five files under `docs/notebooks/` are both the maintained Jupyter sources
 and their documentation pages. `mkdocs-jupyter` renders their committed state
 with execution disabled; `tools/check_notebooks.py` exercises temporary copies
-through `nbclient` and discards the results. There is no exporter, generated
-notebook Markdown, source-copy step, or output-freshness contract.
+one at a time through isolated, time-bounded standard Jupyter processes and
+discards the results. Startup and cell timeouts remain separate, and a stalled
+kernel cleanup or process exit is force-contained before the checker fails.
+There is no exporter, generated notebook Markdown, source-copy step, or
+output-freshness contract.
 
 The wheel remains a focused runtime artifact containing package code, typing
 metadata, legal notices, and curated data. The source distribution additionally

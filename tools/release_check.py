@@ -23,27 +23,45 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DIST_DIR = REPO_ROOT / "dist"
 BUILD_DIR = REPO_ROOT / "build"
 MKDOCS_ENV = {"NO_MKDOCS_2_WARNING": "true"}
+NOTEBOOK_CHECK_TIMEOUT_SECONDS = 16 * 60
 
 
 def _run(
     *args: str,
     cwd: Path = REPO_ROOT,
     extra_env: dict[str, str] | None = None,
+    timeout: float | None = None,
 ) -> None:
     """Run one subprocess command in the selected working directory."""
 
-    print(f"+ [cwd={cwd}]", " ".join(args))
+    print(f"+ [cwd={cwd}]", " ".join(args), flush=True)
     environment = None
     if extra_env is not None:
         environment = os.environ.copy()
         environment.update(extra_env)
-    subprocess.run(args, cwd=cwd, env=environment, check=True)
+    subprocess.run(
+        args,
+        cwd=cwd,
+        env=environment,
+        check=True,
+        timeout=timeout,
+    )
 
 
 def _build_docs() -> None:
     """Build strict docs without Material's inapplicable MkDocs 2 banner."""
 
     _run("mkdocs", "build", "--strict", extra_env=MKDOCS_ENV)
+
+
+def _check_notebooks() -> None:
+    """Run the internally bounded checker with a final release-gate timeout."""
+
+    _run(
+        sys.executable,
+        "tools/check_notebooks.py",
+        timeout=NOTEBOOK_CHECK_TIMEOUT_SECONDS,
+    )
 
 
 def _fresh_build_dirs() -> None:
@@ -132,7 +150,7 @@ def main() -> int:
     _assert_clean_worktree()
     _run("flake8", "src", "tests", "tools")
     _run(sys.executable, "tools/check_registry.py")
-    _run(sys.executable, "tools/check_notebooks.py")
+    _check_notebooks()
     _run(sys.executable, "tools/gen_readme.py", "--check")
     _run(sys.executable, "-m", "pytest", "-q")
     if not args.skip_docs:

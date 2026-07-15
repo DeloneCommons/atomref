@@ -11,8 +11,9 @@ release preparation.
   access.
 - `check_dist.py` — verify wheel and source-distribution contents and optionally
   test clean base, `notebooks`, and `all` installations from the built wheel.
-- `check_notebooks.py` — smoke-execute temporary notebook copies through a
-  standard Jupyter kernel and discard the resulting outputs.
+- `check_notebooks.py` — smoke-execute each temporary notebook copy in an
+  isolated standard Jupyter child process, enforce startup, cell, and complete
+  process timeouts, and discard the resulting outputs.
 - `check_registry.py` — validate curated registry metadata against every
   packaged scalar and radial payload.
 - `gen_readme.py` — regenerate `README.md` from `docs/index.md`.

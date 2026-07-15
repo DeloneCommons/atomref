@@ -6,9 +6,11 @@ Markdown copy or parallel notebook tree.
 
 Documentation builds show the committed Markdown, code, mathematics, saved
 text, and saved PNG plots. They do not execute or rewrite the notebooks. A
-separate release check runs temporary copies through a standard Jupyter kernel,
-fails on execution exceptions, and discards the temporary outputs without
-comparing them with the committed files.
+separate release check runs each temporary copy in its own bounded standard
+Jupyter process, fails on execution exceptions or lifecycle timeouts, and
+discards the temporary outputs without comparing them with the committed
+files. Kernel startup and cell execution have separate timeouts; a stalled
+cleanup or process exit cannot block the remaining release gate indefinitely.
 
 ## User workflows
 
