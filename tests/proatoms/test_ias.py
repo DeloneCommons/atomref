@@ -1430,3 +1430,20 @@ def test_invalid_mode_and_units_raise_value_error() -> None:
 def test_missing_dataset_raises_dataset_error() -> None:
     with pytest.raises(DatasetError, match="unknown dataset id"):
         ar.estimate_proatomic_boundary("H", "O", 2.0, set_id="missing")
+
+
+@pytest.mark.parametrize(
+    ("atom_a", "atom_b"),
+    [("Xx", "O"), ("Xx", "invalid")],
+)
+def test_pairwise_validates_dataset_before_missing_atoms(
+    atom_a: str,
+    atom_b: str,
+) -> None:
+    with pytest.raises(DatasetError, match="unknown dataset id"):
+        ar.estimate_proatomic_boundary(
+            atom_a,
+            atom_b,
+            1.0,
+            set_id="missing",
+        )

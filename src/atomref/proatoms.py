@@ -52,6 +52,27 @@ _FLOAT_COMPARISON_REL_TOL = 64.0 * 2.220446049250313e-16
 
 _FloatLike = str | bytes | bytearray | memoryview | SupportsFloat | SupportsIndex
 
+_IASRequestedMode = Literal["boundary", "minimum"]
+_IASMethod = Literal[
+    "homonuclear_midpoint",
+    "equal_proatom_density",
+    "cutoff_gap_midpoint",
+    "promolecular_density_minimum",
+    "none",
+]
+_IASStatus = Literal[
+    "ok",
+    "low_density_gap",
+    "one_atom_dominates",
+    "no_resolved_interior_minimum",
+    "boundary_dominated",
+    "ambiguous_competing_minima",
+    "search_unstable",
+]
+_CutoffRegime = Literal["overlap", "contact", "gap"]
+_NativeDominantSide = Literal["a", "b"]
+_DominantAtomRole = Literal["atom_a", "atom_b"]
+
 
 @dataclass(frozen=True, slots=True)
 class IASPositionResult:
@@ -134,23 +155,9 @@ class IASPositionResult:
     distance: float
     distance_unit: str
     density_unit: str
-    requested_mode: Literal["boundary", "minimum"]
-    method: Literal[
-        "homonuclear_midpoint",
-        "equal_proatom_density",
-        "cutoff_gap_midpoint",
-        "promolecular_density_minimum",
-        "none",
-    ]
-    status: Literal[
-        "ok",
-        "low_density_gap",
-        "one_atom_dominates",
-        "no_resolved_interior_minimum",
-        "boundary_dominated",
-        "ambiguous_competing_minima",
-        "search_unstable",
-    ]
+    requested_mode: _IASRequestedMode
+    method: _IASMethod
+    status: _IASStatus
     position_from_a: float | None
     position_from_b: float | None
     fraction_from_a: float | None
@@ -161,9 +168,9 @@ class IASPositionResult:
     cutoff_radius_a: float
     cutoff_radius_b: float
     contour_separation: float
-    cutoff_regime: Literal["overlap", "contact", "gap"]
+    cutoff_regime: _CutoffRegime
     dominant_atom: str | None
-    dominant_atom_role: Literal["atom_a", "atom_b"] | None
+    dominant_atom_role: _DominantAtomRole | None
     alternative_position_from_a: float | None
     alternative_position_from_b: float | None
     alternative_rho_sum: float | None
@@ -212,6 +219,18 @@ def _coerce_public_max_radius(storage: Mapping[str, object], ref: DatasetRef) ->
         raise DatasetError(f"invalid public radius limit for dataset: {ref!r}") from exc
     if not math.isfinite(public_max) or public_max <= 0.0:
         raise DatasetError(f"invalid public radius limit for dataset: {ref!r}")
+    return public_max
+
+
+def _dataset_public_max_radius_bohr(dataset: ElementRadialSet) -> float:
+    """Validate and return one dataset's declared public radius limit."""
+
+    storage = _require_storage(dataset.info)
+    public_max = _coerce_public_max_radius(storage, dataset.ref)
+    if not dataset.radii or public_max > dataset.radii[-1]:
+        raise DatasetError(
+            f"radial grid does not bracket the public limit for {dataset.ref!r}"
+        )
     return public_max
 
 
@@ -275,7 +294,6 @@ class ProatomicDensityProfile:
             )
         object.__setattr__(self, "symbol", element.symbol)
 
-        storage = _require_storage(self.dataset.info)
         radii = self.dataset.radii
         densities = self.dataset.get(self.atomic_number)
         if densities is None:
@@ -301,12 +319,7 @@ class ProatomicDensityProfile:
                 f"{self.dataset.ref!r}, Z={self.atomic_number}"
             )
 
-        public_max = _coerce_public_max_radius(storage, self.dataset.ref)
-        if public_max > radii[-1]:
-            raise DatasetError(
-                f"radial grid does not bracket the public limit for "
-                f"{self.dataset.ref!r}"
-            )
+        public_max = _dataset_public_max_radius_bohr(self.dataset)
 
         object.__setattr__(self, "_densities", densities)
         object.__setattr__(self, "_log_radii", tuple(math.log(r) for r in radii))
@@ -497,6 +510,8 @@ def _radius_to_bohr(
 
     if radius_unit not in {"angstrom", "bohr"}:
         raise ValueError(f"unknown radius unit: {radius_unit!r}")
+    if isinstance(radius, bool):
+        raise ValueError("radius must be a finite non-negative scalar")
     try:
         value = float(radius)
     except (TypeError, ValueError) as exc:
@@ -606,6 +621,16 @@ def get_proatomic_density_set(
     return loaded
 
 
+def _resolve_proatomic_density_set(
+    set_id: str,
+) -> tuple[ProatomicDensitySet, float]:
+    """Resolve and load one selected proatomic-density dataset."""
+
+    info = get_proatomic_density_set_info(set_id)
+    dataset = get_proatomic_density_set(info.ref.set_id)
+    return dataset, _dataset_public_max_radius_bohr(dataset)
+
+
 @lru_cache(maxsize=None)
 def _get_element_by_atomic_number_cached(
     atomic_number: int,
@@ -689,11 +714,10 @@ def get_proatomic_density_profile(
         scalar [ValuePolicy][atomref.ValuePolicy] is applied.
     """
 
+    dataset, _ = _resolve_proatomic_density_set(set_id)
     resolved = _resolve_density_element(element)
     if resolved is None:
         return None
-    info = get_proatomic_density_set_info(set_id)
-    dataset = get_proatomic_density_set(info.ref.set_id)
     if dataset.get(resolved.z) is None:
         return None
     return _get_profile_cached(dataset.ref, resolved.z)
@@ -740,12 +764,20 @@ def get_proatomic_density(
         dependency-free, with no extrapolation beyond 20 bohr.
     """
 
-    profile = get_proatomic_density_profile(element, set_id=set_id)
-    if profile is None:
-        return None
-    return profile(
+    dataset, public_max_radius_bohr = _resolve_proatomic_density_set(set_id)
+    radius_bohr = _radius_to_bohr(
         radius,
         radius_unit=radius_unit,
+        public_max_bohr=public_max_radius_bohr,
+    )
+    _density_from_native(1.0, density_unit=density_unit)
+
+    resolved = _resolve_density_element(element)
+    if resolved is None or dataset.get(resolved.z) is None:
+        return None
+    profile = _get_profile_cached(dataset.ref, resolved.z)
+    return _density_from_native(
+        profile._evaluate_bohr(radius_bohr),
         density_unit=density_unit,
     )
 
@@ -792,9 +824,9 @@ class _MinimumPass:
 class _NativeIASResult:
     """Pairwise result before requested orientation and unit conversion."""
 
-    requested_mode: str
-    method: str
-    status: str
+    requested_mode: _IASRequestedMode
+    method: _IASMethod
+    status: _IASStatus
     position_bohr: float | None
     rho_a: float | None
     rho_b: float | None
@@ -802,8 +834,8 @@ class _NativeIASResult:
     cutoff_radius_a_bohr: float
     cutoff_radius_b_bohr: float
     contour_separation_bohr: float
-    cutoff_regime: str
-    dominant_side: str | None = None
+    cutoff_regime: _CutoffRegime
+    dominant_side: _NativeDominantSide | None = None
     alternative_position_bohr: float | None = None
     alternative_rho_sum: float | None = None
     relative_depth_gap: float | None = None
@@ -1004,7 +1036,7 @@ def _cutoff_regime(
     distance_bohr: float,
     cutoff_radius_a_bohr: float,
     cutoff_radius_b_bohr: float,
-) -> tuple[float, str]:
+) -> tuple[float, _CutoffRegime]:
     """Return signed contour separation and its exact-sign regime."""
 
     radius_sum = cutoff_radius_a_bohr + cutoff_radius_b_bohr
@@ -1020,7 +1052,7 @@ def _equal_contribution_position(
     profile_a: _PreparedPairwiseProfile,
     profile_b: _PreparedPairwiseProfile,
     distance_bohr: float,
-) -> tuple[float | None, str | None]:
+) -> tuple[float | None, _NativeDominantSide | None]:
     """Solve the continuous log-density equality by bracketed bisection."""
 
     def difference(position: float) -> float:
@@ -1526,7 +1558,7 @@ def _native_minimum_estimate(
         )
         ambiguous = relative_depth_gap <= _COMPETITIVE_RELATIVE_DEPTH
 
-    status = "ambiguous_competing_minima" if ambiguous else "ok"
+    status: _IASStatus = "ambiguous_competing_minima" if ambiguous else "ok"
     if not search_converged:
         status = "search_unstable"
 
@@ -1660,7 +1692,7 @@ def _assemble_pairwise_result(
         cutoff_b_native = native.cutoff_radius_b_bohr
 
     dominant_atom = None
-    dominant_atom_role = None
+    dominant_atom_role: _DominantAtomRole | None = None
     if native.dominant_side is not None:
         canonical_dominant = (
             canonical_profile_a
@@ -1679,9 +1711,9 @@ def _assemble_pairwise_result(
         distance=requested_distance,
         distance_unit=distance_unit,
         density_unit=density_unit,
-        requested_mode=native.requested_mode,  # type: ignore[arg-type]
-        method=native.method,  # type: ignore[arg-type]
-        status=native.status,  # type: ignore[arg-type]
+        requested_mode=native.requested_mode,
+        method=native.method,
+        status=native.status,
         position_from_a=position_a,
         position_from_b=position_b,
         fraction_from_a=fraction_a,
@@ -1694,9 +1726,9 @@ def _assemble_pairwise_result(
         cutoff_radius_a=cutoff_a_native * distance_factor,
         cutoff_radius_b=cutoff_b_native * distance_factor,
         contour_separation=native.contour_separation_bohr * distance_factor,
-        cutoff_regime=native.cutoff_regime,  # type: ignore[arg-type]
+        cutoff_regime=native.cutoff_regime,
         dominant_atom=dominant_atom,
-        dominant_atom_role=dominant_atom_role,  # type: ignore[arg-type]
+        dominant_atom_role=dominant_atom_role,
         alternative_position_from_a=alternative_a,
         alternative_position_from_b=alternative_b,
         alternative_rho_sum=(
@@ -1737,12 +1769,13 @@ def _estimate_pairwise(
     )
     _density_output_factor(density_unit)
 
+    dataset, _ = _resolve_proatomic_density_set(set_id)
+
     resolved_a = _resolve_density_element(atom_a)
     resolved_b = _resolve_density_element(atom_b)
     if resolved_a is None or resolved_b is None:
         return None
 
-    dataset = get_proatomic_density_set(set_id)
     if dataset.get(resolved_a.z) is None or dataset.get(resolved_b.z) is None:
         return None
     requested_profile_a = _get_profile_cached(dataset.ref, resolved_a.z)

@@ -36,6 +36,8 @@
   hashes remain identified with the packaged registry metadata.
 - Kept the PEP 561 marker and corrected inline annotations so the package passes
   strict mypy checking against its minimum supported Python 3.10 target.
+- Validate proatomic-density datasets, units, and radii before missing-profile
+  fallback, and reject boolean radii explicitly.
 
 ### Packaging
 

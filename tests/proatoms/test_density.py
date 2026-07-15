@@ -249,6 +249,54 @@ def test_negative_and_non_finite_radii_raise(radius: float) -> None:
         ar.get_proatomic_density("O", radius, radius_unit="bohr")
 
 
+@pytest.mark.parametrize(
+    "radius",
+    [
+        -1.0,
+        math.nan,
+        math.inf,
+        -math.inf,
+        math.nextafter(20.0, math.inf),
+        [1.0],
+        object(),
+        True,
+        False,
+    ],
+    ids=[
+        "negative",
+        "nan",
+        "positive-infinity",
+        "negative-infinity",
+        "above-public-limit",
+        "nonscalar",
+        "nonconvertible",
+        "true",
+        "false",
+    ],
+)
+def test_missing_profile_does_not_hide_invalid_radius(radius: object) -> None:
+    with pytest.raises(ValueError, match="radius"):
+        ar.get_proatomic_density("Og", radius, radius_unit="bohr")
+
+
+@pytest.mark.parametrize("radius", [True, False])
+@pytest.mark.parametrize("api", ["evaluate", "call", "accessor"])
+def test_boolean_radii_are_rejected_by_every_density_api(
+    radius: bool,
+    api: str,
+) -> None:
+    profile = ar.get_proatomic_density_profile("O")
+    assert profile is not None
+
+    with pytest.raises(ValueError, match="radius"):
+        if api == "evaluate":
+            profile.evaluate(radius, radius_unit="bohr")
+        elif api == "call":
+            profile(radius, radius_unit="bohr")
+        else:
+            ar.get_proatomic_density("O", radius, radius_unit="bohr")
+
+
 def test_unknown_units_raise() -> None:
     with pytest.raises(ValueError, match="unknown radius unit"):
         ar.get_proatomic_density("O", 1.0, radius_unit="meter")
@@ -352,6 +400,30 @@ def test_documented_units_are_function_defaults() -> None:
 def test_missing_density_dataset_raises_dataset_error() -> None:
     with pytest.raises(DatasetError, match="unknown dataset id"):
         ar.get_proatomic_density_profile("O", set_id="missing")
+
+
+def test_profile_validates_dataset_before_missing_element() -> None:
+    with pytest.raises(DatasetError, match="unknown dataset id"):
+        ar.get_proatomic_density_profile("Xx", set_id="missing")
+
+
+def test_density_validates_dataset_before_missing_element() -> None:
+    with pytest.raises(DatasetError, match="unknown dataset id"):
+        ar.get_proatomic_density("Xx", 1.0, set_id="missing")
+
+
+def test_missing_profile_does_not_hide_invalid_radius_unit() -> None:
+    with pytest.raises(ValueError, match="unknown radius unit"):
+        ar.get_proatomic_density("Og", 1.0, radius_unit="meter")
+
+
+def test_missing_profile_does_not_hide_invalid_density_unit() -> None:
+    with pytest.raises(ValueError, match="unknown density unit"):
+        ar.get_proatomic_density(
+            "Og",
+            1.0,
+            density_unit="electron/meter^3",
+        )
 
 
 def test_scalar_accessors_remain_narrow_after_density_use() -> None:

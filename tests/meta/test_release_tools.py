@@ -329,8 +329,7 @@ def test_docs_workflows_suppress_material_banner(workflow: Path) -> None:
 def test_workflows_use_current_node_action_generations(workflow: Path) -> None:
     text = workflow.read_text(encoding="utf-8")
 
-    assert "actions/checkout@v6" in text
+    assert "actions/checkout@v7" in text
     assert "actions/setup-python@v6" in text
     assert "actions/checkout@v4" not in text
-    assert "actions/checkout@v7" not in text
     assert "actions/setup-python@v5" not in text
