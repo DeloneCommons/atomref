@@ -14,7 +14,7 @@ A few terms appear repeatedly in the API and docs:
 - **quantity** — the operational property family being requested.
 - **domain** — the lookup key space. In the current runtime that means
   `element`, so lookups are keyed by element symbol.
-- **dataset** — a curated named table inside one quantity.
+- **dataset** — a curated named source payload inside one quantity.
 - **policy** — the ordered rule set used to resolve missing values.
 
 The quantity and dataset live in the curated registry. The policy is the

@@ -5,8 +5,8 @@ sources.
 
 In the current runtime the built-in models are:
 
-- direct substitution (`SubstitutionTransfer`),
-- one-predictor linear transfer (`LinearTransfer`).
+- direct substitution ([SubstitutionTransfer][atomref.SubstitutionTransfer]),
+- one-predictor linear transfer ([LinearTransfer][atomref.LinearTransfer]).
 
 A transfer source may be:
 
@@ -37,3 +37,14 @@ against a partial covalent-radii policy that is itself completed from a broader
 support set.
 
 ::: atomref.transfer
+    options:
+      members:
+        - TransferValueSource
+        - SupportsValuePolicy
+        - LinearFit
+        - SubstitutionTransfer
+        - LinearTransfer
+        - TransferModel
+      filters:
+        - "!^_[^_]"
+        - "!^__post_init__$"

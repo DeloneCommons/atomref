@@ -1,7 +1,7 @@
 # X–H bond length
 
-The `xh_bond_length` quantity is a small provisional addition in the current
-release line.
+The `xh_bond_length` quantity intentionally covers a narrow set of reference
+data.
 
 Its purpose is not to claim a complete literature survey of X–H bond lengths.
 Instead, it provides a stable, provenance-aware starting point for
@@ -34,6 +34,6 @@ That means the package draws a sharp line between:
 
 ## Scope note
 
-This is intentionally a small addendum rather than full X–H support.
-Broader X–H datasets, richer policies, and more complete literature treatment
-are planned for `0.2.x`.
+This is intentionally a small feature rather than a complete literature model
+of X–H bonding. The documented sparse target and explicit fitted policy do not
+claim broader X–H coverage or environment-specific bond lengths.

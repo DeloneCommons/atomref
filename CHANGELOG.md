@@ -1,5 +1,124 @@
 # Changelog
 
+## 0.2.1 - 2026-07-15
+
+### Added
+
+- Complete structured public API documentation with rendered typed signatures,
+  parameters, returns, raised errors, attributes, examples, and cross-references.
+- Repository-level `CITATION.cff` metadata for citing `atomref` directly as
+  software, without a preferred paper citation, and with the bundled-data
+  licensing boundary recorded in its abstract.
+- Clean built-wheel installation checks for the base package, `notebooks`, and
+  `all` extras.
+
+### Changed
+
+- Renamed the optional `notebook` extra to `notebooks`, which describes the
+  shipped notebook collection without implying installation of the Jupyter
+  Notebook server application.
+- Made `all` the exact deduplicated union of `test`, `notebooks`, `docs`, and
+  `dev`, including every optional dependency declared by the project.
+- Added Python 3.14 to the test matrix and package classifiers.
+- Repositioned the documentation home page and generated README around rapid
+  installation, first use, scientific provenance, and adoption by downstream
+  structure-analysis software.
+- Rendered the maintained `.ipynb` notebooks directly in MkDocs with committed
+  Markdown, code, mathematics, text output, and PNG plots.
+- Replaced the bespoke notebook execution/export path with bounded, isolated
+  standard Jupyter workers that execute temporary copies and discard their
+  results. Kernel startup, cell execution, cleanup, and process exit are all
+  contained by explicit time limits.
+- Clarified that release readiness was reviewed against project criteria rather
+  than claiming independent external review.
+- Corrected citation and documentation wording so `NOTICE.md` is described as
+  the license, attribution, and DOI record, while exact source and payload
+  hashes remain identified with the packaged registry metadata.
+- Kept the PEP 561 marker and corrected inline annotations so the package passes
+  strict mypy checking against its minimum supported Python 3.10 target.
+- Validate proatomic-density datasets, units, and radii before missing-profile
+  fallback, and reject boolean radii explicitly.
+
+### Packaging
+
+- Declared the renderer, execution client, notebook format library, kernel, and
+  plotting library in `notebooks`; clean-install validation now verifies that
+  `all` exactly combines every component extra.
+- Included `CITATION.cff` in source distributions and require an exact copy
+  during artifact validation.
+- Updated CI, source-distribution checks, and release preparation for the final
+  single-source notebook layout, bounded notebook-process lifecycle, and
+  isolated artifact installations.
+- Kept MkDocs below version 2 across documentation and notebook-related extras,
+  and suppressed Material's MkDocs 2 migration banner in automated strict
+  builds.
+- Build release artifacts from a clean committed-source extraction and reject
+  nonstandard executable modes on ordinary wheel and source-distribution files.
+- Use an explicit safe tar extraction filter where supported when reconstructing
+  the committed source tree, avoiding Python 3.14's implicit-filter warning.
+- Restrict the CI workflow to read-only repository-content permissions.
+- Added strict mypy and CFF 1.2 schema validation to CI and the local release
+  gate, with repository-specific citation checks retained for atomref metadata.
+- Updated the checkout and Python-setup GitHub Actions to their current Node 24
+  generations.
+- Removed generated notebook Markdown, the custom exporter, export-sync tests,
+  and the duplicate documentation copy of the development plan.
+- Clarified the mixed LGPL-3.0-or-later software and CC BY 4.0 bundled-data
+  licensing boundary in the shipped notice and citation metadata.
+
+### Scientific behavior
+
+- No density values, cutoff radii, pairwise modes, selected coordinates,
+  statuses, packaged scientific data, or other numerical behavior changed.
+
+## 0.2.0 - 2026-07-14
+
+### Added
+
+- A packaged, immutable neutral H–Lr spherical proatomic-density dataset derived
+  reproducibly from `atomref-proatoms` 2.0.0 dataset
+  `pbe0_sfx2c_dyallv4z_h-lr_spherical_v2`, with exact source, basis, license,
+  hash, and DOI metadata.
+- Cached profile retrieval and dependency-free scalar density evaluation with
+  independent radius and density units, positive-region log–log interpolation,
+  and a strict 0–20 bohr public radius domain.
+- `estimate_proatomic_boundary()` for the stable neutral-proatom divider and
+  `estimate_promolecular_density_minimum()` for the optional cutoff-bounded,
+  resolution-limited promolecular line-density minimum proxy.
+- `estimate_ias_position()` with explicit `boundary` and `minimum` modes;
+  `boundary` is the default and minimum mode never silently falls back to it.
+- Immutable `IASPositionResult` values with coordinates, explicit diagnostic
+  statuses, component densities, cutoff/search information, units, and
+  numerical/data provenance.
+- Executed method-selection and feature notebooks with saved outputs and plots.
+
+### Changed
+
+- `get_builtin_set()` now dispatches both scalar CSV and shared-grid radial ZIP
+  datasets through the same registry machinery. Existing scalar policies,
+  radii values, X–H behavior, and `0.1.x` APIs remain unchanged.
+- The package now identifies itself as version `0.2.0` and includes proatomic
+  density, electron density, interatomic-surface, and IAS discovery keywords.
+
+### Documentation
+
+- Added the neutral proatomic-density and pairwise guide, complete
+  `atomref.proatoms` API reference, exact cutoff/range/unit/status guidance, and
+  links to the saved release notebooks.
+- Updated the home page and architecture description for radial datasets and
+  the accepted two-mode pairwise API without performing the broader planned
+  documentation redesign.
+
+### Packaging
+
+- Included the deterministic proatomic-density ZIP in wheels and source
+  distributions and added independent content validation.
+- Added an optional `notebook` extra for Matplotlib; runtime dependencies remain
+  empty.
+- Extended CI, notebook checks, distribution-content checks, release checks,
+  and clean-wheel smoke tests for density evaluation, both pairwise modes, and
+  dispatcher equivalence.
+
 ## 0.1.4 - 2026-03-15
 
 ### Added

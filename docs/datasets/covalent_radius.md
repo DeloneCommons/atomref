@@ -6,7 +6,7 @@ legacy support dataset.
 
 ## Cordero covalent radii (`cordero2008`)
 
-This is the main covalent-radius target set in the current release line.
+This is the default built-in covalent-radius target set.
 
 - **What it is:** a broad covalent-radius compilation based mainly on
   crystallographic bond distances.

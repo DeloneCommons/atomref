@@ -5,14 +5,24 @@ build-backend = "hatchling.build"
 [project]
 name = "atomref"
 dynamic = ["version"]
-description = "Curated atomic reference data and transfer policies for geometry and structure-analysis algorithms."
+description = "Curated atomic reference data, proatomic densities, and transfer policies for structure algorithms."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [
   { name = "Ivan Yu. Chernyshov", email = "ivan.chernyshoff@gmail.com" }
 ]
-keywords = ["chemistry", "materials", "crystallography", "reference data", "atomic radii"]
+keywords = [
+  "chemistry",
+  "materials",
+  "crystallography",
+  "reference data",
+  "atomic radii",
+  "proatomic density",
+  "electron density",
+  "interatomic surfaces",
+  "IAS",
+]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
@@ -25,6 +35,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Operating System :: OS Independent",
   "Typing :: Typed",
 ]
@@ -36,24 +47,51 @@ Documentation = "https://delonecommons.github.io/atomref/"
 Repository = "https://github.com/DeloneCommons/atomref"
 Issues = "https://github.com/DeloneCommons/atomref/issues"
 Changelog = "https://github.com/DeloneCommons/atomref/blob/main/CHANGELOG.md"
+Citation = "https://github.com/DeloneCommons/atomref/blob/main/CITATION.cff"
 
 [project.optional-dependencies]
 test = [
   "pytest>=7",
   "tomli>=2; python_version < '3.11'",
 ]
+notebooks = [
+  "ipykernel>=6.29",
+  "matplotlib>=3.8",
+  "mkdocs>=1.6,<2",
+  "mkdocs-jupyter>=0.26,<0.27",
+  "nbclient>=0.10,<0.12",
+  "nbformat>=5.10,<6",
+]
 docs = [
   "mkdocs>=1.6,<2",
   "mkdocs-material>=9.5",
   "mkdocstrings[python]>=0.25",
-  "mkdocs-include-markdown-plugin>=6.2",
   "pymdown-extensions>=10.0",
-  "tomli>=2; python_version < '3.11'",
 ]
 dev = [
   "build>=1.2",
   "twine>=5",
   "flake8>=7",
+  "mypy>=2.3,<3",
+  "cffconvert==2.0.0",
+]
+all = [
+  "pytest>=7",
+  "tomli>=2; python_version < '3.11'",
+  "ipykernel>=6.29",
+  "matplotlib>=3.8",
+  "mkdocs>=1.6,<2",
+  "mkdocs-jupyter>=0.26,<0.27",
+  "nbclient>=0.10,<0.12",
+  "nbformat>=5.10,<6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.25",
+  "pymdown-extensions>=10.0",
+  "build>=1.2",
+  "twine>=5",
+  "flake8>=7",
+  "mypy>=2.3,<3",
+  "cffconvert==2.0.0",
 ]
 
 [tool.hatch.version]
@@ -64,6 +102,7 @@ packages = ["src/atomref"]
 include = [
   "src/atomref/data/*.csv",
   "src/atomref/data/*.json",
+  "src/atomref/data/*.zip",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -72,11 +111,12 @@ include = [
   "/tests",
   "/docs",
   "/tools",
-  "/notebooks",
+  "/.flake8",
   "/mkdocs.yml",
   "/README.md",
   "/CHANGELOG.md",
   "/DEV_PLAN.md",
+  "/CITATION.cff",
   "/NOTICE.md",
   "/LICENSE",
   "/COPYING",
@@ -95,3 +135,7 @@ norecursedirs = [
   ".eggs",
   "*.egg-info",
 ]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true

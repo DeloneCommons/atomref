@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use atomref, please cite this software."
+title: "atomref"
+type: software
+authors:
+  - family-names: "Chernyshov"
+    given-names: "Ivan Yu."
+    email: "ivan.chernyshoff@gmail.com"
+version: "0.2.1"
+date-released: 2026-07-15
+repository-code: "https://github.com/DeloneCommons/atomref"
+url: "https://delonecommons.github.io/atomref/"
+license: "LGPL-3.0-or-later"
+abstract: >-
+  A dependency-free-core Python package for curated atomic reference data,
+  spherical neutral proatomic electron-density profiles, provenance-aware
+  lookup policies, and pairwise reference-atom boundary estimators. The
+  bundled neutral proatomic-density snapshot is licensed under CC BY 4.0; see
+  NOTICE.md for the exact licensing boundary, attribution, and source DOIs.
+  The exact source commit and SHA-256 hashes are recorded in the packaged
+  registry metadata.
+keywords:
+  - chemistry
+  - crystallography
+  - atomic reference data
+  - proatomic density
+  - electron density
+  - interatomic surfaces

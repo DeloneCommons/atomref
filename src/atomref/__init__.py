@@ -1,4 +1,4 @@
-"""Public package exports for :mod:`atomref`."""
+"""Public package exports for `atomref`."""
 
 from .__about__ import __version__
 from .elements import (
@@ -9,6 +9,24 @@ from .elements import (
     is_valid_element_symbol,
 )
 from .policy import LookupResult, ValuePolicy, get_value, lookup_value
+from .proatoms import (
+    BOHR_TO_ANGSTROM,
+    DEFAULT_PROATOMIC_DENSITY_SET,
+    IAS_MINIMUM_RESOLUTION_BOHR,
+    PROATOMIC_TAIL_CUTOFF,
+    IASPositionResult,
+    ProatomicDensityProfile,
+    ProatomicDensitySet,
+    estimate_ias_position,
+    estimate_proatomic_boundary,
+    estimate_promolecular_density_minimum,
+    get_proatomic_density,
+    get_proatomic_density_profile,
+    get_proatomic_density_set,
+    get_proatomic_density_set_info,
+    list_proatomic_density_set_infos,
+    list_proatomic_density_sets,
+)
 from .radii import (
     DEFAULT_COVALENT_POLICY,
     DEFAULT_VDW_POLICY,
@@ -36,9 +54,11 @@ from .xh import (
     lookup_xh_bond_length,
 )
 from .registry import (
+    BuiltinSet,
     CoverageInfo,
     DatasetInfo,
     DatasetRef,
+    ElementRadialSet,
     ElementScalarSet,
     QuantityInfo,
     Reference,
@@ -58,9 +78,11 @@ __all__ = [
     "get_element",
     "iter_elements",
     "is_valid_element_symbol",
+    "BuiltinSet",
     "CoverageInfo",
     "DatasetInfo",
     "DatasetRef",
+    "ElementRadialSet",
     "ElementScalarSet",
     "QuantityInfo",
     "Reference",
@@ -77,6 +99,22 @@ __all__ = [
     "ValuePolicy",
     "lookup_value",
     "get_value",
+    "BOHR_TO_ANGSTROM",
+    "DEFAULT_PROATOMIC_DENSITY_SET",
+    "PROATOMIC_TAIL_CUTOFF",
+    "IAS_MINIMUM_RESOLUTION_BOHR",
+    "IASPositionResult",
+    "ProatomicDensityProfile",
+    "ProatomicDensitySet",
+    "estimate_proatomic_boundary",
+    "estimate_promolecular_density_minimum",
+    "estimate_ias_position",
+    "list_proatomic_density_sets",
+    "list_proatomic_density_set_infos",
+    "get_proatomic_density_set",
+    "get_proatomic_density_set_info",
+    "get_proatomic_density_profile",
+    "get_proatomic_density",
     "RadiiPolicy",
     "RadiiElementAssessment",
     "RadiiPolicyAssessment",

@@ -8,13 +8,36 @@ theme:
 
 plugins:
   - search
+  - mkdocs-jupyter:
+      execute: false
+      allow_errors: false
+      include_source: true
+      cache: false
+      custom_mathjax_url: https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS_CHTML-full,Safe
   - mkdocstrings:
       handlers:
         python:
           paths: [src]
           options:
+            docstring_style: google
             show_root_heading: true
             show_source: false
+            show_signature: true
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            annotations_path: brief
+            show_docstring_parameters: true
+            show_docstring_returns: true
+            show_docstring_raises: true
+            show_docstring_attributes: true
+            show_docstring_examples: true
+            docstring_options:
+              returns_multiple_items: false
+            filters:
+              - "!^_[^_]"
+              - "!^__post_init__$"
 
 nav:
   - Home: index.md
@@ -23,6 +46,7 @@ nav:
       - Quickstart: guide/quickstart.md
       - Policies: guide/policies.md
       - Custom sets: guide/custom_sets.md
+      - Proatomic density: guide/proatomic_density.md
       - Non-goals: guide/non_goals.md
   - Datasets:
       - Overview: datasets/index.md
@@ -32,19 +56,23 @@ nav:
       - X–H bond length: datasets/xh_bond_length.md
   - Notebooks:
       - Overview: guide/notebooks.md
-      - Quickstart notebook: notebooks/01-quickstart.md
-      - Policies and assessment notebook: notebooks/02-policies-and-assessment.md
-      - Custom sets and discovery notebook: notebooks/03-custom-sets-and-discovery.md
+      - Quickstart notebook: notebooks/01-quickstart.ipynb
+      - Policies and assessment notebook: notebooks/02-policies-and-assessment.ipynb
+      - Custom sets and discovery notebook: notebooks/03-custom-sets-and-discovery.ipynb
+      - IAS method-selection study: notebooks/04-ias-method-selection-study.ipynb
+      - Proatomic density and IAS: notebooks/05-proatomic-density-and-ias.ipynb
   - Development:
       - Architecture: dev/architecture.md
       - Data curation: dev/data_curation.md
-      - Development plan: dev/dev_plan.md
+      - IAS method selection: dev/ias_method_selection.md
   - API:
       - Overview: api/index.md
       - atomref: api/atomref.md
       - atomref.elements: api/elements.md
+      - atomref.errors: api/errors.md
       - atomref.registry: api/registry.md
       - atomref.transfer: api/transfer.md
       - atomref.policy: api/policy.md
+      - atomref.proatoms: api/proatoms.md
       - atomref.radii: api/radii.md
       - atomref.xh: api/xh.md

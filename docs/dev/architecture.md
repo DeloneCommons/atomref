@@ -1,16 +1,19 @@
 # Architecture
 
-Publicly, `atomref` is still radii-first, with a small provisional X–H helper.
+Publicly, `atomref` provides scalar radii and X–H reference workflows together
+with neutral radial proatomic-density evaluation and two explicit pairwise
+neutral-proatom modes.
 
 Internally, the package is built around four layers:
 
 1. **elements** — stable element metadata and symbol canonicalization,
-2. **registry** — curated quantity and dataset metadata plus packaged data
-   loading,
+2. **registry** — curated quantity and dataset metadata plus generic packaged
+   scalar/radial data loading,
 3. **policy core** — generic value selection with overrides, transfers,
    fallbacks, blocked keys, and provenance,
-4. **quantity wrappers** — convenience APIs such as `atomref.radii` and
-   `atomref.xh`.
+4. **quantity features** — scalar convenience APIs such as `atomref.radii` and
+   `atomref.xh`, plus immutable radial profiles and pairwise analysis in
+   `atomref.proatoms`.
 
 ## Core terminology
 
@@ -18,7 +21,7 @@ A few terms are deliberately separated in the design:
 
 - **quantity** — the operational property family being requested,
 - **domain** — the key space used to index that quantity,
-- **dataset** — one curated source table inside the quantity,
+- **dataset** — one curated source payload inside the quantity,
 - **policy** — the ordered rule set used to select a final value.
 
 This separation is what allows the package to say, for example, that
@@ -32,11 +35,20 @@ implements only one domain:
 
 - `element`
 
-That means:
+Packaged element data currently use two explicit storage kinds:
 
-- packaged built-in sets are currently element-indexed scalar tables,
-- `ValuePolicy` resolves element symbols,
-- transfer fitting is performed over element-wise overlap.
+- `element_scalar_csv` for dense-by-Z scalar tables,
+- `element_radial_csv_zip` for a single-member ZIP containing shared-grid
+  radial profiles.
+
+`get_builtin_set()` dispatches both kinds and returns the `BuiltinSet` union of
+`ElementScalarSet` and `ElementRadialSet`. Scalar consumers narrow that union
+through `resolve_scalar_dataset_like()`.
+
+The policy and transfer machinery remains intentionally scalar-only:
+`ValuePolicy` resolves element scalars and transfer fitting uses element-wise
+scalar overlap. Radial profiles receive no `ValuePolicy`, substitution, or
+linear-transfer behavior.
 
 The metadata keeps `domain` explicit now so later versions can extend the data
 model without having to reinterpret existing registry entries.
@@ -106,4 +118,23 @@ placeholder status itself. Instead, its provenance is carried by
 The package deliberately avoids a large object graph or a chemistry-specific DSL.
 A quantity wrapper is usually only a thin adapter over the generic policy core.
 That keeps the internals easy to test and lets other scientific packages reuse
-`atomref` without bringing in the rest of the Delone Commons stack.
+`atomref` without requiring a larger application stack.
+
+## Documentation and distribution boundary
+
+The five files under `docs/notebooks/` are both the maintained Jupyter sources
+and their documentation pages. `mkdocs-jupyter` renders their committed state
+with execution disabled; `tools/check_notebooks.py` exercises temporary copies
+one at a time through isolated, time-bounded standard Jupyter processes and
+discards the results. Startup and cell timeouts remain separate, and a stalled
+kernel cleanup or process exit is force-contained before the checker fails.
+There is no exporter, generated notebook Markdown, source-copy step, or
+output-freshness contract.
+
+The wheel remains a focused runtime artifact containing package code, typing
+metadata, legal notices, and curated data. The source distribution additionally
+contains tests, tools, durable documentation, and the single notebook sources.
+Base, `notebooks`, and `all` installations are validated from the built wheel
+in separate temporary environments during release preparation. The `all`
+variant is checked as the exact union of every declared optional dependency
+group rather than as an alias for one feature group.
