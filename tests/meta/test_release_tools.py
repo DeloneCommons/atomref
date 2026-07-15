@@ -80,7 +80,6 @@ def test_dist_check_requires_release_tools_and_legacy_data() -> None:
     assert "tools/check_registry.py" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "tools/check_dist.py" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "CITATION.cff" in check_dist.REQUIRED_SDIST_SUFFIXES
-    assert ".zenodo.json" in check_dist.REQUIRED_SDIST_SUFFIXES
     assert "docs/notebooks/05-proatomic-density-and-ias.ipynb" in (
         check_dist.REQUIRED_SDIST_SUFFIXES
     )
@@ -274,6 +273,26 @@ def test_release_notebook_check_has_outer_timeout(
             {"timeout": release_check.NOTEBOOK_CHECK_TIMEOUT_SECONDS},
         )
     ]
+
+
+def test_release_source_archive_uses_explicit_safe_filter(
+    tmp_path: Path,
+) -> None:
+    calls: list[tuple[Path, dict[str, str]]] = []
+
+    class RecordingArchive:
+        def extractall(self, path: Path, **kwargs: str) -> None:
+            calls.append((path, kwargs))
+
+    archive = RecordingArchive()
+    release_check._extract_source_archive(archive, tmp_path)
+
+    expected_kwargs = (
+        {"filter": "data"}
+        if hasattr(release_check.tarfile, "data_filter")
+        else {}
+    )
+    assert calls == [(tmp_path, expected_kwargs)]
 
 
 @pytest.mark.parametrize(

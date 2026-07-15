@@ -100,6 +100,18 @@ def _normalize_source_modes(source_root: Path) -> None:
             path.chmod(0o644)
 
 
+def _extract_source_archive(
+    source_archive: tarfile.TarFile,
+    source_root: Path,
+) -> None:
+    """Extract a trusted Git archive with an explicit safe filter when available."""
+
+    if hasattr(tarfile, "data_filter"):
+        source_archive.extractall(source_root, filter="data")
+    else:  # pragma: no cover - extraction filters were added after Python 3.10
+        source_archive.extractall(source_root)
+
+
 def _build_from_committed_head() -> None:
     """Build artifacts from a normalized temporary extraction of ``HEAD``."""
 
@@ -117,7 +129,7 @@ def _build_from_committed_head() -> None:
             "HEAD",
         )
         with tarfile.open(archive, mode="r:") as source_archive:
-            source_archive.extractall(source_root)
+            _extract_source_archive(source_archive, source_root)
         _normalize_source_modes(source_root)
         _run(
             sys.executable,

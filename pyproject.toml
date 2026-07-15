@@ -113,7 +113,6 @@ include = [
   "/CHANGELOG.md",
   "/DEV_PLAN.md",
   "/CITATION.cff",
-  "/.zenodo.json",
   "/NOTICE.md",
   "/LICENSE",
   "/COPYING",

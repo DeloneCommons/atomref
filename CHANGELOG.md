@@ -7,10 +7,8 @@
 - Complete structured public API documentation with rendered typed signatures,
   parameters, returns, raised errors, attributes, examples, and cross-references.
 - Repository-level `CITATION.cff` metadata for citing `atomref` directly as
-  software, without a preferred paper citation.
-- Controlled `.zenodo.json` software-deposit metadata with the project creator,
-  primary LGPL-3.0-or-later license, mixed-license notice, keywords, and the
-  exact upstream proatomic-dataset DOI relation.
+  software, without a preferred paper citation, and with the bundled-data
+  licensing boundary recorded in its abstract.
 - Clean built-wheel installation checks for the base package, `notebooks`, and
   `all` extras.
 
@@ -39,8 +37,8 @@
 - Declared the renderer, execution client, notebook format library, kernel, and
   plotting library in `notebooks`; clean-install validation now verifies that
   `all` exactly combines every component extra.
-- Included `CITATION.cff` and `.zenodo.json` in source distributions and require
-  exact copies during artifact validation.
+- Included `CITATION.cff` in source distributions and require an exact copy
+  during artifact validation.
 - Updated CI, source-distribution checks, and release preparation for the final
   single-source notebook layout, bounded notebook-process lifecycle, and
   isolated artifact installations.
@@ -49,10 +47,13 @@
   builds.
 - Build release artifacts from a clean committed-source extraction and reject
   nonstandard executable modes on ordinary wheel and source-distribution files.
+- Use an explicit safe tar extraction filter where supported when reconstructing
+  the committed source tree, avoiding Python 3.14's implicit-filter warning.
+- Restrict the CI workflow to read-only repository-content permissions.
 - Removed generated notebook Markdown, the custom exporter, export-sync tests,
   and the duplicate documentation copy of the development plan.
 - Clarified the mixed LGPL-3.0-or-later software and CC BY 4.0 bundled-data
-  licensing boundary in the shipped notice and Zenodo description.
+  licensing boundary in the shipped notice and citation metadata.
 
 ### Scientific behavior
 

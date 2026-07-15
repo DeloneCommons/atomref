@@ -53,7 +53,6 @@ REQUIRED_SDIST_SUFFIXES = {
     "CHANGELOG.md",
     "DEV_PLAN.md",
     "CITATION.cff",
-    ".zenodo.json",
     "COPYING",
     "LICENSE",
     "NOTICE.md",
@@ -484,7 +483,7 @@ def check_sdist(path: Path) -> None:
         _assert_members_present(matched, REQUIRED_SDIST_SUFFIXES, label=path.name)
         _assert_sdist_layout(names, label=path.name)
 
-        for filename in ("README.md", "CITATION.cff", ".zenodo.json"):
+        for filename in ("README.md", "CITATION.cff"):
             root_member = _sdist_root_member(names, filename, label=path.name)
             root_file = tf.extractfile(root_member)
             if root_file is None:

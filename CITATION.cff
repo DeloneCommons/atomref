@@ -14,7 +14,10 @@ license: "LGPL-3.0-or-later"
 abstract: >-
   A dependency-free-core Python package for curated atomic reference data,
   spherical neutral proatomic electron-density profiles, provenance-aware
-  lookup policies, and pairwise reference-atom boundary estimators.
+  lookup policies, and pairwise reference-atom boundary estimators. The
+  bundled neutral proatomic-density snapshot is licensed under CC BY 4.0; see
+  NOTICE.md for the exact licensing boundary, attribution, source hashes, and
+  source DOIs.
 keywords:
   - chemistry
   - crystallography
